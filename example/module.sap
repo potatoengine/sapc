@@ -1,0 +1,12 @@
+attribute cxxname { string name; }
+attribute ignore { bool ignored = true; }
+
+[cxxname("std::string"), ignore]
+type string;
+[cxxname("int"), ignore]
+type int;
+[cxxname("bool"), ignore]
+type bool;
+[cxxname("std::any"), ignore]
+type any;
+

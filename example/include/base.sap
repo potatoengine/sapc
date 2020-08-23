@@ -1,0 +1,4 @@
+attribute name { string name; } # this is another comment
+
+[ignore, name("boolean")]
+type bool2;

@@ -1,0 +1,59 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request: []
+
+jobs:
+  build-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: 'msvc'
+            os: 'windows-latest'
+            cxx: 'cl.exe'
+            cc: 'cl.exe'
+            cxxflags: /FC /W3 /WX
+            config: Release
+          - name: 'gcc'
+            os: 'ubuntu-20.04'
+            cxx: g++-9
+            cc: gcc-9
+            cxxflags: -Wall -Werror
+            config: Release
+          - name: 'clang'
+            os: 'ubuntu-20.04'
+            cxx: clang++-9
+            cc: clang-9
+            cxxflags: -stdlib=libc++ -fdiagnostics-absolute-paths -Wall -Werror
+            config: Release
+
+    name: '${{ matrix.name }}'
+    runs-on: '${{ matrix.os }}'
+
+    steps:
+      - uses: actions/checkout@master
+        with:
+          lfs: true
+      - name: Install Problem Matchers
+        uses: Trass3r/setup-cpp@v1
+        if: matrix.config == 'Debug'
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v2
+      - name: Setup VS Environment
+        uses: seanmiddleditch/gha-setup-vsdevenv@v2
+      - name: Configure
+        env:
+          CXX: cl.exe
+          CC: cl.exe
+          CXXFLAGS: /FC /W3 /WX
+        run: |
+          mkdir build
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE:STRING=${{ matrix.config }}
+      - name: Build
+        run: cmake --build build --parallel -- -k 0 -v
+      - name: Install
+        run: cmake --install build

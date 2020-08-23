@@ -1,0 +1,19 @@
+# file header comment
+
+import module;
+
+include "include/base.sap"
+
+attribute default { any value = 0; }
+
+[name("Test")]
+type test {
+    [default]
+    int x = 0 # a comment
+    ;
+    string y = "y";
+    [ignore, name("fail")]
+    bool2 skipme = false;
+}
+
+type derived : test;
