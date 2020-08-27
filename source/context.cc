@@ -110,10 +110,6 @@ void rePushAttributeSet(struct reParseState* state) {
 }
 
 void reModuleName(struct reParseState* state, struct reID name, struct reLoc loc) {
-    // ignore duplicate module name declarations
-    if (!state->moduleName.empty())
-        return;
-
     auto moduleName = get_string(state, name);
 
     // module name should match filename
@@ -121,7 +117,11 @@ void reModuleName(struct reParseState* state, struct reID name, struct reLoc loc
     if (moduleName != expectedModule)
         state->error(state->location(loc), "module name '", moduleName, "' does not match filename '", state->pathStack.back().string(), '\'');
 
-    state->moduleName = get_string(state, name);
+    // ignore duplicate module name declarations
+    if (!state->moduleName.empty())
+        return;
+
+    state->moduleName = std::move(moduleName);
 }
 
 void reImport(reParseState* state, reID name, reLoc loc) {
