@@ -144,12 +144,12 @@ static int compile(Config& config) {
 
         deps_stream << config.output.string() << ": ";
 
-        auto const num_deps = parser.dependencies.size();
+        auto const num_deps = parser.fileDependencies.size();
         for (size_t i = 0; i != num_deps; ++i) {
             if (i != 0)
                 deps_stream << "  ";
 
-            deps_stream << parser.dependencies[i].string() << ' ';
+            deps_stream << parser.fileDependencies[i].string() << ' ';
 
             if (i != num_deps - 1)
                 deps_stream << '\\';

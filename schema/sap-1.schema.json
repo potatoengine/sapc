@@ -1,63 +1,71 @@
 {
-	"$id": "https://raw.githubusercontent.com/potatoengine/sapc/master/schema/sap-1.schema.json",
-	"$schema": "http://json-schema.org/draft-07/schema#",
-	"title": "sapc output schema",
-	"type": "object",
-	"required": [ "types" ],
-	"properties": {
-		"types": {
-			"type": "array",
-			"items": { "$ref": "#/definitions/type" }
-		}
-	},
-	"definitions": {
-		"type": {
-			"type": "object",
-			"required": [ "name", "fields" ],
-			"properties": {
-				"name": { "type": "string" },
-				"base": { "type": "string" },
-				"imported": { "type": "boolean" },
-				"attributes": { "$ref": "#/definitions/attributes" },
-				"fields": {
-					"type": "array",
-					"items": {
-						"type": "object",
-						"required": [ "name", "type" ],
-						"properties": {
-							"name": { "type": "string" },
-							"type": { "type": "string" },
-							"default": { "$ref": "#/definitions/value" },
-							"attributes": { "$ref": "#/definitions/attributes" }
-						}
-					}
-				}
-			}
-		},
-		"attributes": {
-			"type": "object",
-			"patternProperties": {
-				"^[a-zA-Z0-9_]+$": {
-					"type": "array",
-					"items": { "$ref": "#/definitions/attribute" }
-				}
-			}
-		},
-		"attribute": {
-			"type": "object",
-			"patternProperties": {
-				"^[a-zA-Z0-9_]+$": {
-					"$ref": "#/definitions/value"
-				}
-			}
-		},
-		"value": {
-			"oneOf": [
-				{ "type": "integer" },
-				{ "type": "string" },
-				{ "type": "boolean" },
-				{ "type": "null" }
-			]
-		}
-	}
+  "$id": "https://raw.githubusercontent.com/potatoengine/sapc/master/schema/sap-1.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "sapc output schema",
+  "type": "object",
+  "required": [ "module", "types" ],
+  "properties": {
+    "module": {
+      "type": "string"
+    },
+    "imports": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "types": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/type" }
+    }
+  },
+  "definitions": {
+    "type": {
+      "type": "object",
+      "required": [ "name", "fields" ],
+      "properties": {
+        "name": { "type": "string" },
+        "base": { "type": "string" },
+        "imported": { "type": "boolean" },
+        "is_attribute": { "type": "boolean" },
+        "attributes": { "$ref": "#/definitions/attributes" },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [ "name", "type" ],
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "type": "string" },
+              "default": { "$ref": "#/definitions/value" },
+              "attributes": { "$ref": "#/definitions/attributes" }
+            }
+          }
+        }
+      }
+    },
+    "attributes": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z0-9_]+$": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/attribute" }
+        }
+      }
+    },
+    "attribute": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z0-9_]+$": {
+          "$ref": "#/definitions/value"
+        }
+      }
+    },
+    "value": {
+      "oneOf": [
+        { "type": "integer" },
+        { "type": "string" },
+        { "type": "boolean" },
+        { "type": "null" }
+      ]
+    }
+  }
 }

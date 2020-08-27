@@ -43,6 +43,7 @@ nlohmann::json sapc::ParseState::to_json() {
 
     auto doc = json::object();
     doc["$schema"] = "https://raw.githubusercontent.com/potatoengine/sapc/master/schema/sap-1.schema.json";
+    doc["module"] = moduleName;
 
     auto attrs_to_json = [this](std::vector<Attribute> const& attributes) -> nlohmann::json {
         auto attrs_json = json::object();
@@ -69,11 +70,17 @@ nlohmann::json sapc::ParseState::to_json() {
         return attrs_json;
     };
 
+    auto modules_json = json::array();
+    for (auto const& module : imports)
+        modules_json.push_back(module);
+    doc["imports"] = std::move(modules_json);
+
     auto types_json = json::array();
     for (auto const& type : types) {
         auto type_json = json::object();
         type_json["name"] = type->name;
         type_json["imported"] = type->imported;
+        type_json["is_attribute"] = type->attribute;
         if (!type->base.empty())
             type_json["base"] = type->base;
         if (!type->attributes.empty())
@@ -140,7 +147,7 @@ bool sapc::ParseState::compile(std::filesystem::path filename) {
 }
 
 bool sapc::ParseState::compile(std::string contents, std::filesystem::path filename) {
-    dependencies.push_back(filename);
+    addDependency(filename);
     pathStack.push_back(filename);
     search.push_back(filename.remove_filename());
     bool const result = build(std::move(contents));
@@ -151,6 +158,18 @@ bool sapc::ParseState::compile(std::string contents, std::filesystem::path filen
     pathStack.pop_back();
 
     return !failed();
+}
+
+void sapc::ParseState::addDependency(std::filesystem::path filename) {
+    auto const compare = [&filename](auto const& dep) { return std::filesystem::equivalent(dep, filename); };
+    auto const it = find_if(begin(fileDependencies), end(fileDependencies), compare);
+    if (it == end(fileDependencies))
+        fileDependencies.push_back(std::move(filename));
+}
+
+void sapc::ParseState::addImport(std::string module_name) {
+    if (find(begin(imports), end(imports), module_name) == end(imports))
+        imports.push_back(std::move(module_name));
 }
 
 bool sapc::ParseState::build(std::string contents) {
@@ -181,8 +200,11 @@ bool sapc::ParseState::parse(std::string contents) {
     return rs == 0;
 }
 
-bool sapc::ParseState::importModule(std::filesystem::path path, reLoc loc) {
-    dependencies.push_back(path);
+bool sapc::ParseState::importModule(std::string module, reLoc loc) {
+    auto path = resolveModule(module);
+
+    addImport(module);
+    addDependency(path);
 
     std::ifstream stream(path);
     if (!stream) {
@@ -200,6 +222,12 @@ bool sapc::ParseState::importModule(std::filesystem::path path, reLoc loc) {
 
     for (auto& error : parser.errors)
         errors.push_back(std::move(error));
+
+    for (auto& path : parser.fileDependencies)
+        addDependency(std::move(path));
+
+    for (auto& mod_name : parser.imports)
+        addImport(std::move(mod_name));
 
     if (!parsed)
         error(loc, "errors encountered during import '", path.string(), '\'');
@@ -227,7 +255,11 @@ bool sapc::ParseState::importModule(std::filesystem::path path, reLoc loc) {
     return parsed;
 }
 
-bool sapc::ParseState::includeFile(std::filesystem::path path, reLoc loc) {
+bool sapc::ParseState::includeFile(std::filesystem::path filename, reLoc loc) {
+    auto path = resolveInclude(filename);
+
+    addDependency(path);
+
     std::ifstream stream(path);
     if (!stream) {
         error(loc, "could not open file '", path.string(), '\'');
@@ -239,7 +271,6 @@ bool sapc::ParseState::includeFile(std::filesystem::path path, reLoc loc) {
     stream.close();
     std::string text = buffer.str();
 
-    dependencies.push_back(path);
     pathStack.push_back(path);
     bool const result = parse(std::move(text));
     pathStack.pop_back();

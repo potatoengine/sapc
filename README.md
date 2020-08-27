@@ -28,8 +28,9 @@ Input Schema
 ------------
 
 ```
-file <- statement*
+file <- module statement*
 statement <- attrdef / typedef / import / include
+module <- 'module' identifier ';'
 
 import <- 'import' identifier ';'
 include <- 'include' string EOL

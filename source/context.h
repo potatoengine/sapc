@@ -56,6 +56,7 @@ extern "C" {
     void rePushAttributeDefinition(struct reParseState* state, struct reID name, struct reLoc loc);
     void rePushAttributeSet(struct reParseState* state);
 
+    void reModuleName(struct reParseState* state, struct reID name, struct reLoc loc);
     void reImport(struct reParseState* state, struct reID name, struct reLoc loc);
     void reInclude(struct reParseState* state, struct reID path, struct reLoc loc);
 

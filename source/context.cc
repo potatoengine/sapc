@@ -109,22 +109,27 @@ void rePushAttributeSet(struct reParseState* state) {
     state->attributeSetStack.push_back(std::move(state->attributeStack));
 }
 
+void reModuleName(struct reParseState* state, struct reID name, struct reLoc loc) {
+    // ignore duplicate module name declarations
+    if (!state->moduleName.empty())
+        return;
+
+    auto moduleName = get_string(state, name);
+
+    // module name should match filename
+    auto const expectedModule = state->pathStack.back().filename().replace_extension().string();
+    if (moduleName != expectedModule)
+        state->error(state->location(loc), "module name '", moduleName, "' does not match filename '", state->pathStack.back().string(), '\'');
+
+    state->moduleName = get_string(state, name);
+}
+
 void reImport(reParseState* state, reID name, reLoc loc) {
-    using namespace sapc;
-
-    auto const& module = get_string(state, name);
-    auto path = state->resolveModule(module);
-
-    state->importModule(std::move(path), loc);
+    state->importModule(get_string(state, name), loc);
 }
 
 void reInclude(reParseState* state, reID path, reLoc loc) {
-    using namespace sapc;
-
-    std::filesystem::path include = get_string(state, path);
-    include = state->resolveInclude(std::move(include));
-
-    state->includeFile(std::move(include), loc);
+    state->includeFile(get_string(state, path), loc);
 }
 
 void reError(struct reParseState* state, reLoc loc) {

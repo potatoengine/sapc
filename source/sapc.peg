@@ -19,8 +19,9 @@
 %value "struct reID"
 
 # file
-file <- ( _ statement )* _ ~{ reError((auxil)->state, (auxil)->loc); }
+file <- _ module ( _ statement )* _ ~{ reError(RE_STATE, RE_LOC); }
 statement <- ( attrdef / typedef / import / include )
+module <- 'module' _ m:identifier _ ';' { reModuleName(RE_STATE, m, RE_LOC); }
 
 # import/include
 import <- 'import' _ f:identifier _ ';' { reImport(RE_STATE, f, RE_LOC); }

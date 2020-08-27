@@ -94,9 +94,12 @@ namespace sapc {
         std::vector<reID> argumentStack;
         std::vector<std::filesystem::path> pathStack;
 
-        std::vector<std::filesystem::path> dependencies;
+        std::vector<std::string> imports;
+        std::vector<std::filesystem::path> fileDependencies;
 
         std::vector<Error> errors;
+
+        std::string moduleName;
 
         std::unordered_map<std::string, size_t> typeMap;
 
@@ -108,8 +111,11 @@ namespace sapc {
         bool compile(std::filesystem::path filename);
         bool compile(std::string contents, std::filesystem::path filename);
 
-        bool importModule(std::filesystem::path, reLoc loc);
-        bool includeFile(std::filesystem::path, reLoc loc);
+        bool importModule(std::string module_name, reLoc loc);
+        bool includeFile(std::filesystem::path filename, reLoc loc);
+
+        void addDependency(std::filesystem::path filename);
+        void addImport(std::string module_name);
 
         bool build(std::string contents);
         bool parse(std::string contents);
