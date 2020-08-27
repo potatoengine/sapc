@@ -163,9 +163,10 @@ static int compile(Config& config) {
 
 static int help(std::filesystem::path program) {
     std::cout <<
-        "usage: " << program.filename().string() << " [-c] -i <input> [-o <input>] [-d <depfile>] [-h]\n" <<
+        "usage: " << program.filename().string() << " [-c] -i <input> [-I<path>]... [-o <input>] [-d <depfile>] [-h]\n" <<
         "  -c|--compile          Compile a sapc IDL file to JSON (default option)\n" <<
         "  -i|--input <input>    Specify the input IDL (in compile mode) or input JSON (in template mode)\n" <<
+        "  -I<path>              Add a path to the search list for importsand includes\n" <<
         "  -o|--output <ouput>   Output file path, otherwise prints to stdout\n"
         "  -d|--deps <depfile>   Specify the path that a Make-style deps file will be written to for build system integration\n" <<
         "  -h|--help             Print this help information\n";
