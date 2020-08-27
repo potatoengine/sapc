@@ -216,8 +216,11 @@ bool sapc::ParseState::importModule(std::filesystem::path path, reLoc loc) {
             continue;
         }
 
+        // types imported to the target module are not available for name lookup in the importer
+        if (!type->imported)
+            typeMap[type->name] = types.size();
+
         type->imported = true;
-        typeMap[type->name] = types.size();
         types.push_back(std::move(type));
     }
 
