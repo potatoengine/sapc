@@ -1,7 +1,6 @@
 # sapc - by Sean Middleditch
 # This is free and unencumbered software released into the public domain.
 # See LICENSE.md for more details.
-
 import sys
 import json
 import argparse
@@ -10,20 +9,18 @@ import re
 from os import path
 from datetime import datetime
 
-def attr(el, attrname, argname, default = None):
+def attr(el, attrname, argname, default=None):
 	if el is not None and 'attributes' in el and attrname in el['attributes']:
 		return el['attributes'][attrname][0][argname]
 	else:
 		return default
 
-cxx_keywords = [
-	'void', 'nullptr',
+cxx_keywords = ['void', 'nullptr',
 	'char', 'int', 'short', 'long', 'signed', 'unsigned', 'bool',
 	'float', 'double',
 	'if', 'do', 'while', 'switch', 'case', 'for',
 	'struct', 'class', 'using', 'template', 'typename', 'typedef', 'const',
-	'default', 'auto', 'namespace', 'sizeof', 'alignof', 'constexpr', 'constinit', 'consteval'
-]
+	'default', 'auto', 'namespace', 'sizeof', 'alignof', 'constexpr', 'constinit', 'consteval']
 protected_names = ['test', 'sapc']
 def identifier(name):
 	clean = re.sub(r'[^a-zA-Z0-9_]', '_', name)
@@ -95,14 +92,14 @@ def main(argv):
 
 		print(f'}};', file=args.output)
 
-	print('inline void test() {', file=args.output);
+	print('inline void test() {', file=args.output)
 	for type in types:
 		if type['imported']: continue
 		if ignored(type): continue
 
 		name = cxxname(type)
-		print(f'  {name} val_{name} = {{}};', file=args.output);
-	print('}', file=args.output);
+		print(f'  {name} val_{name} = {{}};', file=args.output)
+	print('}', file=args.output)
 
 	args.output.close()
 
