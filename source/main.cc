@@ -59,8 +59,10 @@ namespace {
                 mode = Arg::None;
                 break;
             default:
-                if (arg == "--")
+                if (arg == "--") {
                     allow_options = false;
+                    break;
+                }
                 else if (allow_options && starts_with(arg, "--"))
                     arg = arg.substr(2);
                 else if (allow_options && (starts_with(arg, "/") || starts_with(arg, "-")))
