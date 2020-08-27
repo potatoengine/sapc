@@ -47,9 +47,9 @@ jobs:
         uses: seanmiddleditch/gha-setup-vsdevenv@v2
       - name: Configure
         env:
-          CXX: cl.exe
-          CC: cl.exe
-          CXXFLAGS: /FC /W3 /WX
+          CXX: ${{ matrix.cxx }}
+          CC: ${{ matrix.cc }}
+          CXXFLAGS: ${{ matrix.cxxflags }}
         run: |
           mkdir build
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE:STRING=${{ matrix.config }}
