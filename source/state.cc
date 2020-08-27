@@ -42,7 +42,7 @@ nlohmann::json sapc::ParseState::to_json() {
 	using namespace nlohmann;
 
 	auto doc = json::object();
-	doc["$schema"] = "http://github.com/potatoengine/sapc/blob/master/sap-1.schema.json";
+	doc["$schema"] = "http://github.com/potatoengine/sapc/blob/master/schema/sap-1.schema.json";
 
 	auto attrs_to_json = [this](std::vector<Attribute> const& attributes) -> nlohmann::json {
 		auto attrs_json = json::object();
