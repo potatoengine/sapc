@@ -42,8 +42,7 @@ nlohmann::json sapc::ParseState::to_json() {
 	using namespace nlohmann;
 
 	auto doc = json::object();
-	doc["$type"] = "sapc.module";
-	doc["$version"] = 1;
+	doc["$schema"] = "http://github.com/potatoengine/sapc/blob/master/sap-1.schema.json";
 
 	auto attrs_to_json = [this](std::vector<Attribute> const& attributes) -> nlohmann::json {
 		auto attrs_json = json::object();
@@ -61,7 +60,7 @@ nlohmann::json sapc::ParseState::to_json() {
 
 				auto const& param = def.fields[index];
 
-				json value(Jsonify{*this, attr.arguments[index]});
+				json value(Jsonify{ *this, attr.arguments[index] });
 				args_json[param.name] = std::move(value);
 			}
 
@@ -168,7 +167,7 @@ bool sapc::ParseState::parse(std::string contents) {
 bool sapc::ParseState::importModule(std::filesystem::path path, reLoc loc) {
 	dependencies.push_back(path);
 
-	sapc::ParseState parser{strings};
+	sapc::ParseState parser{ strings };
 	auto const parsed = parser.compile(path);
 
 	for (auto& error : parser.errors)
