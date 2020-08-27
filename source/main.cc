@@ -89,6 +89,8 @@ namespace {
                     config.search.push_back(arg.substr(1));
                 else if (starts_with(arg, "I") && arg.size() == 1)
                     mode = Arg::IncludePath;
+                else if (starts_with(original_arg, "/") && config.input.empty())
+                    config.input = original_arg;
                 else {
                     std::cerr << "error: Unknown command argument '" << original_arg << "'\n";
                     return false;
