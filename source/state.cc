@@ -32,8 +32,10 @@ namespace {
 	};
 }
 
-std::ostream& sapc::operator<<(std::ostream& os, Error const& error) {
-	return os << error.loc.filename.string() << '(' << error.loc.line << "): ERROR: " << error.message;
+namespace sapc {
+	std::ostream& operator<<(std::ostream& os, Error const& error) {
+		return os << error.loc.filename.string() << '(' << error.loc.line << "): ERROR: " << error.message;
+	}
 }
 
 nlohmann::json sapc::ParseState::to_json() {
