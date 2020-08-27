@@ -28,7 +28,7 @@ jobs:
             os: 'ubuntu-20.04'
             cxx: clang++-9
             cc: clang-9
-            cxxflags: -stdlib=libc++ -fdiagnostics-absolute-paths -Wall -Werror
+            cxxflags: -fdiagnostics-absolute-paths -Wall -Werror
             config: Release
 
     name: '${{ matrix.name }}'
