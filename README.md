@@ -69,4 +69,4 @@ type test {
 Output Schema
 -------------
 
-Output is a JSON file (schema still in flux).
+See [https://raw.githubusercontent.com/potatoengine/sapc/master/schema/sap-1.schema.json]
