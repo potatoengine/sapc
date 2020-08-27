@@ -63,7 +63,7 @@ namespace {
                     allow_options = false;
                 else if (allow_options && starts_with(arg, "--"))
                     arg = arg.substr(2);
-                else if (allow_options && starts_with(arg, "/") || starts_with(arg, "-"))
+                else if (allow_options && (starts_with(arg, "/") || starts_with(arg, "-")))
                     arg = arg.substr(1);
                 else if (config.input.empty()) {
                     config.input = arg;
