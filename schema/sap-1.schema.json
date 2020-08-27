@@ -27,14 +27,7 @@
 						"properties": {
 							"name": { "type": "string" },
 							"type": { "type": "string" },
-							"default": {
-								"oneOf": [
-									{ "type": "integer" },
-									{ "type": "string" },
-									{ "type": "boolean" },
-									{ "type": "null" }
-								]
-							},
+							"default": { "$ref": "#/definitions/value" },
 							"attributes": { "$ref": "#/definitions/attributes" }
 						}
 					}
@@ -45,16 +38,26 @@
 			"type": "object",
 			"patternProperties": {
 				"^[a-zA-Z0-9_]+$": {
-					"type": "object",
+					"type": "array",
 					"items": { "$ref": "#/definitions/attribute" }
 				}
 			}
 		},
 		"attribute": {
-			"type": "array",
-			"items": {
-				"type": "object"
+			"type": "object",
+			"patternProperties": {
+				"^[a-zA-Z0-9_]+$": {
+					"$ref": "#/definitions/value"
+				}
 			}
+		},
+		"value": {
+			"oneOf": [
+				{ "type": "integer" },
+				{ "type": "string" },
+				{ "type": "boolean" },
+				{ "type": "null" }
+			]
 		}
 	}
 }
