@@ -111,7 +111,7 @@ def main(argv):
         if ignored(type): continue
 
         name = cxxname(type)
-        print(f'  {namespace(type)}::{name} val_{identifier(name)} = {{}};', file=args.output)
+        print(f'  [[maybe_unused]] {namespace(type)}::{name} val_{identifier(name)} = {{}};', file=args.output)
     print('}', file=args.output)
 
     print('#endif', file=args.output)
