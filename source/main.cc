@@ -26,13 +26,12 @@ namespace {
         enum class Mode {
             Compile,
             Help,
-        } mode = Mode::Help;
+        } mode = Mode::Compile;
     };
 
     bool parse_arguments(int argc, char* argv[], Config& config) {
         enum class Arg {
             None,
-            TemplateFile,
             InputFile,
             OutputFile,
             DepsFile,
@@ -40,15 +39,13 @@ namespace {
         } mode = Arg::None;
         std::string_view mode_argument;
 
+        bool allow_options = true;
+
         for (int arg_index = 1; arg_index != argc; ++arg_index) {
             auto arg = std::string_view{ argv[arg_index] };
             auto const original_arg = arg;
 
             switch (mode) {
-            case Arg::InputFile:
-                config.input = arg;
-                mode = Arg::None;
-                break;
             case Arg::OutputFile:
                 config.output = arg;
                 mode = Arg::None;
@@ -62,10 +59,16 @@ namespace {
                 mode = Arg::None;
                 break;
             default:
-                if (starts_with(arg, "--"))
+                if (arg == "--")
+                    allow_options = false;
+                else if (allow_options && starts_with(arg, "--"))
                     arg = arg.substr(2);
-                else if (starts_with(arg, "/") || starts_with(arg, "-"))
+                else if (allow_options && starts_with(arg, "/") || starts_with(arg, "-"))
                     arg = arg.substr(1);
+                else if (config.input.empty()) {
+                    config.input = arg;
+                    break;
+                }
                 else {
                     std::cerr << "Unexpected command parameter '" << arg << "'\n";
                     return false;
@@ -78,8 +81,6 @@ namespace {
                     mode = Arg::OutputFile;
                 else if (arg == "d" || arg == "deps")
                     mode = Arg::DepsFile;
-                else if (arg == "c" || arg == "compile")
-                    config.mode = Config::Mode::Compile;
                 else if (arg == "h" || arg == "help")
                     config.mode = Config::Mode::Help;
                 else if (starts_with(arg, "I") && arg.size() > 1)
@@ -87,17 +88,16 @@ namespace {
                 else if (starts_with(arg, "I") && arg.size() == 1)
                     mode = Arg::IncludePath;
                 else {
-                    std::cerr << "Unknown command argument '" << original_arg << "'\n";
+                    std::cerr << "error: Unknown command argument '" << original_arg << "'\n";
                     return false;
                 }
 
                 break;
             }
-
         }
 
         if (mode != Arg::None) {
-            std::cerr << "Expected parameter after '" << mode_argument << "'\n";
+            std::cerr << "error: Expected parameter after '" << mode_argument << "'\n";
             return false;
         }
 
@@ -107,7 +107,7 @@ namespace {
 
 static int compile(Config& config) {
     if (config.input.empty()) {
-        std::cerr << "No input file provided; use --help to see options\n";
+        std::cerr << "error: No input file provided; use --help to see options\n";
         return 1;
     }
 
@@ -127,7 +127,7 @@ static int compile(Config& config) {
     if (!config.output.empty()) {
         std::ofstream output_stream(config.output);
         if (!output_stream) {
-            std::cerr << "Failed to open '" << config.output.string() << "' for writing\n";
+            std::cerr << "error: Failed to open '" << config.output.string() << "' for writing\n";
             return 3;
         }
         output_stream << json << '\n';
@@ -138,7 +138,7 @@ static int compile(Config& config) {
     if (!config.deps.empty() && !config.output.empty()) {
         std::ofstream deps_stream(config.deps);
         if (!deps_stream) {
-            std::cerr << "Failed to open '" << config.deps.string() << "' for writing\n";
+            std::cerr << "error: Failed to open '" << config.deps.string() << "' for writing\n";
             return 3;
         }
 
@@ -163,13 +163,12 @@ static int compile(Config& config) {
 
 static int help(std::filesystem::path program) {
     std::cout <<
-        "usage: " << program.filename().string() << " [-c] -i <input> [-I<path>]... [-o <input>] [-d <depfile>] [-h]\n" <<
-        "  -c|--compile          Compile a sapc IDL file to JSON (default option)\n" <<
-        "  -i|--input <input>    Specify the input IDL (in compile mode) or input JSON (in template mode)\n" <<
+        "usage: " << program.filename().string() << " [-I<path>]... [-o <input>] [-d <depfile>] [-h] [--] <input>\n" <<
         "  -I<path>              Add a path to the search list for importsand includes\n" <<
         "  -o|--output <ouput>   Output file path, otherwise prints to stdout\n"
         "  -d|--deps <depfile>   Specify the path that a Make-style deps file will be written to for build system integration\n" <<
-        "  -h|--help             Print this help information\n";
+        "  -h|--help             Print this help information\n" <<
+        "  <input>               The input sap IDL file\n";
     return 0;
 }
 

@@ -6,7 +6,7 @@ target_include_directories(sapc_gen_test PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 function(sapc_test_compile_header NAME)
     add_custom_command(OUTPUT ${NAME}.sap.json
-        COMMAND sapc -c -i ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.sap -o example/${NAME}.sap.json -d example/${NAME}.sap.d
+        COMMAND sapc ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.sap -o example/${NAME}.sap.json -d example/${NAME}.sap.d
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         MAIN_DEPENDENCY ${NAME}.sap
         DEPENDS sapc

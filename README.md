@@ -16,13 +16,12 @@ Usage
 -----
 
 ```
-sapc [-c] -i <input> [-o <input>] [-I<path>]... [-d <depfile>] [-h]
-  -c|--compile          Compile a sapc IDL file to JSON (default option)
-  -i|--input <input>    Specify the input IDL (in compile mode) or input JSON (in template mode)
+sapc [-o <input>] [-I<path>]... [-d <depfile>] [-h] [--] <input>
   -I<path>              Add a path to the search list for imports and includes
   -o|--output <ouput>   Output file path, otherwise prints to stdout
   -d|--deps <depfile>   Specify the path that a Make-style deps file will be written to for build system integration
   -h|--help             Print this help information
+  <input>               Specify the input IDL (in compile mode) or input JSON (in template mode)
 ```
 
 Input Schema
