@@ -6,6 +6,8 @@ include "include/base.sap"
 
 attribute default { any value = 0; }
 
+include "include/base.sap" # duplicate include is safe
+
 [name("Test")]
 type test {
     [default]

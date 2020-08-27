@@ -22,11 +22,11 @@ namespace {
         if (id.value < 0)
             return {};
         switch (id.type) {
-            case reTypeIdentifier:
-            case reTypeString:
-                return state->strings.strings[id.value];
-            default:
-                return {};
+        case reTypeIdentifier:
+        case reTypeString:
+            return state->strings.strings[id.value];
+        default:
+            return {};
         }
     }
 }
@@ -42,21 +42,21 @@ reID rePushString(reParseState* state, char const* text) {
 reID rePushNumber(reParseState* state, char const* text) {
     int value = 0;
     std::from_chars(text, text + std::strlen(text), value);
-    return {reTypeNumber, value};
+    return { reTypeNumber, value };
 }
 
 reID rePushBoolean(struct reParseState* state, int boolean) {
-    return {reTypeBoolean, boolean & 0x1};
+    return { reTypeBoolean, boolean & 0x1 };
 }
 
 reID rePushNull(struct reParseState* state) {
-    return {reTypeNull, 0};
+    return { reTypeNull, 0 };
 }
 
 void rePushField(reParseState* state, reID type, reID name, reID init, reLoc loc) {
     using namespace sapc;
 
-    state->fieldStack.push_back(Field{get_string(state, type), get_string(state, name), init, get_attributes(state), state->location(loc)});
+    state->fieldStack.push_back(Field{ get_string(state, type), get_string(state, name), init, get_attributes(state), state->location(loc) });
 }
 
 namespace {
@@ -66,6 +66,10 @@ namespace {
         auto it = state->typeMap.find(name);
         if (it != state->typeMap.end()) {
             auto const& previous = state->types[it->second];
+
+            if (previous->loc == loc)
+                return;
+
             state->error(loc, "Entity '", name, "' is a redefinition of entity at ", previous->loc.filename.string(), '(', previous->loc.line, ')');
             return;
         }
@@ -88,13 +92,13 @@ void rePushAttributeArgument(reParseState* state, reID id) {
 void rePushAttribute(reParseState* state, reID name, reLoc loc) {
     using namespace sapc;
 
-    state->attributeStack.push_back(Attribute{get_string(state, name), std::move(state->argumentStack), state->location(loc)});
+    state->attributeStack.push_back(Attribute{ get_string(state, name), std::move(state->argumentStack), state->location(loc) });
 }
 
 void rePushAttributeParam(reParseState* state, reID type, reID name, reID init, reLoc loc) {
     using namespace sapc;
 
-    state->attributeParamStack.push_back(Field{get_string(state, type), get_string(state, name), init, {}, state->location(loc) });
+    state->attributeParamStack.push_back(Field{ get_string(state, type), get_string(state, name), init, {}, state->location(loc) });
 }
 
 void rePushAttributeDefinition(struct reParseState* state, reID name, reLoc loc) {

@@ -18,8 +18,8 @@
 
 namespace sapc {
     struct None {
-        constexpr operator reID() const noexcept { return {reTypeNone, -1}; }
-        constexpr operator reLoc() const noexcept { return {0, 0}; }
+        constexpr operator reID() const noexcept { return { reTypeNone, -1 }; }
+        constexpr operator reLoc() const noexcept { return { 0, 0 }; }
     };
 
     constexpr None reNone;
@@ -30,6 +30,8 @@ namespace sapc {
     struct Location {
         std::filesystem::path filename;
         int line = 0;
+
+        bool operator==(Location const& rhs) const { return filename == rhs.filename && line == rhs.line; }
     };
 
     struct Type;
@@ -82,6 +84,7 @@ namespace sapc {
 
     struct ParseState {
         StringTable& strings;
+        std::vector<std::filesystem::path> search;
         std::vector<std::unique_ptr<Type>> types;
 
         std::vector<Field> fieldStack;
@@ -103,6 +106,7 @@ namespace sapc {
         std::filesystem::path resolveModule(std::string const& name);
 
         bool compile(std::filesystem::path filename);
+        bool compile(std::string contents, std::filesystem::path filename);
 
         bool importModule(std::filesystem::path, reLoc loc);
         bool includeFile(std::filesystem::path, reLoc loc);
@@ -113,7 +117,7 @@ namespace sapc {
         bool expandAttributes();
 
         Location location(reLoc loc) const {
-            return Location{pathStack.back(), loc.line};
+            return Location{ pathStack.back(), loc.line };
         }
 
         bool failed() const noexcept { return !errors.empty(); }
@@ -122,7 +126,7 @@ namespace sapc {
         void error(Location loc, ArgsT const&... args) {
             std::ostringstream buffer;
             (buffer << ... << args);
-            errors.push_back(Error{std::move(loc), std::move(buffer).str()});
+            errors.push_back(Error{ std::move(loc), std::move(buffer).str() });
         }
 
         template <typename... ArgsT>
