@@ -9,12 +9,6 @@ endif()
 option(SAPC_BUILD_EXAMPLES "Build sapc examples" ${SAPC_IS_ROOT_PROJECT})
 option(SAPC_USE_EMBEDDED_JSON "Try to acquire and use an embedded copy of nlohmann_json" ${SAPC_IS_ROOT_PROJECT})
 
-if(SAPC_USE_EMBEDDED_JSON)
-	add_subdirectory(external)
-endif()
-
+add_subdirectory(external)
 add_subdirectory(source)
-
-if(SAPC_BUILD_EXAMPLES)
-	add_subdirectory(example)
-endif()
+add_subdirectory(example)
