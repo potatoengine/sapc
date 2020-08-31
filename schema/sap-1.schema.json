@@ -25,6 +25,7 @@
         "name": { "type": "string" },
         "base": { "type": "string" },
         "imported": { "type": "boolean" },
+        "is_builtin": { "type": "boolean" },
         "is_attribute": { "type": "boolean" },
         "attributes": { "$ref": "#/definitions/attributes" },
         "fields": {

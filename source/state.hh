@@ -68,6 +68,7 @@ namespace sapc {
         Location loc;
         bool attribute = false;
         bool imported = false;
+        bool builtin = false;
     };
 
     struct Error {
@@ -116,6 +117,8 @@ namespace sapc {
 
         std::filesystem::path resolveInclude(std::filesystem::path filename);
         std::filesystem::path resolveModule(std::string const& name);
+
+        void addBuiltinTypes();
 
         bool compile(std::filesystem::path filename);
         bool compile(std::string contents, std::filesystem::path filename);
