@@ -29,16 +29,7 @@
         "attributes": { "$ref": "#/definitions/attributes" },
         "fields": {
           "type": "array",
-          "items": {
-            "type": "object",
-            "required": [ "name", "type" ],
-            "properties": {
-              "name": { "type": "string" },
-              "type": { "type": "string" },
-              "default": { "$ref": "#/definitions/value" },
-              "attributes": { "$ref": "#/definitions/attributes" }
-            }
-          }
+          "items": { "$ref": "#/definitions/field" }
         }
       }
     },
@@ -66,6 +57,18 @@
         { "type": "boolean" },
         { "type": "null" }
       ]
+    },
+    "field": {
+      "type": "object",
+      "required": [ "name", "type" ],
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "default": { "$ref": "#/definitions/value" },
+        "attributes": { "$ref": "#/definitions/attributes" },
+        "is_pointer": { "type": "boolean" },
+        "is_array": { "type": "boolean" }
+      }
     }
   }
 }

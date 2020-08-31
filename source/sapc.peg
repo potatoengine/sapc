@@ -56,11 +56,11 @@ comment <- linecomment eol / blockcomment
 linecomment <- ( '//' / '#' ) [^\n]*
 blockcomment <- '/*' ( eol / !'*/' . )* '*/' ~{ RE_FAIL($0s, "invalid block comment"); }
 identifier <- <[a-zA-Z_][a-zA-Z0-9_]*> { $$ = rePushIdentifier(RE_STATE, $1); }
-initializer <- _ '=' _ v:value { $$ = v; } / { $$ = RE_NONE; }
+initializer <- '=' _ v:value { $$ = v; } / { $$ = RE_NONE; }
 
 # attribute definitions
 attrdef <- 'attribute' _ n:identifier _ ( '{' (_ attrparam )* _ '}' / ';' ) { rePushAttributeDefinition(RE_STATE, n, RE_LOC); }
-attrparam <- t:identifier _ n:identifier v:initializer _ ';' { rePushAttributeParam(RE_STATE, t, n, v, RE_LOC); }
+attrparam <- t:identifier _ n:identifier _ v:initializer _ ';' { rePushAttributeParam(RE_STATE, t, n, v, RE_LOC); }
 
 # attributes
 attributes <- ( '[' _ attribute ( _ ',' _ attribute )* _ ']' )* { rePushAttributeSet(RE_STATE); }
@@ -70,4 +70,6 @@ attrarg <- v:value { rePushAttributeArgument(RE_STATE, v); }
 # types
 typedef <- attributes _ 'type' _ n:identifier _ b:typebase? _ ( '{' ( _ field )* _ '}' / ';' ) { rePushTypeDefinition(RE_STATE, n, b, RE_LOC); }
 typebase <- ':' _ n:identifier { $$ = n; } / { $$ = RE_NONE; }
-field <- attributes _ t:identifier _ n:identifier v:initializer _ ';' { rePushField(RE_STATE, t, n, v, RE_LOC); }
+field <- attributes _ t:identifier _ p:fieldptr _ a:fieldarray _ n:identifier _ v:initializer _ ';' { rePushField(RE_STATE, t, p, a, n, v, RE_LOC); }
+fieldptr <- '*' { $$ = rePushBoolean(RE_STATE, 1); } / { $$ = rePushBoolean(RE_STATE, 0); }
+fieldarray <- '[]' { $$ = rePushBoolean(RE_STATE, 1); } / { $$ = rePushBoolean(RE_STATE, 0); }

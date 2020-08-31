@@ -48,7 +48,7 @@ extern "C" {
     struct reID rePushBoolean(struct reParseState* state, int boolean);
     struct reID rePushNull(struct reParseState* state);
 
-    void rePushField(struct reParseState* state, struct reID type, struct reID name, struct reID init, struct reLoc loc);
+    void rePushField(struct reParseState* state, struct reID type, struct reID isPointer, struct reID isArray, struct reID name, struct reID init, struct reLoc loc);
     void rePushTypeDefinition(struct reParseState* state, struct reID name, struct reID base, struct reLoc loc);
 
     void rePushAttributeArgument(struct reParseState* state, struct reID id);

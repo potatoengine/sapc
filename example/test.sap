@@ -21,6 +21,9 @@ type test {
         C-style block comment
     */
     bool2 skipme = false;
+    int* iptr = null;
+    string[] array;
+    bool*[] bit_pointers;
 }
 
 type derived : test;
