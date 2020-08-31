@@ -3,7 +3,7 @@ module test;
 
 import module;
 
-include "include/base.sap"
+include "include/base.sap" # comment at end of include
 
 attribute default { any value = 0; }
 
@@ -14,8 +14,11 @@ type test {
     [default]
     int x = 0 # a comment
     ;
-    string y = "y";
+    string y = "y"; // C++-style comment
     [ignore, name("fail")]
+    /*
+        C-style block comment
+    */
     bool2 skipme = false;
 }
 

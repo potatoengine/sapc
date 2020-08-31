@@ -25,7 +25,7 @@ module <- 'module' _ m:identifier _ ';' { reModuleName(RE_STATE, m, RE_LOC); }
 
 # import/include
 import <- 'import' _ f:identifier _ ';' { reImport(RE_STATE, f, RE_LOC); }
-include <- 'include' _ p:string space? comment? { reInclude(RE_STATE, p, RE_LOC); } eol
+include <- 'include' _ p:string space? linecomment? eol { reInclude(RE_STATE, p, RE_LOC); } eol
 
 # values
 value <- v:number { $$ = v; } / v:string { $$ = v; } / v:true { $$ = v; } / v:false { $$ = v; } / v:null { $$ = v; }
@@ -36,10 +36,12 @@ false <- 'false' { $$ = rePushBoolean(RE_STATE, 0); }
 null <- 'null' { $$ = rePushNull(RE_STATE); }
 
 # common
-_ <- ( space / comment? eol )*
+_ <- ( space / eol / comment )*
 eol <- '\n' { auxil->loc.line++; }
 space <- [ \t]+
-comment <- '#' [^\n]*
+comment <- linecomment eol / blockcomment
+linecomment <- ( '//' / '#' ) [^\n]*
+blockcomment <- '/*' ( eol / !'*/' . )* '*/'
 identifier <- <[a-zA-Z_][a-zA-Z0-9_]*> { $$ = rePushIdentifier(RE_STATE, $1); }
 initializer <- _ '=' _ v:value { $$ = v; } / { $$ = RE_NONE; }
 
