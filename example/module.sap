@@ -11,4 +11,3 @@ type int;
 type bool;
 [cxxname("std::any"), ignore]
 type any;
-

@@ -30,6 +30,7 @@ extern "C" {
 
     struct reLoc {
         size_t position;
+        size_t line_start;
         int line;
     };
 
@@ -37,6 +38,7 @@ extern "C" {
         struct reParseState* state;
         char* source;
         size_t length;
+        int errors;
         struct reLoc loc;
     };
 

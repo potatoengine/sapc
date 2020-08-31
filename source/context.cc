@@ -133,5 +133,5 @@ void reInclude(reParseState* state, reID path, reLoc loc) {
 }
 
 void reError(struct reParseState* state, reLoc loc, char const* message) {
-    state->error(state->location(loc), message);
+    state->error(state->location(loc), "at ", loc.position, ": ", message);
 }
