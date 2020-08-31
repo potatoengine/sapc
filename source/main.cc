@@ -117,6 +117,7 @@ static int compile(Config& config) {
 
     sapc::StringTable strings;
     sapc::ParseState parser{ strings, config.search };
+    parser.addBuiltinTypes();
     auto const compiled = parser.compile(config.input);
 
     for (auto const& error : parser.errors)

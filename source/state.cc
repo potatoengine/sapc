@@ -92,6 +92,7 @@ nlohmann::json sapc::ParseState::to_json() {
         auto type_json = json::object();
         type_json["name"] = type->name;
         type_json["imported"] = type->imported;
+        type_json["is_builtin"] = type->builtin;
         type_json["is_attribute"] = type->attribute;
         if (!type->base.empty())
             type_json["base"] = type->base;
@@ -143,6 +144,23 @@ std::filesystem::path sapc::ParseState::resolveModule(std::string const& name) {
     }
 
     return filename;
+}
+
+void sapc::ParseState::addBuiltinTypes() {
+    static std::string const builtins[] = {
+        "string", "bool",
+        "i8", "i16", "i32", "i64",
+        "u8", "u16", "u32", "u64",
+        "f328", "f64"
+    };
+
+    for (auto const& builtin : builtins) {
+        Type type;
+        type.name = builtin;
+        type.builtin = true;
+        typeMap[builtin] = types.size();
+        types.push_back(std::make_unique<Type>(std::move(type)));
+    }
 }
 
 bool sapc::ParseState::compile(std::filesystem::path filename) {
@@ -234,6 +252,7 @@ bool sapc::ParseState::importModule(std::string module, reLoc loc) {
     std::string contents = buffer.str();
 
     sapc::ParseState parser{ strings, search };
+    parser.addBuiltinTypes();
     auto const parsed = parser.compile(std::move(contents), path);
 
     for (auto& error : parser.errors)
@@ -249,6 +268,9 @@ bool sapc::ParseState::importModule(std::string module, reLoc loc) {
         error(loc, "errors encountered during import '", path.string(), '\'');
 
     for (auto& type : parser.types) {
+        if (type->builtin)
+            continue;
+
         auto it = typeMap.find(type->name);
         if (it != typeMap.end()) {
             auto const& previous = types[it->second];

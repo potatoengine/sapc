@@ -26,8 +26,16 @@ def identifier(name):
     id = clean + '_' if clean == '' or re.match('^[0-9]', clean) else clean
     legal = id + '_' if id in cxx_keywords else id
     return legal
+cxx_type_map = {'string': 'std::string', 'bool': 'bool',
+                'i8': 'int8_t', 'i16': 'int16_t', 'i32': 'int32_t', 'i64': 'int64_t',
+                'u8': 'int8_t', 'u16': 'uint16_t', 'u32': 'uint32_t', 'u64': 'uint64_t',
+                'f32': 'float', 'f64': 'double'}
 
-def cxxname(el): return attr(el, attrname='cxxname', argname='name', default=identifier(el['name']))
+def cxxname(el):
+    if 'is_builtin' in el and el['is_builtin'] and el['name'] in cxx_type_map:
+        return cxx_type_map[el['name']]
+    else:
+        return attr(el, attrname='cxxname', argname='name', default=identifier(el['name']))
 def ignored(el): return attr(el, attrname='ignore', argname='ignored', default=False)
 def namespace(el): return 'sapc_attr' if 'is_attribute' in el and el['is_attribute'] else 'sapc_type'
 
@@ -77,6 +85,7 @@ def main(argv):
 
     for type in types:
         if type['imported']: continue
+        if type['is_builtin']: continue
         if ignored(type): continue
 
         print(f'namespace {namespace(type)} {{', file=args.output)
@@ -114,6 +123,7 @@ def main(argv):
             print(f'  sapc_test_{identifier(module)}();', file=args.output)
     for type in types:
         if type['imported']: continue
+        if type['is_builtin']: continue
         if ignored(type): continue
 
         name = cxxname(type)

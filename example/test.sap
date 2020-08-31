@@ -13,7 +13,7 @@ include "include/base.sap" # duplicate include is safe
 [name("Test")]
 type test {
     [default]
-    int x = 0 # a comment
+    i32 x = 0 # a comment
     ;
     string y = "y"; // C++-style comment
     [ignore, name("fail")]
@@ -21,7 +21,7 @@ type test {
         C-style block comment
     */
     bool2 skipme = false;
-    int* iptr = null;
+    u32* iptr = null;
     string[] array;
     bool*[] bit_pointers;
 }
