@@ -44,8 +44,16 @@ namespace sapc {
         Type* type = nullptr;
     };
 
+    struct FieldType {
+        std::string typeName;
+        bool isPointer = false;
+        bool isArray = false;
+
+        friend std::ostream& operator<<(std::ostream& os, FieldType const& type);
+    };
+
     struct Field {
-        std::string type;
+        FieldType type;
         std::string name;
         reID init = reNone;
         std::vector<Attribute> attributes;

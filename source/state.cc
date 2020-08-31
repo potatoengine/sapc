@@ -33,6 +33,15 @@ namespace {
 }
 
 namespace sapc {
+    std::ostream& operator<<(std::ostream& os, FieldType const& type) {
+        os << type.typeName;
+        if (type.isPointer)
+            os << '*';
+        if (type.isArray)
+            os << "[]";
+        return os;
+    }
+
     std::ostream& operator<<(std::ostream& os, Error const& error) {
         if (error.loc.column >= 0)
             return os << error.loc.filename.string() << '(' << error.loc.line << ',' << error.loc.column << "): **error** " << error.message;
@@ -93,7 +102,9 @@ nlohmann::json sapc::ParseState::to_json() {
         for (auto const& field : type->fields) {
             auto field_json = json::object();
             field_json["name"] = field.name;
-            field_json["type"] = field.type;
+            field_json["type"] = field.type.typeName;
+            field_json["is_array"] = field.type.isArray;
+            field_json["is_pointer"] = field.type.isPointer;
             if (field.init != reNone)
                 field_json["default"] = Jsonify{ *this, field.init };
             if (!field.attributes.empty())
@@ -299,7 +310,7 @@ bool sapc::ParseState::checkTypes() {
         }
 
         for (auto const& field : type->fields) {
-            if (typeMap.find(field.type) == typeMap.end()) {
+            if (typeMap.find(field.type.typeName) == typeMap.end()) {
                 error(field.loc, "unknown type '", field.type, '\'');
                 ok = false;
             }

@@ -53,10 +53,10 @@ reID rePushNull(struct reParseState* state) {
     return { reTypeNull, 0 };
 }
 
-void rePushField(reParseState* state, reID type, reID name, reID init, reLoc loc) {
+void rePushField(reParseState* state, reID type, reID isPointer, reID isArray, reID name, reID init, reLoc loc) {
     using namespace sapc;
 
-    state->fieldStack.push_back(Field{ get_string(state, type), get_string(state, name), init, get_attributes(state), state->location(loc) });
+    state->fieldStack.push_back(Field{ { get_string(state, type), isPointer.value != 0, isArray.value != 0 }, get_string(state, name), init, get_attributes(state), state->location(loc) });
 }
 
 namespace {
@@ -98,7 +98,7 @@ void rePushAttribute(reParseState* state, reID name, reLoc loc) {
 void rePushAttributeParam(reParseState* state, reID type, reID name, reID init, reLoc loc) {
     using namespace sapc;
 
-    state->attributeParamStack.push_back(Field{ get_string(state, type), get_string(state, name), init, {}, state->location(loc) });
+    state->attributeParamStack.push_back(Field{ { get_string(state, type) }, get_string(state, name), init, {}, state->location(loc) });
 }
 
 void rePushAttributeDefinition(struct reParseState* state, reID name, reLoc loc) {

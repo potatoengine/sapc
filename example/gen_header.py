@@ -37,7 +37,7 @@ def encode(el):
     elif isinstance(el, bool):
         return 'true' if el else 'false'
     elif el is None:
-        return 'null'
+        return 'nullptr'
     else:
         return +el
 
@@ -63,6 +63,8 @@ def main(argv):
     print(f'#define INCLUDE_GUARD_SAPC_{identifier(doc["module"]).upper()} 1', file=args.output)
     print('#pragma once', file=args.output)
     print('#include <string>', file=args.output)
+    print('#include <memory>', file=args.output)
+    print('#include <vector>', file=args.output)
     print('#include <any>', file=args.output)
 
     types = doc['types']
@@ -93,6 +95,10 @@ def main(argv):
 
             field_type = typemap[field["type"]]
             field_cxxtype = cxxname(field_type)
+            if "is_pointer" in field and field["is_pointer"]:
+                field_cxxtype = f'std::unique_ptr<{field_cxxtype}>'
+            if "is_array" in field and field["is_array"]:
+                field_cxxtype = f'std::vector<{field_cxxtype}>'
 
             if ('default' in field):
                 print(f'    {field_cxxtype} {cxxname(field)} = {encode(field["default"])};', file=args.output)
