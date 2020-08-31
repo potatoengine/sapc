@@ -1,4 +1,5 @@
 # file header comment
+
 module test;
 
 import module;

@@ -30,6 +30,7 @@ extern "C" {
 
     struct reLoc {
         size_t position;
+        size_t line_start;
         int line;
     };
 
@@ -37,6 +38,7 @@ extern "C" {
         struct reParseState* state;
         char* source;
         size_t length;
+        int errors;
         struct reLoc loc;
     };
 
@@ -60,7 +62,7 @@ extern "C" {
     void reImport(struct reParseState* state, struct reID name, struct reLoc loc);
     void reInclude(struct reParseState* state, struct reID path, struct reLoc loc);
 
-    void reError(struct reParseState* state, struct reLoc loc);
+    void reError(struct reParseState* state, struct reLoc loc, char const* message);
 
 #if defined(__cplusplus)
 } // extern "C"

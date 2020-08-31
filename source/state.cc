@@ -34,7 +34,10 @@ namespace {
 
 namespace sapc {
     std::ostream& operator<<(std::ostream& os, Error const& error) {
-        return os << error.loc.filename.string() << '(' << error.loc.line << "): ERROR: " << error.message;
+        if (error.loc.column >= 0)
+            return os << error.loc.filename.string() << '(' << error.loc.line << ',' << error.loc.column << "): **error** " << error.message;
+        else
+            return os << error.loc.filename.string() << '(' << error.loc.line << "): **error** " << error.message;
     }
 }
 
@@ -190,7 +193,9 @@ bool sapc::ParseState::parse(std::string contents) {
     parse_ctx.state = static_cast<reParseState*>(this);
     parse_ctx.source = contents.data();
     parse_ctx.length = contents.size();
+    parse_ctx.errors = 0;
     parse_ctx.loc.position = 0;
+    parse_ctx.loc.line_start = 0;
     parse_ctx.loc.line = 1;
 
     sapc_context_t* ctx = sapc_create(&parse_ctx);
