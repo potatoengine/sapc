@@ -132,6 +132,6 @@ void reInclude(reParseState* state, reID path, reLoc loc) {
     state->includeFile(get_string(state, path), loc);
 }
 
-void reError(struct reParseState* state, reLoc loc) {
-    state->error(state->location(loc), "unknown parse error");
+void reError(struct reParseState* state, reLoc loc, char const* message) {
+    state->error(state->location(loc), message);
 }

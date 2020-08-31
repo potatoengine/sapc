@@ -60,7 +60,7 @@ extern "C" {
     void reImport(struct reParseState* state, struct reID name, struct reLoc loc);
     void reInclude(struct reParseState* state, struct reID path, struct reLoc loc);
 
-    void reError(struct reParseState* state, struct reLoc loc);
+    void reError(struct reParseState* state, struct reLoc loc, char const* message);
 
 #if defined(__cplusplus)
 } // extern "C"
