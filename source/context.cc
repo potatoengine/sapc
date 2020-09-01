@@ -60,7 +60,7 @@ void rePushField(reParseState* state, reID type, reID isPointer, reID isArray, r
 }
 
 namespace {
-    void rePushType(struct reParseState* state, std::string name, std::string base, std::vector<sapc::Field> fields, std::vector<sapc::Attribute> attributes, sapc::Location loc, bool isAttribute = false) {
+    void rePushType(struct reParseState* state, std::string name, std::string base, std::vector<sapc::Field> fields, std::vector<sapc::Attribute> attributes, std::vector<sapc::EnumValue> values, sapc::Location loc, bool isAttribute = false, bool isEnumeration = false) {
         using namespace sapc;
 
         auto it = state->typeMap.find(name);
@@ -77,12 +77,26 @@ namespace {
         auto const index = state->types.size();
         state->typeMap[name] = index;
 
-        state->types.push_back(std::make_unique<Type>(Type{ std::move(name), std::move(base), std::move(attributes), std::move(fields), std::move(loc), isAttribute }));
+        state->types.push_back(std::make_unique<Type>(Type{ std::move(name), std::move(base), std::move(attributes), std::move(fields), std::move(values), std::move(loc), isAttribute, isEnumeration }));
     }
 }
 
 void rePushTypeDefinition(struct reParseState* state, reID name, reID base, reLoc loc) {
-    rePushType(state, get_string(state, name), get_string(state, base), std::move(state->fieldStack), get_attributes(state), state->location(loc));
+    rePushType(state, get_string(state, name), get_string(state, base), std::move(state->fieldStack), get_attributes(state), {}, state->location(loc));
+}
+
+void rePushEnumValue(struct reParseState* state, struct reID name, struct reID value, struct reLoc loc) {
+    long long init = 0;
+    if (value.type == reTypeNumber)
+        init = value.value;
+    else if (!state->enumValueStack.empty())
+        init = state->enumValueStack.back().value + 1;
+
+    state->enumValueStack.push_back({ get_string(state, name), init, {}, state->location(loc) });
+}
+
+void rePushEnumDefinition(struct reParseState* state, struct reID name, struct reID base, struct reLoc loc) {
+    rePushType(state, get_string(state, name), get_string(state, base), {}, get_attributes(state), std::move(state->enumValueStack), state->location(loc), false, true);
 }
 
 void rePushAttributeArgument(reParseState* state, reID id) {
@@ -102,7 +116,7 @@ void rePushAttributeParam(reParseState* state, reID type, reID name, reID init, 
 }
 
 void rePushAttributeDefinition(struct reParseState* state, reID name, reLoc loc) {
-    rePushType(state, get_string(state, name), {}, std::move(state->attributeParamStack), {}, state->location(loc), true);
+    rePushType(state, get_string(state, name), {}, std::move(state->attributeParamStack), {}, {}, state->location(loc), true);
 }
 
 void rePushAttributeSet(struct reParseState* state) {

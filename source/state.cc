@@ -99,26 +99,40 @@ nlohmann::json sapc::ParseState::to_json() {
         type_json["imported"] = type->imported;
         type_json["is_builtin"] = type->builtin;
         type_json["is_attribute"] = type->attribute;
+        type_json["is_enumeration"] = type->enumeration;
         if (!type->base.empty())
             type_json["base"] = type->base;
         if (!type->attributes.empty())
             type_json["attributes"] = attrs_to_json(type->attributes);
 
-        auto fields = json::array();
-        for (auto const& field : type->fields) {
-            auto field_json = json::object();
-            field_json["name"] = field.name;
-            field_json["type"] = field.type.typeName;
-            field_json["is_array"] = field.type.isArray;
-            field_json["is_pointer"] = field.type.isPointer;
-            if (field.init != reNone)
-                field_json["default"] = Jsonify{ *this, field.init };
-            if (!field.attributes.empty())
-                field_json["attributes"] = attrs_to_json(field.attributes);
-            fields.push_back(std::move(field_json));
+        if (!type->enumeration) {
+            auto fields = json::array();
+            for (auto const& field : type->fields) {
+                auto field_json = json::object();
+                field_json["name"] = field.name;
+                field_json["type"] = field.type.typeName;
+                field_json["is_array"] = field.type.isArray;
+                field_json["is_pointer"] = field.type.isPointer;
+                if (field.init != reNone)
+                    field_json["default"] = Jsonify{ *this, field.init };
+                if (!field.attributes.empty())
+                    field_json["attributes"] = attrs_to_json(field.attributes);
+                fields.push_back(std::move(field_json));
+            }
+            type_json["fields"] = std::move(fields);
         }
 
-        type_json["fields"] = std::move(fields);
+        if (type->enumeration) {
+            auto values = json::array();
+            for (auto const& value : type->values) {
+                auto value_json = json::object();
+                value_json["name"] = value.name;
+                value_json["value"] = value.value;
+                values.push_back(std::move(value_json));
+            }
+            type_json["values"] = std::move(values);
+        }
+
         types_json.push_back(std::move(type_json));
     }
     doc["types"] = std::move(types_json);

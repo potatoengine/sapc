@@ -76,5 +76,6 @@ fieldptr <- '*' { $$ = rePushBoolean(RE_STATE, 1); } / { $$ = rePushBoolean(RE_S
 fieldarray <- '[]' { $$ = rePushBoolean(RE_STATE, 1); } / { $$ = rePushBoolean(RE_STATE, 0); }
 
 # enumerations
-enumdef <- attributes _ 'enum' _ n:identifier _ b:typebase? _ '{' _ enumvalue ( _ ',' _ enumvalue )* _ '}'
-enumvalue <- i:identifier ( _ '=' _ n:number )?
+enumdef <- attributes _ 'enum' _ n:identifier _ b:typebase? _ '{' _ enumvalue ( _ ',' _ enumvalue )* _ '}' { rePushEnumDefinition(RE_STATE, n, b, RE_LOC); }
+enumvalue <- i:identifier _ v:enuminit { rePushEnumValue(RE_STATE, i, v, RE_LOC); }
+enuminit <- '=' _ n:number { $$ = n; } / { $$ = RE_NONE; }

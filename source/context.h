@@ -51,6 +51,9 @@ extern "C" {
     void rePushField(struct reParseState* state, struct reID type, struct reID isPointer, struct reID isArray, struct reID name, struct reID init, struct reLoc loc);
     void rePushTypeDefinition(struct reParseState* state, struct reID name, struct reID base, struct reLoc loc);
 
+    void rePushEnumValue(struct reParseState* state, struct reID name, struct reID value, struct reLoc loc);
+    void rePushEnumDefinition(struct reParseState* state, struct reID name, struct reID base, struct reLoc loc);
+
     void rePushAttributeArgument(struct reParseState* state, struct reID id);
     void rePushAttribute(struct reParseState* state, struct reID name, struct reLoc loc);
 
