@@ -27,10 +27,13 @@ sapc [-o <input>] [-I<path>]... [-d <depfile>] [-h] [--] <input>
 Input Schema
 ------------
 
+Simplified PEG grammar.
+
 ```
-file <- module statement*
+file <- module pragma* statement*
 statement <- attrdef / typedef / import / include
 module <- 'module' identifier ';'
+pragma <- 'pragma' identifier ';'
 
 import <- 'import' identifier ';'
 include <- 'include' string EOL
@@ -39,7 +42,9 @@ value <- number / string / 'true' / 'false' / 'null'
 number <- '-'? [0-9]+
 string <- '"' <[^"\n]*> '"'
 
-comment <- '#' [^\n]*
+comment <- linecomment / blockcomment
+linecomment <- ( '#' / '//' ) [^\n]*
+blockcomment <- '/*' .* '*/'
 identifier <- [a-zA-Z_][a-zA-Z0-9_]*
 
 attrdef <- 'attribute' identifier ( '{' attrparam* '}' / ';' )
@@ -55,6 +60,8 @@ field <- attributes? identifier identifier ( '=' value )? ';'
 Example:
 
 ```
+module example;
+
 type string;
 type int;
 

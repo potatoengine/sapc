@@ -61,6 +61,7 @@ extern "C" {
     void reModuleName(struct reParseState* state, struct reID name, struct reLoc loc);
     void reImport(struct reParseState* state, struct reID name, struct reLoc loc);
     void reInclude(struct reParseState* state, struct reID path, struct reLoc loc);
+    void rePragma(struct reParseState* state, struct reID name, struct reLoc loc);
 
     void reError(struct reParseState* state, struct reLoc loc, char const* message);
 

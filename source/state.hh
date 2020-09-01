@@ -104,6 +104,7 @@ namespace sapc {
         std::vector<reID> argumentStack;
         std::vector<std::filesystem::path> pathStack;
 
+        std::vector<std::string> pragmas;
         std::vector<std::string> imports;
         std::vector<std::filesystem::path> fileDependencies;
 

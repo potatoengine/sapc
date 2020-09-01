@@ -132,6 +132,10 @@ void reInclude(reParseState* state, reID path, reLoc loc) {
     state->includeFile(get_string(state, path), loc);
 }
 
+void rePragma(struct reParseState* state, struct reID name, struct reLoc loc) {
+    state->pragmas.push_back(get_string(state, name));
+}
+
 void reError(struct reParseState* state, reLoc loc, char const* message) {
     state->error(state->location(loc), "at ", loc.position, ": ", message);
 }
