@@ -12,6 +12,10 @@
       "type": "array",
       "items": { "type": "string" }
     },
+    "pragmas": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
     "types": {
       "type": "array",
       "items": { "$ref": "#/definitions/type" }

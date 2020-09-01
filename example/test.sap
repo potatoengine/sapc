@@ -2,11 +2,15 @@
 
 module test;
 
+// test pragma
+pragma option;
+
+// test import
 import module;
 
 include "include/base.sap" # comment at end of include
 
-attribute default { any value = 0; }
+attribute default { any value = 0; } /* default attribute */
 
 include "include/base.sap" # duplicate include is safe
 

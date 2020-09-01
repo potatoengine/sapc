@@ -32,9 +32,10 @@
 %value "struct reID"
 
 # file
-file <- _ module ( _ statement )* _ !.
+file <- _ module ( _ pragma )* ( _ statement )* _ !.
 statement <- ( attrdef / typedef / import / include )
 module <- 'module' _ m:identifier _ ';' { reModuleName(RE_STATE, m, RE_LOC); } ~{ RE_FAIL($0s, "missing module declaration"); }
+pragma <- 'pragma' _ i:identifier _ ';'
 
 # import/include
 import <- 'import' _ f:identifier _ ';' { reImport(RE_STATE, f, RE_LOC); }

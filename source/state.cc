@@ -87,6 +87,11 @@ nlohmann::json sapc::ParseState::to_json() {
         modules_json.push_back(module);
     doc["imports"] = std::move(modules_json);
 
+    auto pragmas_json = json::array();
+    for (auto const& pragma : pragmas)
+        pragmas_json.push_back(pragma);
+    doc["pragmas"] = std::move(pragmas_json);
+
     auto types_json = json::array();
     for (auto const& type : types) {
         auto type_json = json::object();
