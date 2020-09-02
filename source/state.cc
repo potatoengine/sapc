@@ -297,7 +297,8 @@ bool sapc::ParseState::importModule(std::string module, reLoc loc) {
             if (previous->loc == type->loc)
                 continue;
 
-            error(loc, "imported type '", type->name, "' conflicts with type at ", previous->loc.filename.string(), '(', previous->loc.line, ')');
+            error(loc, "imported type '", type->name, "' conflict");
+            error(previous->loc, "conflicting definition here");
             continue;
         }
 
@@ -350,10 +351,44 @@ bool sapc::ParseState::checkTypes() {
             ok = false;
         }
 
-        for (auto const& field : type->fields) {
-            if (typeMap.find(field.type.typeName) == typeMap.end()) {
+        for (auto& field : type->fields) {
+            auto typeIt = typeMap.find(field.type.typeName);
+            if (typeIt == typeMap.end()) {
                 error(field.loc, "unknown type '", field.type, '\'');
                 ok = false;
+                continue;
+            }
+            auto const& fieldType = types[typeIt->second];
+
+            if (fieldType->enumeration && field.init.type != reTypeNone) {
+                if (field.init.type != reTypeIdentifier) {
+                    error(field.loc, "enumeration type '", field.type, "' may only be initialized by enumerants");
+                    ok = false;
+                    continue;
+                }
+
+                auto findEnumerant = [&fieldType](std::string const& name) -> EnumValue const* {
+                    for (auto const& value : fieldType->values) {
+                        if (value.name == name)
+                            return &value;
+                    }
+                    return nullptr;
+                };
+
+                auto const& enumerantName = strings.strings[field.init.value];
+                auto const* enumValue = findEnumerant(enumerantName);
+                if (findEnumerant(enumerantName) == nullptr) {
+                    error(field.loc, "enumerant '", enumerantName, "' not found in enumeration '", fieldType->name, '\'');
+                    error(fieldType->loc, "enumeration '", fieldType->name, "' defined here");
+                    continue;
+                }
+
+                field.init = { reTypeNumber, static_cast<int>(enumValue->value) };
+            }
+            else if (field.init.type == reTypeIdentifier) {
+                error(field.loc, "only enumeration types can be initialized by enumerants");
+                ok = false;
+                continue;
             }
         }
     }

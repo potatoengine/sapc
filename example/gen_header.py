@@ -96,9 +96,9 @@ def main(argv):
 
         if 'is_enumeration' in type and type['is_enumeration']:
             if basetype:
-                print(f'  enum {name} : {cxxname(basetype)} {{', file=args.output)
+                print(f'  enum class {name} : {cxxname(basetype)} {{', file=args.output)
             else:
-                print(f'  enum {name} {{', file=args.output)
+                print(f'  enum class {name} {{', file=args.output)
 
             for value in type['values']:
                 print(f'    {identifier(value["name"])} = {encode(value["value"])},', file=args.output)
@@ -119,7 +119,10 @@ def main(argv):
                     field_cxxtype = f'std::vector<{field_cxxtype}>'
 
                 if ('default' in field):
-                    print(f'    {field_cxxtype} {cxxname(field)} = {encode(field["default"])};', file=args.output)
+                    if 'is_enumeration' in field_type and field_type['is_enumeration']:
+                        print(f'    {field_cxxtype} {cxxname(field)} = ({field_cxxtype}){encode(field["default"])};', file=args.output)
+                    else:
+                        print(f'    {field_cxxtype} {cxxname(field)} = {encode(field["default"])};', file=args.output)
                 else:
                     print(f'    {field_cxxtype} {cxxname(field)};', file=args.output)
 

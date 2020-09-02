@@ -42,7 +42,7 @@ import <- 'import' _ f:identifier _ ';' { reImport(RE_STATE, f, RE_LOC); }
 include <- 'include' _ p:string space? linecomment? eol { reInclude(RE_STATE, p, RE_LOC); } eol
 
 # values
-value <- ( v:number { $$ = v; } / v:string { $$ = v; } / v:true { $$ = v; } / v:false { $$ = v; } / v:null { $$ = v; } ) ~{ RE_FAIL($0s, "expected value"); }
+value <- ( v:number { $$ = v; } / v:string { $$ = v; } / v:true { $$ = v; } / v:false { $$ = v; } / v:null { $$ = v; } / v:identifier { $$ = v; } ) ~{ RE_FAIL($0s, "expected value"); }
 number <- <'-'? [0-9]+> { $$ = rePushNumber(RE_STATE, $1); }
 string <- '"' <[^"\n]*> '"' { $$ = rePushString(RE_STATE, $1); }
 true <- 'true' { $$ = rePushBoolean(RE_STATE, 1); }
@@ -57,7 +57,7 @@ comment <- linecomment eol / blockcomment
 linecomment <- ( '//' / '#' ) [^\n]*
 blockcomment <- '/*' ( eol / !'*/' . )* '*/' ~{ RE_FAIL($0s, "invalid block comment"); }
 identifier <- <[a-zA-Z_][a-zA-Z0-9_]*> { $$ = rePushIdentifier(RE_STATE, $1); }
-initializer <- '=' _ v:value { $$ = v; } / '=' _ v:identifier { $$ = v; } / { $$ = RE_NONE; }
+initializer <- '=' _ v:value { $$ = v; } / { $$ = RE_NONE; }
 
 # attribute definitions
 attrdef <- 'attribute' _ n:identifier _ ( '{' (_ attrparam )* _ '}' / ';' ) { rePushAttributeDefinition(RE_STATE, n, RE_LOC); }
