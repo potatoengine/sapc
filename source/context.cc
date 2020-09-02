@@ -92,7 +92,17 @@ void rePushEnumValue(struct reParseState* state, struct reID name, struct reID v
     else if (!state->enumValueStack.empty())
         init = state->enumValueStack.back().value + 1;
 
-    state->enumValueStack.push_back({ get_string(state, name), init, {}, state->location(loc) });
+    auto nameStr = get_string(state, name);
+
+    for (auto const& enumValue : state->enumValueStack) {
+        if (enumValue.name == nameStr) {
+            state->error(state->location(loc), "duplicate enumerant '", nameStr, '\'');
+            state->error(enumValue.loc, "previous enumerant '", nameStr, "' defined here");
+            return;
+        }
+    }
+
+    state->enumValueStack.push_back({ std::move(nameStr), init, {}, state->location(loc) });
 }
 
 void rePushEnumDefinition(struct reParseState* state, struct reID name, struct reID base, struct reLoc loc) {
