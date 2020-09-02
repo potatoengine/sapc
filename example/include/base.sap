@@ -6,3 +6,10 @@ attribute name { string name; } # this is another comment
 
 [ignore, name("boolean")]
 type bool2;
+
+enum flags {
+    none = 0,
+    base = 1,
+    second,
+    last
+}

@@ -60,13 +60,22 @@ namespace sapc {
         Location loc;
     };
 
+    struct EnumValue {
+        std::string name;
+        long long value = 0;
+        std::vector<Attribute> attributes;
+        Location loc;
+    };
+
     struct Type {
         std::string name;
         std::string base;
         std::vector<Attribute> attributes;
         std::vector<Field> fields;
+        std::vector<EnumValue> values;
         Location loc;
         bool attribute = false;
+        bool enumeration = false;
         bool imported = false;
         bool builtin = false;
     };
@@ -102,6 +111,7 @@ namespace sapc {
         std::vector<Field> attributeParamStack;
         std::vector<std::vector<Attribute>> attributeSetStack;
         std::vector<reID> argumentStack;
+        std::vector<EnumValue> enumValueStack;
         std::vector<std::filesystem::path> pathStack;
 
         std::vector<std::string> pragmas;

@@ -94,25 +94,37 @@ def main(argv):
 
         basetype = typemap[type['base']] if 'base' in type else None
 
-        if basetype:
-            print(f'  struct {name} : {cxxname(basetype)} {{', file=args.output)
-        else:
-            print(f'  struct {name} {{', file=args.output)
-
-        for field in type['fields']:
-            if ignored(field): continue
-
-            field_type = typemap[field["type"]]
-            field_cxxtype = cxxname(field_type)
-            if "is_pointer" in field and field["is_pointer"]:
-                field_cxxtype = f'std::unique_ptr<{field_cxxtype}>'
-            if "is_array" in field and field["is_array"]:
-                field_cxxtype = f'std::vector<{field_cxxtype}>'
-
-            if ('default' in field):
-                print(f'    {field_cxxtype} {cxxname(field)} = {encode(field["default"])};', file=args.output)
+        if 'is_enumeration' in type and type['is_enumeration']:
+            if basetype:
+                print(f'  enum class {name} : {cxxname(basetype)} {{', file=args.output)
             else:
-                print(f'    {field_cxxtype} {cxxname(field)};', file=args.output)
+                print(f'  enum class {name} {{', file=args.output)
+
+            for value in type['values']:
+                print(f'    {identifier(value["name"])} = {encode(value["value"])},', file=args.output)
+        else:
+            if basetype:
+                print(f'  struct {name} : {cxxname(basetype)} {{', file=args.output)
+            else:
+                print(f'  struct {name} {{', file=args.output)
+
+            for field in type['fields']:
+                if ignored(field): continue
+
+                field_type = typemap[field["type"]]
+                field_cxxtype = cxxname(field_type)
+                if "is_pointer" in field and field["is_pointer"]:
+                    field_cxxtype = f'std::unique_ptr<{field_cxxtype}>'
+                if "is_array" in field and field["is_array"]:
+                    field_cxxtype = f'std::vector<{field_cxxtype}>'
+
+                if ('default' in field):
+                    if 'is_enumeration' in field_type and field_type['is_enumeration']:
+                        print(f'    {field_cxxtype} {cxxname(field)} = ({field_cxxtype}){encode(field["default"])};', file=args.output)
+                    else:
+                        print(f'    {field_cxxtype} {cxxname(field)} = {encode(field["default"])};', file=args.output)
+                else:
+                    print(f'    {field_cxxtype} {cxxname(field)};', file=args.output)
 
         print(f'  }};', file=args.output)
         print(f'}}', file=args.output)

@@ -31,3 +31,11 @@ type test {
 }
 
 type derived : test;
+
+enum order {
+    first, second, third
+}
+
+type ordered {
+    order position = second;
+}

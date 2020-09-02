@@ -31,7 +31,7 @@ Simplified PEG grammar.
 
 ```
 file <- module pragma* statement*
-statement <- attrdef / typedef / import / include
+statement <- attrdef / typedef / enumdef / import / include
 module <- 'module' identifier ';'
 pragma <- 'pragma' identifier ';'
 
@@ -54,7 +54,10 @@ attributes <- ( '[' attribute ( ',' attribute )* ']' )+
 attribute <- identifier ( '(' ( value ( ',' value )* )? ')' )?
 
 typedef <- attributes? 'type' identifier ( ':' identifier )? ( '{' field* '}' / ';' )
-field <- attributes? identifier identifier ( '=' value )? ';'
+field <- attributes? identifier identifier ( '=' value / '=' identifier )? ';'
+
+enumdef <- attributes? 'enum' ( ':' identifier )? '{' enumvalue ( ',' enumvalue )* '}'
+enumvalue <- identifier ( '=' number )?
 ```
 
 Example:
@@ -67,10 +70,17 @@ type int;
 
 attribute cdecl { string name; }
 
+enum flags {
+    none,
+    first = 10,
+    last = 20
+}
+
 [cdecl("test_t")]
 type test {
 	[cdecl("t_num")]
 	int num = 0;
+    flags flg = first;
 };
 ```
 

@@ -33,7 +33,7 @@
 
 # file
 file <- _ module ( _ pragma )* ( _ statement )* _ !.
-statement <- ( attrdef / typedef / import / include )
+statement <- ( attrdef / typedef / enumdef / import / include )
 module <- 'module' _ m:identifier _ ';' { reModuleName(RE_STATE, m, RE_LOC); } ~{ RE_FAIL($0s, "missing module declaration"); }
 pragma <- 'pragma' _ i:identifier _ ';'
 
@@ -42,7 +42,7 @@ import <- 'import' _ f:identifier _ ';' { reImport(RE_STATE, f, RE_LOC); }
 include <- 'include' _ p:string space? linecomment? eol { reInclude(RE_STATE, p, RE_LOC); } eol
 
 # values
-value <- ( v:number { $$ = v; } / v:string { $$ = v; } / v:true { $$ = v; } / v:false { $$ = v; } / v:null { $$ = v; } ) ~{ RE_FAIL($0s, "expected value"); }
+value <- ( v:number { $$ = v; } / v:string { $$ = v; } / v:true { $$ = v; } / v:false { $$ = v; } / v:null { $$ = v; } / v:identifier { $$ = v; } ) ~{ RE_FAIL($0s, "expected value"); }
 number <- <'-'? [0-9]+> { $$ = rePushNumber(RE_STATE, $1); }
 string <- '"' <[^"\n]*> '"' { $$ = rePushString(RE_STATE, $1); }
 true <- 'true' { $$ = rePushBoolean(RE_STATE, 1); }
@@ -74,3 +74,8 @@ typebase <- ':' _ n:identifier { $$ = n; } / { $$ = RE_NONE; }
 field <- attributes _ t:identifier _ p:fieldptr _ a:fieldarray _ n:identifier _ v:initializer _ ';' { rePushField(RE_STATE, t, p, a, n, v, RE_LOC); }
 fieldptr <- '*' { $$ = rePushBoolean(RE_STATE, 1); } / { $$ = rePushBoolean(RE_STATE, 0); }
 fieldarray <- '[]' { $$ = rePushBoolean(RE_STATE, 1); } / { $$ = rePushBoolean(RE_STATE, 0); }
+
+# enumerations
+enumdef <- attributes _ 'enum' _ n:identifier _ b:typebase? _ '{' _ enumvalue ( _ ',' _ enumvalue )* _ '}' { rePushEnumDefinition(RE_STATE, n, b, RE_LOC); }
+enumvalue <- i:identifier _ v:enuminit { rePushEnumValue(RE_STATE, i, v, RE_LOC); }
+enuminit <- '=' _ n:number { $$ = n; } / { $$ = RE_NONE; }
