@@ -5,6 +5,8 @@ add_executable(sapc
     context.h
     main.cc
     overloaded.hh
+    parser.cc
+    parser.hh
     state.cc
     state.hh
 )

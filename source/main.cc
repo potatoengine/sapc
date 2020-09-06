@@ -3,6 +3,7 @@
 // See LICENSE.md for more details.
 
 #include "state.hh"
+#include "parser.hh"
 #include "string_util.hh"
 
 #include <string>
@@ -119,6 +120,14 @@ static int compile(Config& config) {
     sapc::ParseState parser{ strings, config.search };
     parser.addBuiltinTypes();
     auto const compiled = parser.compile(config.input);
+
+    sapc::Parser parser2;
+    if (!parser2.parse(config.input)) {
+        std::cerr << "error: Failed to parse input\n";
+        for (auto const& error : parser2.errors)
+            std::cerr << config.input.string() << '(' << error.pos.line << ',' << error.pos.column << "): error: " << error.message << '\n';
+        return 2;
+    }
 
     for (auto const& error : parser.errors)
         std::cerr << error << '\n';

@@ -22,6 +22,6 @@ if(SAPC_BUILD_EXAMPLES)
         target_sources(sapc_gen_test PRIVATE ${NAME}.h)
     endfunction()
 
-    sapc_test_compile_header(module)
+    sapc_test_compile_header(common)
     sapc_test_compile_header(test)
 endif()

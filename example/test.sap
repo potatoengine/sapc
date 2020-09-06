@@ -6,7 +6,7 @@ module test;
 pragma option;
 
 // test import
-import module;
+import common;
 
 include "include/base.sap" # comment at end of include
 

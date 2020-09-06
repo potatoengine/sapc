@@ -1,4 +1,4 @@
-module module;
+module common;
 
 attribute cxxname { string name; }
 attribute ignore { bool ignored = true; }
