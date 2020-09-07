@@ -1,9 +1,11 @@
 find_package(nlohmann_json 3.2.0 REQUIRED)
 
 add_executable(sapc
+    ast.cc
     ast.hh
     context.cc
     context.h
+    location.cc
     location.hh
     main.cc
     overloaded.hh

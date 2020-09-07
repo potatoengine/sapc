@@ -8,13 +8,17 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <filesystem>
+#include <iosfwd>
 
 namespace sapc::ast {
     struct TypeInfo {
         std::string type;
         bool isPointer = false;
         bool isArray = false;
+
+        friend std::ostream& operator<<(std::ostream& os, TypeInfo const& type);
     };
 
     struct Value {
@@ -87,5 +91,7 @@ namespace sapc::ast {
         std::vector<Attribute> attributes;
         std::vector<Type> types;
         std::vector<Enum> enums;
+
+        std::unordered_map<std::string, size_t> typeMap;
     };
 }

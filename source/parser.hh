@@ -56,16 +56,12 @@ namespace sapc {
         constexpr operator bool() const noexcept { return type != TokenType::Unknown; }
     };
 
-    struct ParseError {
-        std::string message;
-        TokenPos pos;
-    };
-
     struct Parser {
         std::vector<Token> tokens;
-        std::vector<ParseError> errors;
+        std::vector<std::string> errors;
 
         bool tokenize(std::string_view source);
         bool parse(std::filesystem::path filename, ast::Module& out_module);
+        bool analyze(ast::Module& module);
     };
 }

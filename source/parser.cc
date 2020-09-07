@@ -280,8 +280,16 @@ namespace sapc {
 
         auto fail = [&, this](std::string message) {
             auto const& tok = next < tokens.size() ? tokens[next] : tokens.back();
-            errors.push_back({ message, tok.pos });
+            auto const loc = Location{ filename, tok.pos.line, tok.pos.column };
+            std::ostringstream buffer;
+            buffer << loc << ':' << message;
+            errors.push_back({ buffer.str() });
             return false;
+        };
+
+        auto pos = [&]() {
+            auto const& tokPos = next > 0 ? tokens[next - 1].pos : tokens.front().pos;
+            return Location{ filename, tokPos.line, tokPos.column };
         };
 
 #if defined(expect)
@@ -321,6 +329,7 @@ namespace sapc {
             while (consume(TokenType::LeftBracket)) {
                 do {
                     auto& attr = attrs.emplace_back();
+                    attr.location = pos();
                     expect(TokenType::Identifier, attr.name);
                     if (consume(TokenType::LeftParen)) {
                         if (!consume(TokenType::RightParen)) {
@@ -401,6 +410,8 @@ namespace sapc {
 
             if (consume(TokenType::KeywordAttribute)) {
                 auto& attr = out_module.attributes.emplace_back();
+                attr.location = pos();
+
                 if (!consume(TokenType::Identifier, attr.name))
                     return fail("expected identifier after `attribute'");
                 if (consume(TokenType::LeftBrace)) {
@@ -430,6 +441,8 @@ namespace sapc {
             // parse regular type declarations
             if (consume(TokenType::KeywordType)) {
                 auto& type = out_module.types.emplace_back();
+                type.location = pos();
+
                 type.attributes = std::move(attributes);
                 expect(TokenType::Identifier, type.name);
                 if (consume(TokenType::Colon))
@@ -441,6 +454,7 @@ namespace sapc {
                             return false;
                         if (!parseType(field.type))
                             return false;
+                        field.location = pos();
                         expect(TokenType::Identifier, field.name);
                         if (consume(TokenType::Equal)) {
                             if (!consumeValue(field.init))
@@ -458,6 +472,8 @@ namespace sapc {
             // parse enumerations
             if (consume(TokenType::KeywordEnum)) {
                 auto& enum_ = out_module.enums.emplace_back();
+                enum_.location = pos();
+
                 enum_.attributes = std::move(attributes);
                 expect(TokenType::Identifier, enum_.name);
                 if (consume(TokenType::Colon))
@@ -486,8 +502,74 @@ namespace sapc {
             return fail(buf.str());
         }
 
-        return true;
+        return analyze(out_module);
+#undef expect
     }
 
-#undef expect
+    bool Parser::analyze(ast::Module& module) {
+        bool valid = true;
+
+        auto error = [&, this](Location const& loc, std::string error, auto const&... args) {
+            std::ostringstream buffer;
+            ((buffer << loc << ": " << error) << ... << args);
+            errors.push_back(buffer.str());
+            valid = false;
+        };
+
+        // build a map of type names to types
+        for (size_t index = 0; index != module.types.size(); ++index)
+            module.typeMap[module.types[index].name] = index;
+
+        // ensure all types are valid
+        for (auto const& type : module.types) {
+            //if (type.imported)
+            //    continue;
+
+            if (!type.base.empty() && module.typeMap.find(type.base) == module.typeMap.end()) {
+                error(type.location, "unknown type '", type.base, '\'');
+            }
+
+            for (auto& field : type.fields) {
+                auto typeIt = module.typeMap.find(field.type.type);
+                if (typeIt == module.typeMap.end()) {
+                    error(field.location, "unknown type '", field.type, '\'');
+                    continue;
+                }
+                auto const& fieldType = module.types[typeIt->second];
+
+                //if (fieldType.enumeration && field.init.type != reTypeNone) {
+                //    if (field.init.type != reTypeIdentifier) {
+                //        error(field.loc, "enumeration type '", field.type, "' may only be initialized by enumerants");
+                //        ok = false;
+                //        continue;
+                //    }
+
+                //    auto findEnumerant = [&fieldType](std::string const& name) -> EnumValue const* {
+                //        for (auto const& value : fieldtype.values) {
+                //            if (value.name == name)
+                //                return &value;
+                //        }
+                //        return nullptr;
+                //    };
+
+                //    auto const& enumerantName = strings.strings[field.init.value];
+                //    auto const* enumValue = findEnumerant(enumerantName);
+                //    if (findEnumerant(enumerantName) == nullptr) {
+                //        error(field.loc, "enumerant '", enumerantName, "' not found in enumeration '", fieldtype.name, '\'');
+                //        error(fieldtype.loc, "enumeration '", fieldtype.name, "' defined here");
+                //        continue;
+                //    }
+
+                //    field.init = { reTypeNumber, static_cast<int>(enumValue->value) };
+                //}
+                //else if (field.init.type == reTypeIdentifier) {
+                //    error(field.loc, "only enumeration types can be initialized by enumerants");
+                //    ok = false;
+                //    continue;
+                //}
+            }
+        }
+
+        return valid;
+    }
 }

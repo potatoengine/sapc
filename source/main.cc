@@ -127,7 +127,7 @@ static int compile(Config& config) {
     if (!parser2.parse(config.input, module)) {
         std::cerr << "error: Failed to parse input\n";
         for (auto const& error : parser2.errors)
-            std::cerr << config.input.string() << '(' << error.pos.line << ',' << error.pos.column << "): error: " << error.message << '\n';
+            std::cerr << error << '\n';
         return 2;
     }
 
