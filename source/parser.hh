@@ -17,7 +17,7 @@ namespace sapc {
         LeftBrace,
         RightBrace,
         LeftParen,
-        RightParent,
+        RightParen,
         LeftBracket,
         RightBracket,
         Comma,

@@ -15,8 +15,8 @@ namespace sapc {
     static auto isDigit(char ch) -> bool { return ch >= '0' && ch <= '9'; };
     static auto isWhiteSpace(char ch) -> bool { return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n'; }
 
-    static std::ostream& operator<<(std::ostream& os, Token const& tok) {
-        switch (tok.type) {
+    static std::ostream& operator<<(std::ostream& os, TokenType type) {
+        switch (type) {
         case TokenType::Unknown: os << ""; break;
         case TokenType::Identifier: os << "identifier"; break;
         case TokenType::String: os << "string"; break;
@@ -24,7 +24,7 @@ namespace sapc {
         case TokenType::LeftBrace: os << "{"; break;
         case TokenType::RightBrace: os << "}"; break;
         case TokenType::LeftParen: os << "("; break;
-        case TokenType::RightParent: os << ")"; break;
+        case TokenType::RightParen: os << ")"; break;
         case TokenType::LeftBracket: os << "["; break;
         case TokenType::RightBracket: os << "]"; break;
         case TokenType::Comma: os << ","; break;
@@ -46,6 +46,10 @@ namespace sapc {
         default: os << "[unknown-token-type]"; break;
         }
         return os;
+    }
+
+    static std::ostream& operator<<(std::ostream& os, Token const& tok) {
+        return os << tok.type;
     }
 
     bool Parser::tokenize(std::string_view source) {
@@ -92,7 +96,7 @@ namespace sapc {
             { "{", TokenType::LeftBrace },
             { "}", TokenType::RightBrace },
             { "(", TokenType::LeftParen },
-            { ")", TokenType::RightParent },
+            { ")", TokenType::RightParen },
             { "[", TokenType::LeftBracket },
             { "]", TokenType::RightBracket },
             { ",", TokenType::Comma },
@@ -177,7 +181,7 @@ namespace sapc {
                     advance();
 
                 // only a negative sign is not a complete number
-                if (position - start <= 1)
+                if (isNegative && position - start <= 1)
                     return fail(start);
 
                 Token token;
@@ -235,7 +239,8 @@ namespace sapc {
 
     bool Parser::parse(std::filesystem::path filename) {
         size_t next = 0;
-        auto consume = [&next, this](TokenType type) {
+
+        auto consume = [&, this](TokenType type) {
             if (next >= tokens.size())
                 return false;
 
@@ -246,19 +251,28 @@ namespace sapc {
             return true;
         };
 
-        auto fail = [&next, this](std::string_view error) {
-            std::ostringstream buf;
-            buf << error;
-            if (next < tokens.size()) {
-                buf << " at " << tokens[next];
-                errors.push_back({ std::move(buf).str(), tokens[next].pos });
-            }
-            else
-                errors.push_back({ std::move(buf).str() });
+        auto fail = [&, this](std::string message) {
+            auto const& tok = next < tokens.size() ? tokens[next] : tokens.back();
+            errors.push_back({ message, tok.pos });
             return false;
         };
 
-        auto consumeValue = [&consume, &fail]() {
+#if defined(expect)
+#   undef expect
+#endif
+#define expect(type) \
+        do{ \
+            auto const _ttype = (type); \
+            if (!consume(_ttype)) { \
+                std::ostringstream buf; \
+                buf << "expected " << _ttype; \
+                if (next < tokens.size()) \
+                    buf << ", got " << tokens[next]; \
+                return fail(buf.str()); \
+            } \
+        }while(false)
+
+        auto consumeValue = [&]() {
             if (consume(TokenType::KeywordFalse) || consume(TokenType::KeywordTrue))
                 return true;
             if (consume(TokenType::String))
@@ -270,6 +284,35 @@ namespace sapc {
             if (consume(TokenType::Identifier))
                 return true;
             return false;
+        };
+
+        auto parseAttributes = [&, this]() -> bool {
+            while (consume(TokenType::LeftBracket)) {
+                do {
+                    expect(TokenType::Identifier);
+                    if (consume(TokenType::LeftParen)) {
+                        bool first = true;
+                        while (!consume(TokenType::RightParen)) {
+                            if (!first)
+                                expect(TokenType::Comma);
+                            first = false;
+                            if (!consumeValue())
+                                fail("expected value");
+                        }
+                    }
+                } while (consume(TokenType::Comma));
+                expect(TokenType::RightBracket);
+            }
+            return true;
+        };
+
+        auto parseType = [&, this]() -> bool {
+            expect(TokenType::Identifier);
+            consume(TokenType::Asterisk);
+            if (consume(TokenType::LeftBracket)) {
+                expect(TokenType::RightBracket);
+            }
+            return true;
         };
 
         // open file and read contents
@@ -285,16 +328,30 @@ namespace sapc {
         tokenize(contents);
 
         // expect module first
-        if (!consume(TokenType::KeywordModule))
-            return fail("expected `module' as first declaration");
-        if (!consume(TokenType::Identifier))
-            return fail("expected identifier after `module'");
-        if (!consume(TokenType::SemiColon))
-            return fail("expected ; after module identifier");
+        expect(TokenType::KeywordModule);
+        expect(TokenType::Identifier);
+        expect(TokenType::SemiColon);
 
         while (!consume(TokenType::EndOfFile)) {
             if (consume(TokenType::Unknown))
                 return fail("unexpected input");
+
+            if (consume(TokenType::KeywordImport)) {
+                expect(TokenType::Identifier);
+                expect(TokenType::SemiColon);
+                continue;
+            }
+
+            if (consume(TokenType::KeywordInclude)) {
+                expect(TokenType::String);
+                continue;
+            }
+
+            if (consume(TokenType::KeywordPragma)) {
+                expect(TokenType::Identifier);
+                expect(TokenType::SemiColon);
+                continue;
+            }
 
             if (consume(TokenType::KeywordAttribute)) {
                 if (!consume(TokenType::Identifier))
@@ -302,29 +359,77 @@ namespace sapc {
                 if (consume(TokenType::LeftBrace)) {
                     while (!consume(TokenType::RightBrace)) {
                         if (consume(TokenType::Identifier)) {
-                            if (!consume(TokenType::Identifier))
-                                return fail("expected field name after type");
-                            if (consume(TokenType::Equal))
+                            expect(TokenType::Identifier);
+                            if (consume(TokenType::Equal)) {
                                 if (!consumeValue())
-                                    return fail("expected identifier after `='");
-                            if (!consume(TokenType::SemiColon))
-                                return fail("expected `;'");
+                                    return fail("expected value after `='");
+                            }
+                            expect(TokenType::SemiColon);
                         }
                         else
                             return fail("unexpected token");
                     }
                 }
-                else if (!consume(TokenType::SemiColon))
-                    return fail("expected `{' or `;' after attribute identifier");
-            }
-            else if (consume(TokenType::KeywordType)) {
+                else
+                    expect(TokenType::SemiColon);
 
+                continue;
             }
-            else
-                return fail("unexpected token");
+
+            // optionally build up a list of attributes
+            if (!parseAttributes())
+                return false;
+
+            // parse regular type declarations
+            if (consume(TokenType::KeywordType)) {
+                expect(TokenType::Identifier);
+                if (consume(TokenType::Colon))
+                    expect(TokenType::Identifier);
+                if (consume(TokenType::LeftBrace)) {
+                    while (!consume(TokenType::RightBrace)) {
+                        if (!parseAttributes())
+                            return false;
+                        if (!parseType())
+                            return false;
+                        expect(TokenType::Identifier);
+                        if (consume(TokenType::Equal)) {
+                            if (!consumeValue())
+                                return fail("expected value after `='");
+                        }
+                        expect(TokenType::SemiColon);
+                    }
+                }
+                else
+                    expect(TokenType::SemiColon);
+
+                continue;
+            }
+
+            // parse enumerations
+            if (consume(TokenType::KeywordEnum)) {
+                expect(TokenType::Identifier);
+                if (consume(TokenType::Colon))
+                    expect(TokenType::Identifier);
+                expect(TokenType::LeftBrace);
+                for (;;) {
+                    expect(TokenType::Identifier);
+                    if (consume(TokenType::Equal))
+                        expect(TokenType::Number);
+                    if (!consume(TokenType::Comma))
+                        break;
+                }
+                expect(TokenType::RightBrace);
+
+                continue;
+            }
+
+            std::ostringstream buf;
+            buf << "unexpected " << tokens[next];
+            return fail(buf.str());
         }
 
         return true;
-
     }
+
+#undef expect
 }
