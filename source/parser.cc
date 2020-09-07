@@ -3,6 +3,8 @@
 // See LICENSE.md for more details.
 
 #include "parser.hh"
+#include "ast.hh"
+
 #include <charconv>
 #include <sstream>
 #include <fstream>
@@ -169,7 +171,7 @@ namespace sapc {
                 advance();
                 while (position < source.size() && isIdentChar(source[position]))
                     advance();
-                tokens.push_back({ TokenType::Identifier, pos(start), 0, std::string{source.substr(start)} });
+                tokens.push_back({ TokenType::Identifier, pos(start), 0, std::string{source.substr(start, position - start)} });
                 continue;
             }
 
@@ -237,19 +239,44 @@ namespace sapc {
         return true;
     }
 
-    bool Parser::parse(std::filesystem::path filename) {
+    bool Parser::parse(std::filesystem::path filename, ast::Module& out_module) {
         size_t next = 0;
 
-        auto consume = [&, this](TokenType type) {
-            if (next >= tokens.size())
-                return false;
+        out_module = ast::Module{};
 
-            if (tokens[next].type != type)
-                return false;
+        struct Consume {
+            size_t& next;
+            Parser& self;
 
-            ++next;
-            return true;
-        };
+            bool operator()(TokenType type) {
+                if (next >= self.tokens.size())
+                    return false;
+
+                if (self.tokens[next].type != type)
+                    return false;
+
+                ++next;
+                return true;
+            }
+
+            bool operator()(TokenType type, std::string& out) {
+                auto const index = next;
+                if (!(*this)(type))
+                    return false;
+
+                out = self.tokens[index].dataString;
+                return true;
+            }
+
+            bool operator()(TokenType type, long long& out) {
+                auto const index = next;
+                if (!(*this)(type))
+                    return false;
+
+                out = self.tokens[index].dataNumber;
+                return true;
+            }
+        } consume{ next, *this };
 
         auto fail = [&, this](std::string message) {
             auto const& tok = next < tokens.size() ? tokens[next] : tokens.back();
@@ -260,10 +287,10 @@ namespace sapc {
 #if defined(expect)
 #   undef expect
 #endif
-#define expect(type) \
+#define expect(type,...) \
         do{ \
             auto const _ttype = (type); \
-            if (!consume(_ttype)) { \
+            if (!consume(_ttype, __VA_ARGS__)) { \
                 std::ostringstream buf; \
                 buf << "expected " << _ttype; \
                 if (next < tokens.size()) \
@@ -272,32 +299,40 @@ namespace sapc {
             } \
         }while(false)
 
-        auto consumeValue = [&]() {
-            if (consume(TokenType::KeywordFalse) || consume(TokenType::KeywordTrue))
-                return true;
-            if (consume(TokenType::String))
-                return true;
-            if (consume(TokenType::Number))
-                return true;
+        auto consumeValue = [&](ast::Value& out) {
             if (consume(TokenType::KeywordNull))
-                return true;
-            if (consume(TokenType::Identifier))
-                return true;
-            return false;
+                out = ast::Value{ ast::Value::Type::Null };
+            else if (consume(TokenType::KeywordFalse))
+                out = ast::Value{ ast::Value::Type::Boolean, 0 };
+            else if (consume(TokenType::KeywordTrue))
+                out = ast::Value{ ast::Value::Type::Boolean, 1 };
+            else if (consume(TokenType::String, out.dataString))
+                out.type = ast::Value::Type::String;
+            else if (consume(TokenType::Number, out.dataNumber))
+                out.type = ast::Value::Type::Number;
+            else if (consume(TokenType::Identifier, out.dataString))
+                out.type = ast::Value::Type::Enum;
+            else
+                return false;
+            return true;
         };
 
-        auto parseAttributes = [&, this]() -> bool {
+        auto parseAttributes = [&, this](std::vector<ast::AttributeUsage>& attrs) -> bool {
             while (consume(TokenType::LeftBracket)) {
                 do {
-                    expect(TokenType::Identifier);
+                    auto& attr = attrs.emplace_back();
+                    expect(TokenType::Identifier, attr.name);
                     if (consume(TokenType::LeftParen)) {
-                        bool first = true;
-                        while (!consume(TokenType::RightParen)) {
-                            if (!first)
-                                expect(TokenType::Comma);
-                            first = false;
-                            if (!consumeValue())
-                                fail("expected value");
+                        if (!consume(TokenType::RightParen)) {
+                            for (;;) {
+                                auto& value = attr.params.emplace_back();
+                                if (!consumeValue(value))
+                                    fail("expected value");
+                                if (!consume(TokenType::Comma))
+                                    break;
+
+                            }
+                            expect(TokenType::RightParen);
                         }
                     }
                 } while (consume(TokenType::Comma));
@@ -306,11 +341,13 @@ namespace sapc {
             return true;
         };
 
-        auto parseType = [&, this]() -> bool {
-            expect(TokenType::Identifier);
-            consume(TokenType::Asterisk);
+        auto parseType = [&, this](ast::TypeInfo& type) -> bool {
+            expect(TokenType::Identifier, type.type);
+            if (consume(TokenType::Asterisk))
+                type.isPointer = true;
             if (consume(TokenType::LeftBracket)) {
                 expect(TokenType::RightBracket);
+                type.isArray = true;
             }
             return true;
         };
@@ -329,7 +366,7 @@ namespace sapc {
 
         // expect module first
         expect(TokenType::KeywordModule);
-        expect(TokenType::Identifier);
+        expect(TokenType::Identifier, out_module.name);
         expect(TokenType::SemiColon);
 
         while (!consume(TokenType::EndOfFile)) {
@@ -337,37 +374,46 @@ namespace sapc {
                 return fail("unexpected input");
 
             if (consume(TokenType::KeywordImport)) {
-                expect(TokenType::Identifier);
+                std::string import;
+                expect(TokenType::Identifier, import);
                 expect(TokenType::SemiColon);
+
+                out_module.imports.push_back(std::move(import));
                 continue;
             }
 
             if (consume(TokenType::KeywordInclude)) {
-                expect(TokenType::String);
+                std::string include;
+                expect(TokenType::String, include);
+
+                out_module.includes.push_back(std::move(include));
                 continue;
             }
 
             if (consume(TokenType::KeywordPragma)) {
-                expect(TokenType::Identifier);
+                std::string option;
+                expect(TokenType::Identifier, option);
                 expect(TokenType::SemiColon);
+
+                out_module.pragmas.push_back(std::move(option));
                 continue;
             }
 
             if (consume(TokenType::KeywordAttribute)) {
-                if (!consume(TokenType::Identifier))
+                auto& attr = out_module.attributes.emplace_back();
+                if (!consume(TokenType::Identifier, attr.name))
                     return fail("expected identifier after `attribute'");
                 if (consume(TokenType::LeftBrace)) {
                     while (!consume(TokenType::RightBrace)) {
-                        if (consume(TokenType::Identifier)) {
-                            expect(TokenType::Identifier);
-                            if (consume(TokenType::Equal)) {
-                                if (!consumeValue())
-                                    return fail("expected value after `='");
-                            }
-                            expect(TokenType::SemiColon);
+                        auto& arg = attr.arguments.emplace_back();
+                        if (!parseType(arg.type))
+                            return false;
+                        expect(TokenType::Identifier, arg.name);
+                        if (consume(TokenType::Equal)) {
+                            if (!consumeValue(arg.init))
+                                return fail("expected value after `='");
                         }
-                        else
-                            return fail("unexpected token");
+                        expect(TokenType::SemiColon);
                     }
                 }
                 else
@@ -377,23 +423,27 @@ namespace sapc {
             }
 
             // optionally build up a list of attributes
-            if (!parseAttributes())
+            std::vector<ast::AttributeUsage> attributes;
+            if (!parseAttributes(attributes))
                 return false;
 
             // parse regular type declarations
             if (consume(TokenType::KeywordType)) {
-                expect(TokenType::Identifier);
+                auto& type = out_module.types.emplace_back();
+                type.attributes = std::move(attributes);
+                expect(TokenType::Identifier, type.name);
                 if (consume(TokenType::Colon))
-                    expect(TokenType::Identifier);
+                    expect(TokenType::Identifier, type.base);
                 if (consume(TokenType::LeftBrace)) {
                     while (!consume(TokenType::RightBrace)) {
-                        if (!parseAttributes())
+                        auto& field = type.fields.emplace_back();
+                        if (!parseAttributes(field.attributes))
                             return false;
-                        if (!parseType())
+                        if (!parseType(field.type))
                             return false;
-                        expect(TokenType::Identifier);
+                        expect(TokenType::Identifier, field.name);
                         if (consume(TokenType::Equal)) {
-                            if (!consumeValue())
+                            if (!consumeValue(field.init))
                                 return fail("expected value after `='");
                         }
                         expect(TokenType::SemiColon);
@@ -407,14 +457,22 @@ namespace sapc {
 
             // parse enumerations
             if (consume(TokenType::KeywordEnum)) {
-                expect(TokenType::Identifier);
+                auto& enum_ = out_module.enums.emplace_back();
+                enum_.attributes = std::move(attributes);
+                expect(TokenType::Identifier, enum_.name);
                 if (consume(TokenType::Colon))
-                    expect(TokenType::Identifier);
+                    expect(TokenType::Identifier, enum_.base);
                 expect(TokenType::LeftBrace);
+                long long nextValue = 0;
                 for (;;) {
-                    expect(TokenType::Identifier);
-                    if (consume(TokenType::Equal))
-                        expect(TokenType::Number);
+                    auto& value = enum_.values.emplace_back();
+                    expect(TokenType::Identifier, value.name);
+                    if (consume(TokenType::Equal)) {
+                        expect(TokenType::Number, value.value);
+                        nextValue = value.value + 1;
+                    }
+                    else
+                        value.value = nextValue++;
                     if (!consume(TokenType::Comma))
                         break;
                 }

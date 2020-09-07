@@ -5,6 +5,7 @@
 #pragma once
 
 #include "context.h"
+#include "location.hh"
 
 #include <string>
 #include <vector>
@@ -26,14 +27,6 @@ namespace sapc {
 
     constexpr bool operator==(reID a, reID b) noexcept { return a.value == b.value; }
     constexpr bool operator!=(reID a, reID b) noexcept { return a.value != b.value; }
-
-    struct Location {
-        std::filesystem::path filename;
-        int line = 0;
-        int column = 0;
-
-        bool operator==(Location const& rhs) const { return filename == rhs.filename && line == rhs.line && column == rhs.column; }
-    };
 
     struct Type;
 

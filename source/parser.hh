@@ -9,6 +9,10 @@
 #include <filesystem>
 
 namespace sapc {
+    namespace ast {
+        class Module;
+    }
+
     enum class TokenType {
         Unknown,
         Identifier,
@@ -62,6 +66,6 @@ namespace sapc {
         std::vector<ParseError> errors;
 
         bool tokenize(std::string_view source);
-        bool parse(std::filesystem::path filename);
+        bool parse(std::filesystem::path filename, ast::Module& out_module);
     };
 }

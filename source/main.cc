@@ -4,6 +4,7 @@
 
 #include "state.hh"
 #include "parser.hh"
+#include "ast.hh"
 #include "string_util.hh"
 
 #include <string>
@@ -122,7 +123,8 @@ static int compile(Config& config) {
     auto const compiled = parser.compile(config.input);
 
     sapc::Parser parser2;
-    if (!parser2.parse(config.input)) {
+    sapc::ast::Module module;
+    if (!parser2.parse(config.input, module)) {
         std::cerr << "error: Failed to parse input\n";
         for (auto const& error : parser2.errors)
             std::cerr << config.input.string() << '(' << error.pos.line << ',' << error.pos.column << "): error: " << error.message << '\n';
