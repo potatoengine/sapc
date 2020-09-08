@@ -59,9 +59,12 @@ namespace sapc {
     struct Parser {
         std::vector<Token> tokens;
         std::vector<std::string> errors;
+        std::vector<std::filesystem::path> search;
+
+        bool compile(std::filesystem::path filename, ast::Module& out_module);
 
         bool tokenize(std::string_view source);
-        bool parse(std::filesystem::path filename, ast::Module& out_module);
+        bool parse(ast::Module& module);
         bool analyze(ast::Module& module);
     };
 }

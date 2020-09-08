@@ -54,6 +54,51 @@ namespace sapc {
         return os << tok.type;
     }
 
+    static bool loadText(std::filesystem::path const& filename, std::string& out_text) {
+        // open file and read contents
+        std::ifstream stream(filename);
+        if (!stream)
+            return false;
+
+        std::ostringstream buffer;
+        buffer << stream.rdbuf();
+        stream.close();
+        out_text = buffer.str();
+        return true;
+    }
+
+    static std::filesystem::path resolvePath(std::vector<std::filesystem::path> const& search, std::filesystem::path filename) {
+        if (filename.is_absolute())
+            return filename;
+
+        for (auto const& path : search) {
+            auto tmp = path / filename;
+            if (std::filesystem::exists(tmp))
+                return tmp;
+        }
+
+        return {};
+    }
+
+    bool Parser::compile(std::filesystem::path filename, ast::Module& out_module) {
+        std::string contents;
+        if (!loadText(filename, contents)) {
+            std::ostringstream buffer;
+            buffer << filename.string() << ": failed to open input";
+            errors.push_back(buffer.str());
+            return false;
+        }
+
+        out_module.filename = filename;
+
+        search.push_back(filename.parent_path());
+
+        tokenize(contents);
+        if (!parse(out_module))
+            return false;
+        return analyze(out_module);
+    }
+
     bool Parser::tokenize(std::string_view source) {
         decltype(source.size()) position = 0;
         int line = 1;
@@ -239,10 +284,8 @@ namespace sapc {
         return true;
     }
 
-    bool Parser::parse(std::filesystem::path filename, ast::Module& out_module) {
+    bool Parser::parse(ast::Module& out_module) {
         size_t next = 0;
-
-        out_module = ast::Module{};
 
         struct Consume {
             size_t& next;
@@ -278,18 +321,19 @@ namespace sapc {
             }
         } consume{ next, *this };
 
-        auto fail = [&, this](std::string message) {
+        auto fail = [&, this](std::string message, auto const&... args) {
             auto const& tok = next < tokens.size() ? tokens[next] : tokens.back();
-            auto const loc = Location{ filename, tok.pos.line, tok.pos.column };
+            auto const loc = Location{ out_module.filename, tok.pos.line, tok.pos.column };
             std::ostringstream buffer;
-            buffer << loc << ':' << message;
+            buffer << loc << ": " << message;
+            (buffer << ... << args);
             errors.push_back({ buffer.str() });
             return false;
         };
 
         auto pos = [&]() {
             auto const& tokPos = next > 0 ? tokens[next - 1].pos : tokens.front().pos;
-            return Location{ filename, tokPos.line, tokPos.column };
+            return Location{ out_module.filename, tokPos.line, tokPos.column };
         };
 
 #if defined(expect)
@@ -361,18 +405,6 @@ namespace sapc {
             return true;
         };
 
-        // open file and read contents
-        std::ifstream stream(filename);
-        if (!stream)
-            return fail("failed to open input");
-
-        std::ostringstream buffer;
-        buffer << stream.rdbuf();
-        stream.close();
-        std::string contents = buffer.str();
-
-        tokenize(contents);
-
         // expect module first
         expect(TokenType::KeywordModule);
         expect(TokenType::Identifier, out_module.name);
@@ -387,7 +419,23 @@ namespace sapc {
                 expect(TokenType::Identifier, import);
                 expect(TokenType::SemiColon);
 
-                out_module.imports.push_back(std::move(import));
+                out_module.imports.push_back(import);
+
+                auto importPath = resolvePath(search, std::filesystem::path(import).replace_extension(".sap"));
+                if (importPath.empty())
+                    return fail("could not find module `", import, '\'');
+
+                Parser parser;
+                ast::Module importedModule;
+                parser.search = search;
+                if (!parser.compile(importPath, importedModule)) {
+                    errors.insert(end(errors), begin(parser.errors), end(parser.errors));
+                    return false;
+                }
+
+                for (auto const& type : importedModule.types)
+                    out_module.types.push_back(type);
+
                 continue;
             }
 
@@ -395,7 +443,24 @@ namespace sapc {
                 std::string include;
                 expect(TokenType::String, include);
 
-                out_module.includes.push_back(std::move(include));
+                out_module.includes.push_back(include);
+
+                auto includePath = resolvePath(search, include);
+                if (includePath.empty())
+                    return fail("could not find `", include, '\'');
+
+                std::string contents;
+                if (!loadText(includePath, contents))
+                    return fail("failed to open `", includePath.string(), '\'');
+
+                Parser parser;
+                parser.search = search;
+                parser.tokenize(contents);
+                if (!parser.parse(out_module)) {
+                    errors.insert(end(errors), begin(parser.errors), end(parser.errors));
+                    return false;
+                }
+
                 continue;
             }
 
@@ -409,16 +474,18 @@ namespace sapc {
             }
 
             if (consume(TokenType::KeywordAttribute)) {
-                auto& attr = out_module.attributes.emplace_back();
+                auto& attr = out_module.types.emplace_back();
                 attr.location = pos();
+                attr.isAttribute = true;
 
                 if (!consume(TokenType::Identifier, attr.name))
                     return fail("expected identifier after `attribute'");
                 if (consume(TokenType::LeftBrace)) {
                     while (!consume(TokenType::RightBrace)) {
-                        auto& arg = attr.arguments.emplace_back();
+                        auto& arg = attr.fields.emplace_back();
                         if (!parseType(arg.type))
                             return false;
+                        arg.location = pos();
                         expect(TokenType::Identifier, arg.name);
                         if (consume(TokenType::Equal)) {
                             if (!consumeValue(arg.init))
@@ -471,8 +538,9 @@ namespace sapc {
 
             // parse enumerations
             if (consume(TokenType::KeywordEnum)) {
-                auto& enum_ = out_module.enums.emplace_back();
+                auto& enum_ = out_module.types.emplace_back();
                 enum_.location = pos();
+                enum_.isEnumeration = true;
 
                 enum_.attributes = std::move(attributes);
                 expect(TokenType::Identifier, enum_.name);
@@ -502,8 +570,9 @@ namespace sapc {
             return fail(buf.str());
         }
 
-        return analyze(out_module);
 #undef expect
+
+        return true;
     }
 
     bool Parser::analyze(ast::Module& module) {
@@ -516,57 +585,109 @@ namespace sapc {
             valid = false;
         };
 
+        // add built-in types
+        static std::string const builtins[] = {
+            "string", "bool",
+            "i8", "i16", "i32", "i64",
+            "u8", "u16", "u32", "u64",
+            "f328", "f64"
+        };
+
+        for (auto const& builtin : builtins) {
+            auto& type = module.types.emplace_back();
+            type.name = builtin;
+            type.module = "$core";
+        }
+
         // build a map of type names to types
         for (size_t index = 0; index != module.types.size(); ++index)
             module.typeMap[module.types[index].name] = index;
 
         // ensure all types are valid
-        for (auto const& type : module.types) {
+        for (auto& type : module.types) {
             //if (type.imported)
             //    continue;
 
             if (!type.base.empty() && module.typeMap.find(type.base) == module.typeMap.end()) {
-                error(type.location, "unknown type '", type.base, '\'');
+                error(type.location, "unknown type `", type.base, "' in base of `", type.name, '\'');
             }
 
             for (auto& field : type.fields) {
                 auto typeIt = module.typeMap.find(field.type.type);
                 if (typeIt == module.typeMap.end()) {
-                    error(field.location, "unknown type '", field.type, '\'');
+                    error(field.location, "unknown type `", field.type, "' in field `", field.name, "' of type `", type.name, '\'');
                     continue;
                 }
                 auto const& fieldType = module.types[typeIt->second];
 
-                //if (fieldType.enumeration && field.init.type != reTypeNone) {
-                //    if (field.init.type != reTypeIdentifier) {
-                //        error(field.loc, "enumeration type '", field.type, "' may only be initialized by enumerants");
-                //        ok = false;
-                //        continue;
-                //    }
+                if (fieldType.isEnumeration && field.init.type != ast::Value::Type::None) {
+                    if (field.init.type != ast::Value::Type::Enum) {
+                        error(field.location, "enumeration type `", field.type, "' may only be initialized by enumerants");
+                        continue;
+                    }
 
-                //    auto findEnumerant = [&fieldType](std::string const& name) -> EnumValue const* {
-                //        for (auto const& value : fieldtype.values) {
-                //            if (value.name == name)
-                //                return &value;
-                //        }
-                //        return nullptr;
-                //    };
+                    auto findEnumerant = [&](std::string const& name) -> ast::EnumValue const* {
+                        for (auto const& value : fieldType.values) {
+                            if (value.name == name)
+                                return &value;
+                        }
+                        return nullptr;
+                    };
 
-                //    auto const& enumerantName = strings.strings[field.init.value];
-                //    auto const* enumValue = findEnumerant(enumerantName);
-                //    if (findEnumerant(enumerantName) == nullptr) {
-                //        error(field.loc, "enumerant '", enumerantName, "' not found in enumeration '", fieldtype.name, '\'');
-                //        error(fieldtype.loc, "enumeration '", fieldtype.name, "' defined here");
-                //        continue;
-                //    }
+                    auto const* enumValue = findEnumerant(field.init.dataString);
+                    if (enumValue == nullptr) {
+                        error(field.location, "enumerant `", field.init.dataString, "' not found in enumeration '", fieldType.name, '\'');
+                        error(fieldType.location, "enumeration `", fieldType.name, "' defined here");
+                        continue;
+                    }
 
-                //    field.init = { reTypeNumber, static_cast<int>(enumValue->value) };
-                //}
-                //else if (field.init.type == reTypeIdentifier) {
-                //    error(field.loc, "only enumeration types can be initialized by enumerants");
-                //    ok = false;
-                //    continue;
-                //}
+                    field.init.type = ast::Value::Type::Number;
+                    field.init.dataNumber = enumValue->value;
+                }
+                else if (field.init.type == ast::Value::Type::Enum)
+                    error(field.location, "only enumeration types can be initialized by enumerants");
+            }
+        }
+
+        // expand attribute parameters
+        auto expand = [&, this](ast::AttributeUsage& attr) {
+            auto const it = module.typeMap.find(attr.name);
+            if (it == module.typeMap.end()) {
+                error(attr.location, "unknown attribute `", attr.name, '\'');
+                return;
+            }
+
+            auto const argc = attr.params.size();
+            auto const& attrType = module.types[it->second];
+            auto const& params = attrType.fields;
+
+            if (!attrType.isAttribute) {
+                error(attr.location, "attribute type `", attr.name, "' is declared as a regular type (not attribute) at ", attrType.location);
+                return;
+            }
+
+            if (argc > params.size()) {
+                error(attr.location, "too many arguments to attribute `", attr.name, '\'');
+                return;
+            }
+
+            for (size_t index = argc; index != params.size(); ++index) {
+                auto const& param = params[index];
+
+                if (param.init.type == ast::Value::Type::None)
+                    error(attr.location, "missing required argument `", param.name, "' to attribute `", attr.name, '\'');
+
+                attr.params.push_back(param.init);
+            }
+        };
+
+        for (auto& type : module.types) {
+            for (auto& attr : type.attributes)
+                expand(attr);
+
+            for (auto& field : type.fields) {
+                for (auto& attr : field.attributes)
+                    expand(attr);
             }
         }
 

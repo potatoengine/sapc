@@ -23,27 +23,15 @@ namespace sapc::ast {
 
     struct Value {
         enum class Type {
+            None,
             Null,
             Boolean,
             Number,
             String,
             Enum
-        } type = Type::Null;
+        } type = Type::None;
         long long dataNumber;
         std::string dataString;
-    };
-
-    struct AttributeArgument {
-        std::string name;
-        TypeInfo type;
-        Value init;
-        Location location;
-    };
-
-    struct Attribute {
-        std::string name;
-        std::vector<AttributeArgument> arguments;
-        Location location;
     };
 
     struct AttributeUsage {
@@ -60,37 +48,32 @@ namespace sapc::ast {
         Location location;
     };
 
-    struct Type {
-        std::string name;
-        std::string base;
-        std::vector<TypeField> fields;
-        std::vector<AttributeUsage> attributes;
-        Location location;
-    };
-
     struct EnumValue {
         std::string name;
         long long value = 0;
     };
 
-    struct Enum {
+    struct Type {
         std::string name;
         std::string base;
+        std::string module;
+        std::vector<TypeField> fields;
         std::vector<EnumValue> values;
         std::vector<AttributeUsage> attributes;
+        bool isAttribute = false;
+        bool isEnumeration = false;
         Location location;
     };
 
     struct Module {
         std::string name;
+        std::filesystem::path filename;
 
         std::vector<std::string> imports;
         std::vector<std::string> includes;
         std::vector<std::string> pragmas;
 
-        std::vector<Attribute> attributes;
         std::vector<Type> types;
-        std::vector<Enum> enums;
 
         std::unordered_map<std::string, size_t> typeMap;
     };

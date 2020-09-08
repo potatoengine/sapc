@@ -124,8 +124,8 @@ static int compile(Config& config) {
 
     sapc::Parser parser2;
     sapc::ast::Module module;
-    if (!parser2.parse(config.input, module)) {
-        std::cerr << "error: Failed to parse input\n";
+    if (!parser2.compile(config.input, module)) {
+        std::cerr << "error: Failed to compile input\n";
         for (auto const& error : parser2.errors)
             std::cerr << error << '\n';
         return 2;
