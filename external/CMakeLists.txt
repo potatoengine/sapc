@@ -1,5 +1,3 @@
-add_subdirectory(packcc)
-
 if(SAPC_USE_EMBEDDED_JSON)
     include(FetchContent)
 
