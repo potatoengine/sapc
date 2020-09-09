@@ -73,8 +73,7 @@ namespace sapc {
             auto const& tok = next < tokens.size() ? tokens[next] : tokens.back();
             Location const loc{ module.filename, tok.pos.line, tok.pos.column };
             std::ostringstream buffer;
-            buffer << loc << ": " << message;
-            (buffer << ... << args);
+            ((buffer << loc << ": " << message) << ... << args);
             errors.push_back({ buffer.str() });
             return false;
         };
