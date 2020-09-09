@@ -9,9 +9,7 @@
 #include <filesystem>
 
 namespace sapc {
-    namespace ast {
-        class Module;
-    }
+    class Module;
 
     enum class TokenType {
         Unknown,
@@ -62,10 +60,10 @@ namespace sapc {
         std::vector<std::filesystem::path> search;
         std::vector<std::filesystem::path> dependencies;
 
-        bool compile(std::filesystem::path filename, ast::Module& out_module);
+        bool compile(std::filesystem::path filename, Module& out_module);
 
         bool tokenize(std::string_view source);
-        bool parse(ast::Module& module);
-        bool analyze(ast::Module& module);
+        bool parse(Module& module);
+        bool analyze(Module& module);
     };
 }

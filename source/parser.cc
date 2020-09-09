@@ -3,7 +3,7 @@
 // See LICENSE.md for more details.
 
 #include "parser.hh"
-#include "ast.hh"
+#include "model.hh"
 
 #include <charconv>
 #include <sstream>
@@ -80,7 +80,7 @@ namespace sapc {
         return {};
     }
 
-    bool Parser::compile(std::filesystem::path filename, ast::Module& out_module) {
+    bool Parser::compile(std::filesystem::path filename, Module& out_module) {
         std::string contents;
         if (!loadText(filename, contents)) {
             std::ostringstream buffer;
@@ -300,7 +300,7 @@ namespace sapc {
         return true;
     }
 
-    bool Parser::parse(ast::Module& out_module) {
+    bool Parser::parse(Module& out_module) {
         size_t next = 0;
 
         struct Consume {
@@ -367,25 +367,25 @@ namespace sapc {
             } \
         }while(false)
 
-        auto consumeValue = [&](ast::Value& out) {
+        auto consumeValue = [&](Value& out) {
             if (consume(TokenType::KeywordNull))
-                out = ast::Value{ ast::Value::Type::Null };
+                out = Value{ Value::Type::Null };
             else if (consume(TokenType::KeywordFalse))
-                out = ast::Value{ ast::Value::Type::Boolean, 0 };
+                out = Value{ Value::Type::Boolean, 0 };
             else if (consume(TokenType::KeywordTrue))
-                out = ast::Value{ ast::Value::Type::Boolean, 1 };
+                out = Value{ Value::Type::Boolean, 1 };
             else if (consume(TokenType::String, out.dataString))
-                out.type = ast::Value::Type::String;
+                out.type = Value::Type::String;
             else if (consume(TokenType::Number, out.dataNumber))
-                out.type = ast::Value::Type::Number;
+                out.type = Value::Type::Number;
             else if (consume(TokenType::Identifier, out.dataString))
-                out.type = ast::Value::Type::Enum;
+                out.type = Value::Type::Enum;
             else
                 return false;
             return true;
         };
 
-        auto parseAttributes = [&, this](std::vector<ast::AttributeUsage>& attrs) -> bool {
+        auto parseAttributes = [&, this](std::vector<AttributeUsage>& attrs) -> bool {
             while (consume(TokenType::LeftBracket)) {
                 do {
                     auto& attr = attrs.emplace_back();
@@ -410,7 +410,7 @@ namespace sapc {
             return true;
         };
 
-        auto parseType = [&, this](ast::TypeInfo& type) -> bool {
+        auto parseType = [&, this](TypeInfo& type) -> bool {
             expect(TokenType::Identifier, type.type);
             if (consume(TokenType::Asterisk))
                 type.isPointer = true;
@@ -421,7 +421,7 @@ namespace sapc {
             return true;
         };
 
-        auto pushType = [&, this](ast::Type&& type) -> bool {
+        auto pushType = [&, this](Type&& type) -> bool {
             assert(!type.name.empty());
 
             if (type.module.empty())
@@ -478,7 +478,7 @@ namespace sapc {
                     return fail("could not find module `", import, '\'');
 
                 Parser parser;
-                ast::Module importedModule;
+                Module importedModule;
                 parser.search = search;
                 if (!parser.compile(importPath, importedModule)) {
                     errors.insert(end(errors), begin(parser.errors), end(parser.errors));
@@ -529,7 +529,7 @@ namespace sapc {
             }
 
             if (consume(TokenType::KeywordAttribute)) {
-                auto attr = ast::Type{};
+                auto attr = Type{};
                 attr.location = pos();
                 attr.isAttribute = true;
 
@@ -557,13 +557,13 @@ namespace sapc {
             }
 
             // optionally build up a list of attributes
-            std::vector<ast::AttributeUsage> attributes;
+            std::vector<AttributeUsage> attributes;
             if (!parseAttributes(attributes))
                 return false;
 
             // parse regular type declarations
             if (consume(TokenType::KeywordType)) {
-                auto& type = ast::Type{};
+                auto& type = Type{};
                 type.location = pos();
 
                 type.attributes = std::move(attributes);
@@ -595,7 +595,7 @@ namespace sapc {
 
             // parse enumerations
             if (consume(TokenType::KeywordEnum)) {
-                auto& enum_ = ast::Type{};
+                auto& enum_ = Type{};
                 enum_.location = pos();
                 enum_.isEnumeration = true;
 
@@ -634,7 +634,7 @@ namespace sapc {
         return true;
     }
 
-    bool Parser::analyze(ast::Module& module) {
+    bool Parser::analyze(Module& module) {
         bool valid = true;
 
         auto error = [&, this](Location const& loc, std::string error, auto const&... args) {
@@ -658,13 +658,13 @@ namespace sapc {
                 }
                 auto const& fieldType = module.types[typeIt->second];
 
-                if (fieldType.isEnumeration && field.init.type != ast::Value::Type::None) {
-                    if (field.init.type != ast::Value::Type::Enum) {
+                if (fieldType.isEnumeration && field.init.type != Value::Type::None) {
+                    if (field.init.type != Value::Type::Enum) {
                         error(field.location, "enumeration type `", field.type, "' may only be initialized by enumerants");
                         continue;
                     }
 
-                    auto findEnumerant = [&](std::string const& name) -> ast::EnumValue const* {
+                    auto findEnumerant = [&](std::string const& name) -> EnumValue const* {
                         for (auto const& value : fieldType.values) {
                             if (value.name == name)
                                 return &value;
@@ -679,16 +679,16 @@ namespace sapc {
                         continue;
                     }
 
-                    field.init.type = ast::Value::Type::Number;
+                    field.init.type = Value::Type::Number;
                     field.init.dataNumber = enumValue->value;
                 }
-                else if (field.init.type == ast::Value::Type::Enum)
+                else if (field.init.type == Value::Type::Enum)
                     error(field.location, "only enumeration types can be initialized by enumerants");
             }
         }
 
         // expand attribute parameters
-        auto expand = [&, this](ast::AttributeUsage& attr) {
+        auto expand = [&, this](AttributeUsage& attr) {
             auto const it = module.typeMap.find(attr.name);
             if (it == module.typeMap.end()) {
                 error(attr.location, "unknown attribute `", attr.name, '\'');
@@ -712,7 +712,7 @@ namespace sapc {
             for (size_t index = argc; index != params.size(); ++index) {
                 auto const& param = params[index];
 
-                if (param.init.type == ast::Value::Type::None)
+                if (param.init.type == Value::Type::None)
                     error(attr.location, "missing required argument `", param.name, "' to attribute `", attr.name, '\'');
                 else
                     attr.params.push_back(param.init);

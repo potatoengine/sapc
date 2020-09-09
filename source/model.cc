@@ -2,11 +2,11 @@
 // This is free and unencumbered software released into the public domain.
 // See LICENSE.md for more details.
 
-#include "ast.hh"
+#include "model.hh"
 #include <iostream>
 #include <cassert>
 
-namespace sapc::ast {
+namespace sapc {
     std::ostream& operator<<(std::ostream& os, TypeInfo const& type) {
         os << type.type;
         if (type.isPointer)

@@ -15,7 +15,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace sapc::ast {
+namespace sapc {
     struct TypeInfo {
         std::string type;
         bool isPointer = false;

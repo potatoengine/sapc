@@ -3,7 +3,7 @@
 // See LICENSE.md for more details.
 
 #include "parser.hh"
-#include "ast.hh"
+#include "model.hh"
 #include "string_util.hh"
 
 #include <string>
@@ -116,7 +116,7 @@ static int compile(Config& config) {
         return 1;
     }
 
-    sapc::ast::Module module;
+    sapc::Module module;
 
     sapc::Parser parser;
     if (!parser.compile(config.input, module)) {
