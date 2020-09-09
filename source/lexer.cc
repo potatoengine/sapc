@@ -51,7 +51,7 @@ namespace sapc {
     bool tokenize(std::string_view source, std::vector<Token>& tokens) {
         decltype(source.size()) position = 0;
         int line = 1;
-        int lineStart = 0;
+        decltype(position) lineStart = 0;
 
         auto advance = [&, source](decltype(position) count = 1) {
             while (count-- > 0 && position < source.size()) {
