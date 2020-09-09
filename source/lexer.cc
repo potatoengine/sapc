@@ -53,7 +53,7 @@ namespace sapc {
         int line = 1;
         int lineStart = 0;
 
-        auto advance = [&position, &line, &lineStart, source](decltype(position) count = 1) {
+        auto advance = [&, source](decltype(position) count = 1) {
             while (count-- > 0 && position < source.size()) {
                 if (source[position++] == '\n') {
                     ++line;
@@ -62,11 +62,11 @@ namespace sapc {
             }
         };
 
-        auto const pos = [&position, &line, &lineStart](decltype(position) start) {
+        auto const pos = [&](decltype(position) start) {
             return TokenPos{ line, static_cast<int>(start - lineStart) + 1 };
         };
 
-        auto const match = [&position, &source, &advance](std::string_view input, bool only = false) {
+        auto const match = [&](std::string_view input, bool only = false) {
             auto const remaining = source.size() - position;
             if (remaining < input.size())
                 return false;
@@ -169,7 +169,8 @@ namespace sapc {
                 advance();
                 while (position < source.size() && isIdentChar(source[position]))
                     advance();
-                tokens.push_back({ TokenType::Identifier, pos(start), 0, std::string{source.substr(start, position - start)} });
+                auto const identifier = source.substr(start, position - start);
+                tokens.push_back({ TokenType::Identifier, pos(start), 0, std::string{identifier} });
                 continue;
             }
 

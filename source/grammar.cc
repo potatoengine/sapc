@@ -71,7 +71,7 @@ namespace sapc {
 
         auto fail = [&](std::string message, auto const&... args) {
             auto const& tok = next < tokens.size() ? tokens[next] : tokens.back();
-            auto const loc = Location{ module.filename, tok.pos.line, tok.pos.column };
+            Location const loc{ module.filename, tok.pos.line, tok.pos.column };
             std::ostringstream buffer;
             buffer << loc << ": " << message;
             (buffer << ... << args);
@@ -122,8 +122,8 @@ namespace sapc {
             while (consume(TokenType::LeftBracket)) {
                 do {
                     auto& attr = attrs.emplace_back();
-                    attr.location = pos();
                     expect(TokenType::Identifier, attr.name);
+                    attr.location = pos();
                     if (consume(TokenType::LeftParen)) {
                         if (!consume(TokenType::RightParen)) {
                             for (;;) {
