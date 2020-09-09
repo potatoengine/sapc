@@ -5,25 +5,13 @@
 #include "parser.hh"
 #include "model.hh"
 #include "lexer.hh"
+#include "file_util.hh"
 
 #include <charconv>
 #include <sstream>
 #include <fstream>
 
 namespace sapc {
-    static bool loadText(std::filesystem::path const& filename, std::string& out_text) {
-        // open file and read contents
-        std::ifstream stream(filename);
-        if (!stream)
-            return false;
-
-        std::ostringstream buffer;
-        buffer << stream.rdbuf();
-        stream.close();
-        out_text = buffer.str();
-        return true;
-    }
-
     static std::filesystem::path resolvePath(std::vector<std::filesystem::path> const& search, std::filesystem::path filename) {
         if (filename.is_absolute())
             return filename;
@@ -366,5 +354,5 @@ namespace sapc {
 #undef expect
 
         return true;
+        }
     }
-}

@@ -31,6 +31,8 @@ namespace {
     };
 
     bool parse_arguments(int argc, char* argv[], Config& config) {
+        using namespace sapc;
+
         enum class Arg {
             None,
             InputFile,

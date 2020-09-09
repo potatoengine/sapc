@@ -1,6 +1,9 @@
 find_package(nlohmann_json 3.2.0 REQUIRED)
 
 add_executable(sapc
+    analyze.cc
+    analyze.hh
+    file_util.hh
     lexer.cc
     lexer.hh
     location.cc

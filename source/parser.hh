@@ -20,7 +20,5 @@ namespace sapc {
         std::vector<std::filesystem::path> dependencies;
 
         bool compile(std::filesystem::path filename, Module& out_module);
-
-        bool analyze(Module& module);
     };
 }
