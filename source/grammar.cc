@@ -2,7 +2,8 @@
 // This is free and unencumbered software released into the public domain.
 // See LICENSE.md for more details.
 
-#include "parser.hh"
+#include "grammar.hh"
+#include "compiler.hh"
 #include "model.hh"
 #include "lexer.hh"
 #include "file_util.hh"
@@ -12,9 +13,15 @@
 #include <fstream>
 
 namespace sapc {
-    static std::filesystem::path resolvePath(std::vector<std::filesystem::path> const& search, std::filesystem::path filename) {
+    static std::filesystem::path resolvePath(std::filesystem::path base, std::vector<std::filesystem::path> const& search, std::filesystem::path filename) {
         if (filename.is_absolute())
             return filename;
+
+        if (!base.empty()) {
+            auto tmp = base / filename;
+            if (std::filesystem::exists(tmp))
+                return tmp;
+        }
 
         for (auto const& path : search) {
             auto tmp = path / filename;
@@ -198,23 +205,16 @@ namespace sapc {
 
                 module.imports.emplace(import);
 
-                auto importPath = resolvePath(search, std::filesystem::path(import).replace_extension(".sap"));
+                auto importPath = resolvePath(module.filename.parent_path(), search, std::filesystem::path(import).replace_extension(".sap"));
                 if (importPath.empty())
                     return fail("could not find module `", import, '\'');
 
-                Parser parser;
                 Module importedModule;
-                parser.search = search;
-                if (!parser.compile(importPath, importedModule)) {
-                    errors.insert(end(errors), begin(parser.errors), end(parser.errors));
+                if (!compile(importPath, search, errors, dependencies, importedModule))
                     return false;
-                }
 
                 for (auto& type : importedModule.types)
                     pushType(std::move(type));
-
-                for (auto const& dependency : parser.dependencies)
-                    dependencies.push_back(dependency);
 
                 continue;
             }
@@ -223,7 +223,7 @@ namespace sapc {
                 std::string include;
                 expect(TokenType::String, include);
 
-                auto includePath = resolvePath(search, include);
+                auto includePath = resolvePath(module.filename.parent_path(), search, include);
                 if (includePath.empty())
                     return fail("could not find `", include, '\'');
 
@@ -354,5 +354,5 @@ namespace sapc {
 #undef expect
 
         return true;
-        }
     }
+}

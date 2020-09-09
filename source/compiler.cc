@@ -2,7 +2,7 @@
 // This is free and unencumbered software released into the public domain.
 // See LICENSE.md for more details.
 
-#include "parser.hh"
+#include "compiler.hh"
 #include "model.hh"
 #include "lexer.hh"
 #include "grammar.hh"
@@ -10,7 +10,7 @@
 #include "file_util.hh"
 
 namespace sapc {
-    bool Parser::compile(std::filesystem::path filename, Module& out_module) {
+    bool compile(std::filesystem::path filename, std::vector<std::filesystem::path> const& search, std::vector<std::string>& errors, std::vector<std::filesystem::path>& dependencies, Module& out_module) {
         std::string contents;
         if (!loadText(filename, contents)) {
             std::ostringstream buffer;
@@ -21,8 +21,6 @@ namespace sapc {
 
         out_module.filename = filename;
         dependencies.push_back(filename);
-
-        search.push_back(filename.parent_path());
 
         // add built-in types
         static std::string const builtins[] = {
@@ -39,6 +37,7 @@ namespace sapc {
             out_module.typeMap[builtin] = out_module.types.size() - 1;
         }
 
+        std::vector<Token> tokens;
         tokenize(contents, tokens);
         if (!parse(tokens, search, errors, dependencies, out_module))
             return false;
