@@ -13,25 +13,6 @@
 #include <fstream>
 
 namespace sapc {
-    static std::filesystem::path resolvePath(std::filesystem::path base, std::vector<std::filesystem::path> const& search, std::filesystem::path filename) {
-        if (filename.is_absolute())
-            return filename;
-
-        if (!base.empty()) {
-            auto tmp = base / filename;
-            if (std::filesystem::exists(tmp))
-                return tmp;
-        }
-
-        for (auto const& path : search) {
-            auto tmp = path / filename;
-            if (std::filesystem::exists(tmp))
-                return tmp;
-        }
-
-        return {};
-    }
-
     bool parse(std::vector<Token> const& tokens, std::vector<std::filesystem::path> const& search, std::vector<std::string>& errors, std::vector<std::filesystem::path>& dependencies, Module& module) {
         size_t next = 0;
 
@@ -68,6 +49,25 @@ namespace sapc {
                 return true;
             }
         } consume{ next, tokens };
+
+        auto resolve = [&](std::filesystem::path filename) ->  std::filesystem::path {
+            if (filename.is_absolute())
+                return filename;
+
+            if (!module.filename.empty()) {
+                auto tmp = module.filename.parent_path() / filename;
+                if (std::filesystem::exists(tmp))
+                    return tmp;
+            }
+
+            for (auto const& path : search) {
+                auto tmp = path / filename;
+                if (std::filesystem::exists(tmp))
+                    return tmp;
+            }
+
+            return {};
+        };
 
         auto fail = [&](std::string message, auto const&... args) {
             auto const& tok = next < tokens.size() ? tokens[next] : tokens.back();
@@ -114,6 +114,7 @@ namespace sapc {
                 out.type = Value::Type::Enum;
             else
                 return false;
+            out.location = pos();
             return true;
         };
 
@@ -205,7 +206,7 @@ namespace sapc {
 
                 module.imports.emplace(import);
 
-                auto importPath = resolvePath(module.filename.parent_path(), search, std::filesystem::path(import).replace_extension(".sap"));
+                auto importPath = resolve(std::filesystem::path(import).replace_extension(".sap"));
                 if (importPath.empty())
                     return fail("could not find module `", import, '\'');
 
@@ -223,9 +224,9 @@ namespace sapc {
                 std::string include;
                 expect(TokenType::String, include);
 
-                auto includePath = resolvePath(module.filename.parent_path(), search, include);
+                auto includePath = resolve(include);
                 if (includePath.empty())
-                    return fail("could not find `", include, '\'');
+                    return fail("could not find include `", include, '\'');
 
                 std::string contents;
                 if (!loadText(includePath, contents))
@@ -252,11 +253,13 @@ namespace sapc {
 
             if (consume(TokenType::KeywordAttribute)) {
                 auto attr = Type{};
-                attr.location = pos();
                 attr.isAttribute = true;
 
                 if (!consume(TokenType::Identifier, attr.name))
                     return fail("expected identifier after `attribute'");
+
+                attr.location = pos();
+
                 if (consume(TokenType::LeftBrace)) {
                     while (!consume(TokenType::RightBrace)) {
                         auto& arg = attr.fields.emplace_back();
@@ -286,10 +289,12 @@ namespace sapc {
             // parse regular type declarations
             if (consume(TokenType::KeywordType)) {
                 auto& type = Type{};
-                type.location = pos();
 
                 type.attributes = std::move(attributes);
                 expect(TokenType::Identifier, type.name);
+
+                type.location = pos();
+
                 if (consume(TokenType::Colon))
                     expect(TokenType::Identifier, type.base);
                 if (consume(TokenType::LeftBrace)) {
@@ -318,11 +323,13 @@ namespace sapc {
             // parse enumerations
             if (consume(TokenType::KeywordEnum)) {
                 auto& enum_ = Type{};
-                enum_.location = pos();
                 enum_.isEnumeration = true;
 
                 enum_.attributes = std::move(attributes);
                 expect(TokenType::Identifier, enum_.name);
+
+                enum_.location = pos();
+
                 if (consume(TokenType::Colon))
                     expect(TokenType::Identifier, enum_.base);
                 expect(TokenType::LeftBrace);

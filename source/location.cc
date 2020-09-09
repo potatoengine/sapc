@@ -8,7 +8,7 @@
 namespace sapc {
     std::ostream& operator<<(std::ostream& os, Location const& loc) {
         os << loc.filename.string();
-        if (loc.line > 0 && loc.column >= 0)
+        if (loc.line > 0 && loc.column > 0)
             os << '(' << loc.line << ',' << loc.column << ')';
         else if (loc.line > 0)
             os << '(' << loc.line << ')';

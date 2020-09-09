@@ -11,7 +11,7 @@ namespace sapc {
     struct Location {
         std::filesystem::path filename;
         int line = 0;
-        int column = -1;
+        int column = 0;
 
         bool operator==(Location const& rhs) const { return filename == rhs.filename && line == rhs.line && column == rhs.column; }
         friend std::ostream& operator<<(std::ostream& os, Location const& loc);

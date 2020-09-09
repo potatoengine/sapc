@@ -17,7 +17,7 @@ namespace sapc {
 
     std::ostream& operator<<(std::ostream& os, TokenType type) {
         switch (type) {
-        case TokenType::Unknown: os << ""; break;
+        case TokenType::Unknown: os << "unknown"; break;
         case TokenType::Identifier: os << "identifier"; break;
         case TokenType::String: os << "string"; break;
         case TokenType::Number: os << "number"; break;
@@ -63,10 +63,10 @@ namespace sapc {
         };
 
         auto const pos = [&position, &line, &lineStart](decltype(position) start) {
-            return TokenPos{ line, static_cast<int>(position - lineStart) };
+            return TokenPos{ line, static_cast<int>(start - lineStart) + 1 };
         };
 
-        auto const match = [&position, &source, &advance](std::string_view input) {
+        auto const match = [&position, &source, &advance](std::string_view input, bool only = false) {
             auto const remaining = source.size() - position;
             if (remaining < input.size())
                 return false;
@@ -75,11 +75,14 @@ namespace sapc {
             if (text != input)
                 return false;
 
+            if (only && source.size() >= position + input.size() && isIdentChar(source[position + input.size()]))
+                return false;
+
             advance(input.size());
             return true;
         };
 
-        auto const fail = [&](decltype(position) start) {
+        auto const error = [&](decltype(position) start) {
             tokens.push_back({ TokenType::Unknown, pos(start) });
             return false;
         };
@@ -87,6 +90,7 @@ namespace sapc {
         struct TokenMap {
             std::string_view text;
             TokenType token;
+            bool keyword = false;
         };
         constexpr TokenMap tokenMap[] = {
             { "{", TokenType::LeftBrace },
@@ -100,16 +104,16 @@ namespace sapc {
             { ":", TokenType::Colon },
             { ";", TokenType::SemiColon },
             { "*", TokenType::Asterisk },
-            { "module", TokenType::KeywordModule },
-            { "import", TokenType::KeywordImport },
-            { "include", TokenType::KeywordInclude },
-            { "pragma", TokenType::KeywordPragma },
-            { "attribute", TokenType::KeywordAttribute },
-            { "type", TokenType::KeywordType },
-            { "enum", TokenType::KeywordEnum },
-            { "true", TokenType::KeywordTrue },
-            { "false", TokenType::KeywordFalse },
-            { "null", TokenType::KeywordNull },
+            { "module", TokenType::KeywordModule, true },
+            { "import", TokenType::KeywordImport, true },
+            { "include", TokenType::KeywordInclude, true },
+            { "pragma", TokenType::KeywordPragma, true },
+            { "attribute", TokenType::KeywordAttribute, true },
+            { "type", TokenType::KeywordType, true },
+            { "enum", TokenType::KeywordEnum, true },
+            { "true", TokenType::KeywordTrue, true },
+            { "false", TokenType::KeywordFalse, true },
+            { "null", TokenType::KeywordNull, true },
         };
 
         // parse until end of file
@@ -150,8 +154,8 @@ namespace sapc {
 
             // check static inputs
             bool matched = false;
-            for (auto [input, token] : tokenMap) {
-                if (match(input)) {
+            for (auto [input, token, keyword] : tokenMap) {
+                if (match(input, keyword)) {
                     tokens.push_back({ token, pos(start) });
                     matched = true;
                     break;
@@ -178,7 +182,7 @@ namespace sapc {
 
                 // only a negative sign is not a complete number
                 if (isNegative && position - start <= 1)
-                    return fail(start);
+                    return error(start);
 
                 Token token;
                 token.type = TokenType::Number;
@@ -211,11 +215,11 @@ namespace sapc {
                                 buf << '\\';
                                 break;
                             default:
-                                return fail(start);
+                                return error(start);
                             }
                         }
                         else
-                            return fail(start);
+                            return error(start);
                     }
                     else {
                         buf << ch;
@@ -227,7 +231,7 @@ namespace sapc {
             }
 
             // unknown input
-            return fail(start);
+            return error(start);
         }
 
         return true;

@@ -40,7 +40,7 @@ namespace sapc {
     std::ostream& operator<<(std::ostream& os, TokenType type);
 
     struct TokenPos {
-        int line = 1;
+        int line = 0;
         int column = 0;
     };
 

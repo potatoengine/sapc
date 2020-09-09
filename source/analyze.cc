@@ -49,7 +49,7 @@ namespace sapc {
 
                     auto const* enumValue = findEnumerant(field.init.dataString);
                     if (enumValue == nullptr) {
-                        error(field.location, "enumerant `", field.init.dataString, "' not found in enumeration '", fieldType.name, '\'');
+                        error(field.init.location, "enumerant `", field.init.dataString, "' not found in enumeration '", fieldType.name, '\'');
                         error(fieldType.location, "enumeration `", fieldType.name, "' defined here");
                         continue;
                     }
@@ -58,7 +58,7 @@ namespace sapc {
                     field.init.dataNumber = enumValue->value;
                 }
                 else if (field.init.type == Value::Type::Enum)
-                    error(field.location, "only enumeration types can be initialized by enumerants");
+                    error(field.init.location, "only enumeration types can be initialized by enumerants");
             }
         }
 
@@ -88,7 +88,7 @@ namespace sapc {
                 auto const& param = params[index];
 
                 if (param.init.type == Value::Type::None)
-                    error(attr.location, "missing required argument `", param.name, "' to attribute `", attr.name, '\'');
+                    error(param.init.location, "missing required argument `", param.name, "' to attribute `", attr.name, '\'');
                 else
                     attr.params.push_back(param.init);
             }
