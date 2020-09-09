@@ -5,6 +5,8 @@ add_executable(sapc
     lexer.hh
     location.cc
     location.hh
+    grammar.cc
+    grammar.hh
     main.cc
     model.cc
     model.hh

@@ -21,7 +21,6 @@ namespace sapc {
 
         bool compile(std::filesystem::path filename, Module& out_module);
 
-        bool parse(Module& module);
         bool analyze(Module& module);
     };
 }
