@@ -287,7 +287,7 @@ namespace sapc {
 
             // parse regular type declarations
             if (consume(TokenType::KeywordType)) {
-                auto& type = Type{};
+                auto type = Type{};
 
                 type.attributes = std::move(attributes);
                 expect(TokenType::Identifier, type.name);
@@ -321,7 +321,7 @@ namespace sapc {
 
             // parse enumerations
             if (consume(TokenType::KeywordEnum)) {
-                auto& enum_ = Type{};
+                auto enum_ = Type{};
                 enum_.isEnumeration = true;
 
                 enum_.attributes = std::move(attributes);
