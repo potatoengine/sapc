@@ -89,7 +89,7 @@ namespace sapc {
 #define expect(type,...) \
         do{ \
             auto const _ttype = (type); \
-            if (!consume(_ttype, __VA_ARGS__)) { \
+            if (!consume(_ttype,##__VA_ARGS__)) { \
                 std::ostringstream buf; \
                 buf << "expected " << _ttype; \
                 if (next < tokens.size()) \
