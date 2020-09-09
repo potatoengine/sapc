@@ -117,27 +117,17 @@ static int compile(Config& config) {
         return 1;
     }
 
-    sapc::StringTable strings;
-    sapc::ParseState parser{ strings, config.search };
-    parser.addBuiltinTypes();
-    auto const compiled = parser.compile(config.input);
-
-    sapc::Parser parser2;
     sapc::ast::Module module;
-    if (!parser2.compile(config.input, module)) {
+
+    sapc::Parser parser;
+    if (!parser.compile(config.input, module)) {
         std::cerr << "error: Failed to compile input\n";
-        for (auto const& error : parser2.errors)
+        for (auto const& error : parser.errors)
             std::cerr << error << '\n';
         return 2;
     }
 
-    for (auto const& error : parser.errors)
-        std::cerr << error << '\n';
-
-    if (!compiled || !parser.errors.empty())
-        return 2;
-
-    auto const doc = parser.to_json();
+    auto const doc = to_json(module);
     auto const json = doc.dump(4);
 
     if (!config.output.empty()) {
@@ -160,12 +150,12 @@ static int compile(Config& config) {
 
         deps_stream << config.output.string() << ": ";
 
-        auto const num_deps = parser.fileDependencies.size();
+        auto const num_deps = parser.dependencies.size();
         for (size_t i = 0; i != num_deps; ++i) {
             if (i != 0)
                 deps_stream << "  ";
 
-            deps_stream << parser.fileDependencies[i].string() << ' ';
+            deps_stream << parser.dependencies[i].string() << ' ';
 
             if (i != num_deps - 1)
                 deps_stream << '\\';

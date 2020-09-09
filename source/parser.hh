@@ -60,6 +60,7 @@ namespace sapc {
         std::vector<Token> tokens;
         std::vector<std::string> errors;
         std::vector<std::filesystem::path> search;
+        std::vector<std::filesystem::path> dependencies;
 
         bool compile(std::filesystem::path filename, ast::Module& out_module);
 

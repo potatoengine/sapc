@@ -9,8 +9,11 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <set>
 #include <filesystem>
 #include <iosfwd>
+
+#include <nlohmann/json.hpp>
 
 namespace sapc::ast {
     struct TypeInfo {
@@ -32,6 +35,8 @@ namespace sapc::ast {
         } type = Type::None;
         long long dataNumber;
         std::string dataString;
+
+        friend void to_json(nlohmann::json& j, Value const& value);
     };
 
     struct AttributeUsage {
@@ -69,12 +74,13 @@ namespace sapc::ast {
         std::string name;
         std::filesystem::path filename;
 
-        std::vector<std::string> imports;
-        std::vector<std::string> includes;
+        std::set<std::string> imports;
         std::vector<std::string> pragmas;
 
         std::vector<Type> types;
 
         std::unordered_map<std::string, size_t> typeMap;
+
+        friend nlohmann::json to_json(Module const& module);
     };
 }

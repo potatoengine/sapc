@@ -90,8 +90,24 @@ namespace sapc {
         }
 
         out_module.filename = filename;
+        dependencies.push_back(filename);
 
         search.push_back(filename.parent_path());
+
+        // add built-in types
+        static std::string const builtins[] = {
+            "string", "bool",
+            "i8", "i16", "i32", "i64",
+            "u8", "u16", "u32", "u64",
+            "f328", "f64"
+        };
+
+        for (auto const& builtin : builtins) {
+            auto& type = out_module.types.emplace_back();
+            type.name = builtin;
+            type.module = "$core";
+            out_module.typeMap[builtin] = out_module.types.size() - 1;
+        }
 
         tokenize(contents);
         if (!parse(out_module))
@@ -405,9 +421,42 @@ namespace sapc {
             return true;
         };
 
+        auto pushType = [&, this](ast::Type&& type) -> bool {
+            assert(!type.name.empty());
+
+            if (type.module.empty())
+                type.module = out_module.name;
+
+            auto const index = out_module.types.size();
+
+            auto const it = out_module.typeMap.find(type.name);
+            if (it != out_module.typeMap.end()) {
+                auto const& other = out_module.types[it->second];
+
+                // duplicate type definitions from the same location/module are allowed
+                if (type.location == other.location && type.module == other.module)
+                    return true;
+
+                std::ostringstream buffer;
+                buffer << type.location << "duplicate definition of type `" << type.name << '\'';
+                errors.push_back(buffer.str());
+                buffer.clear();
+                buffer << other.location << "previous definition of type `" << other.name << '\'';
+                errors.push_back(buffer.str());
+                return false;
+            }
+
+            out_module.typeMap[type.name] = index;
+            out_module.types.push_back(std::move(type));
+            return true;
+        };
+
         // expect module first
         expect(TokenType::KeywordModule);
-        expect(TokenType::Identifier, out_module.name);
+        if (out_module.name.empty())
+            expect(TokenType::Identifier, out_module.name);
+        else
+            expect(TokenType::Identifier);
         expect(TokenType::SemiColon);
 
         while (!consume(TokenType::EndOfFile)) {
@@ -419,7 +468,10 @@ namespace sapc {
                 expect(TokenType::Identifier, import);
                 expect(TokenType::SemiColon);
 
-                out_module.imports.push_back(import);
+                if (out_module.imports.count(import) != 0)
+                    continue;
+
+                out_module.imports.emplace(import);
 
                 auto importPath = resolvePath(search, std::filesystem::path(import).replace_extension(".sap"));
                 if (importPath.empty())
@@ -433,8 +485,11 @@ namespace sapc {
                     return false;
                 }
 
-                for (auto const& type : importedModule.types)
-                    out_module.types.push_back(type);
+                for (auto& type : importedModule.types)
+                    pushType(std::move(type));
+
+                for (auto const& dependency : parser.dependencies)
+                    dependencies.push_back(dependency);
 
                 continue;
             }
@@ -443,8 +498,6 @@ namespace sapc {
                 std::string include;
                 expect(TokenType::String, include);
 
-                out_module.includes.push_back(include);
-
                 auto includePath = resolvePath(search, include);
                 if (includePath.empty())
                     return fail("could not find `", include, '\'');
@@ -452,6 +505,8 @@ namespace sapc {
                 std::string contents;
                 if (!loadText(includePath, contents))
                     return fail("failed to open `", includePath.string(), '\'');
+
+                dependencies.push_back(includePath);
 
                 Parser parser;
                 parser.search = search;
@@ -474,7 +529,7 @@ namespace sapc {
             }
 
             if (consume(TokenType::KeywordAttribute)) {
-                auto& attr = out_module.types.emplace_back();
+                auto attr = ast::Type{};
                 attr.location = pos();
                 attr.isAttribute = true;
 
@@ -497,6 +552,7 @@ namespace sapc {
                 else
                     expect(TokenType::SemiColon);
 
+                pushType(std::move(attr));
                 continue;
             }
 
@@ -507,7 +563,7 @@ namespace sapc {
 
             // parse regular type declarations
             if (consume(TokenType::KeywordType)) {
-                auto& type = out_module.types.emplace_back();
+                auto& type = ast::Type{};
                 type.location = pos();
 
                 type.attributes = std::move(attributes);
@@ -533,12 +589,13 @@ namespace sapc {
                 else
                     expect(TokenType::SemiColon);
 
+                pushType(std::move(type));
                 continue;
             }
 
             // parse enumerations
             if (consume(TokenType::KeywordEnum)) {
-                auto& enum_ = out_module.types.emplace_back();
+                auto& enum_ = ast::Type{};
                 enum_.location = pos();
                 enum_.isEnumeration = true;
 
@@ -561,6 +618,8 @@ namespace sapc {
                         break;
                 }
                 expect(TokenType::RightBrace);
+
+                pushType(std::move(enum_));
 
                 continue;
             }
@@ -585,37 +644,16 @@ namespace sapc {
             valid = false;
         };
 
-        // add built-in types
-        static std::string const builtins[] = {
-            "string", "bool",
-            "i8", "i16", "i32", "i64",
-            "u8", "u16", "u32", "u64",
-            "f328", "f64"
-        };
-
-        for (auto const& builtin : builtins) {
-            auto& type = module.types.emplace_back();
-            type.name = builtin;
-            type.module = "$core";
-        }
-
-        // build a map of type names to types
-        for (size_t index = 0; index != module.types.size(); ++index)
-            module.typeMap[module.types[index].name] = index;
-
         // ensure all types are valid
         for (auto& type : module.types) {
-            //if (type.imported)
-            //    continue;
-
             if (!type.base.empty() && module.typeMap.find(type.base) == module.typeMap.end()) {
-                error(type.location, "unknown type `", type.base, "' in base of `", type.name, '\'');
+                error(type.location, "unknown type `", type.base, '\'');
             }
 
             for (auto& field : type.fields) {
                 auto typeIt = module.typeMap.find(field.type.type);
                 if (typeIt == module.typeMap.end()) {
-                    error(field.location, "unknown type `", field.type, "' in field `", field.name, "' of type `", type.name, '\'');
+                    error(field.location, "unknown type `", field.type, '\'');
                     continue;
                 }
                 auto const& fieldType = module.types[typeIt->second];
@@ -676,8 +714,8 @@ namespace sapc {
 
                 if (param.init.type == ast::Value::Type::None)
                     error(attr.location, "missing required argument `", param.name, "' to attribute `", attr.name, '\'');
-
-                attr.params.push_back(param.init);
+                else
+                    attr.params.push_back(param.init);
             }
         };
 
