@@ -9,7 +9,7 @@
 #include <filesystem>
 
 namespace sapc {
-    class Module;
+    struct Module;
 
     bool compile(std::filesystem::path filename, std::vector<std::filesystem::path> const& search, std::vector<std::string>& errors, std::vector<std::filesystem::path>& dependencies, Module& out_module);
 }

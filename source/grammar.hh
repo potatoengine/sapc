@@ -11,7 +11,7 @@
 #include <filesystem>
 
 namespace sapc {
-    class Module;
+    struct Module;
 
     bool parse(std::vector<Token> const& tokens, std::vector<std::filesystem::path> const& search, std::vector<std::string>& errors, std::vector<std::filesystem::path>& dependencies, Module& module);
 }

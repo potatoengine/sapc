@@ -8,7 +8,7 @@
 #include <string>
 
 namespace sapc {
-    class Module;
+    struct Module;
 
     bool analyze(Module& module, std::vector<std::string>& errors);
 }
