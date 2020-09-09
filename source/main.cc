@@ -2,7 +2,8 @@
 // This is free and unencumbered software released into the public domain.
 // See LICENSE.md for more details.
 
-#include "state.hh"
+#include "compiler.hh"
+#include "model.hh"
 #include "string_util.hh"
 
 #include <string>
@@ -30,6 +31,8 @@ namespace {
     };
 
     bool parse_arguments(int argc, char* argv[], Config& config) {
+        using namespace sapc;
+
         enum class Arg {
             None,
             InputFile,
@@ -115,18 +118,18 @@ static int compile(Config& config) {
         return 1;
     }
 
-    sapc::StringTable strings;
-    sapc::ParseState parser{ strings, config.search };
-    parser.addBuiltinTypes();
-    auto const compiled = parser.compile(config.input);
+    sapc::Module module;
+    std::vector<fs::path> dependencies;
+    std::vector<std::string> errors;
 
-    for (auto const& error : parser.errors)
-        std::cerr << error << '\n';
-
-    if (!compiled || !parser.errors.empty())
+    if (!compile(config.input, config.search, errors, dependencies, module)) {
+        std::cerr << "error: Failed to compile input\n";
+        for (auto const& error : errors)
+            std::cerr << error << '\n';
         return 2;
+    }
 
-    auto const doc = parser.to_json();
+    auto const doc = to_json(module);
     auto const json = doc.dump(4);
 
     if (!config.output.empty()) {
@@ -149,12 +152,12 @@ static int compile(Config& config) {
 
         deps_stream << config.output.string() << ": ";
 
-        auto const num_deps = parser.fileDependencies.size();
+        auto const num_deps = dependencies.size();
         for (size_t i = 0; i != num_deps; ++i) {
             if (i != 0)
                 deps_stream << "  ";
 
-            deps_stream << parser.fileDependencies[i].string() << ' ';
+            deps_stream << dependencies[i].string() << ' ';
 
             if (i != num_deps - 1)
                 deps_stream << '\\';

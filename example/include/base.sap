@@ -1,6 +1,6 @@
 module base;
 
-import module;
+import common;
 
 attribute name { string name; } # this is another comment
 
