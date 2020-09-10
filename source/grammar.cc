@@ -222,6 +222,7 @@ namespace sapc {
             if (consume(TokenType::KeywordInclude)) {
                 std::string include;
                 expect(TokenType::String, include);
+                expect(TokenType::SemiColon);
 
                 auto includePath = resolve(include);
                 if (includePath.empty())

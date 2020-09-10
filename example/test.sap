@@ -8,11 +8,11 @@ pragma option;
 // test import
 import common;
 
-include "include/base.sap" # comment at end of include
+include "include/base.sap"; # comment at end of include
 
 attribute default { any value = 0; } /* default attribute */
 
-include "include/base.sap" # duplicate include is safe
+include "include/base.sap"; # duplicate include is safe
 
 [name("Test")]
 type test {

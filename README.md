@@ -36,7 +36,7 @@ module <- 'module' identifier ';'
 pragma <- 'pragma' identifier ';'
 
 import <- 'import' identifier ';'
-include <- 'include' string EOL
+include <- 'include' string ';'
 
 value <- number / string / 'true' / 'false' / 'null'
 number <- '-'? [0-9]+
