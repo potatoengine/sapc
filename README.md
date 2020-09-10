@@ -78,8 +78,8 @@ enum flags {
 
 [cdecl("test_t")]
 type test {
-	[cdecl("t_num")]
-	int num = 0;
+    [cdecl("t_num")]
+    int num = 0;
     flags flg = first;
 };
 ```
