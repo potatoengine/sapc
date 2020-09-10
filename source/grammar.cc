@@ -12,8 +12,10 @@
 #include <sstream>
 #include <fstream>
 
+namespace fs = std::filesystem;
+
 namespace sapc {
-    bool parse(std::vector<Token> const& tokens, std::vector<std::filesystem::path> const& search, std::vector<std::string>& errors, std::vector<std::filesystem::path>& dependencies, Module& module) {
+    bool parse(std::vector<Token> const& tokens, std::vector<fs::path> const& search, std::vector<std::string>& errors, std::vector<fs::path>& dependencies, fs::path const& filename, Module& module) {
         size_t next = 0;
 
         struct Consume {
@@ -50,19 +52,19 @@ namespace sapc {
             }
         } consume{ next, tokens };
 
-        auto resolve = [&](std::filesystem::path filename) ->  std::filesystem::path {
-            if (filename.is_absolute())
+        auto resolve = [&](fs::path target) ->  fs::path {
+            if (target.is_absolute())
                 return filename;
 
-            if (!module.filename.empty()) {
-                auto tmp = module.filename.parent_path() / filename;
-                if (std::filesystem::exists(tmp))
+            if (!filename.empty()) {
+                auto tmp = filename.parent_path() / target;
+                if (fs::exists(tmp))
                     return tmp;
             }
 
             for (auto const& path : search) {
-                auto tmp = path / filename;
-                if (std::filesystem::exists(tmp))
+                auto tmp = path / target;
+                if (fs::exists(tmp))
                     return tmp;
             }
 
@@ -78,13 +80,13 @@ namespace sapc {
 
         auto fail = [&](std::string message, auto const&... args) {
             auto const& tok = next < tokens.size() ? tokens[next] : tokens.back();
-            Location const loc{ module.filename, tok.pos.line, tok.pos.column };
+            Location const loc{ filename, tok.pos.line, tok.pos.column };
             return error(loc, message, args...);
         };
 
         auto pos = [&]() {
             auto const& tokPos = next > 0 ? tokens[next - 1].pos : tokens.front().pos;
-            return Location{ module.filename, tokPos.line, tokPos.column };
+            return Location{ filename, tokPos.line, tokPos.column };
         };
 
 #if defined(expect)
@@ -222,7 +224,7 @@ namespace sapc {
 
                 module.imports.emplace(import);
 
-                auto importPath = resolve(std::filesystem::path(import).replace_extension(".sap"));
+                auto importPath = resolve(fs::path(import).replace_extension(".sap"));
                 if (importPath.empty())
                     return fail("could not find module `", import, '\'');
 
@@ -253,7 +255,7 @@ namespace sapc {
 
                 std::vector<Token> includeTokens;
                 tokenize(contents, includeTokens);
-                if (!parse(includeTokens, search, errors, dependencies, module))
+                if (!parse(includeTokens, search, errors, dependencies, includePath, module))
                     return false;
 
                 continue;
