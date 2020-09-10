@@ -63,7 +63,7 @@ namespace sapc {
         }
 
         // expand attribute parameters
-        auto expand = [&](AttributeUsage& attr) {
+        auto expand = [&](Attribute& attr) {
             auto const it = module.typeMap.find(attr.name);
             if (it == module.typeMap.end()) {
                 error(attr.location, "unknown attribute `", attr.name, '\'');

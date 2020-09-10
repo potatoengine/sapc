@@ -40,7 +40,7 @@ namespace sapc {
         friend void to_json(nlohmann::json& j, Value const& value);
     };
 
-    struct AttributeUsage {
+    struct Attribute {
         std::string name;
         std::vector<Value> params;
         Location location;
@@ -50,7 +50,7 @@ namespace sapc {
         std::string name;
         TypeInfo type;
         Value init;
-        std::vector<AttributeUsage> attributes;
+        std::vector<Attribute> attributes;
         Location location;
     };
 
@@ -66,7 +66,7 @@ namespace sapc {
         std::string module;
         std::vector<TypeField> fields;
         std::vector<EnumValue> values;
-        std::vector<AttributeUsage> attributes;
+        std::vector<Attribute> attributes;
         bool isAttribute = false;
         bool isEnumeration = false;
         Location location;

@@ -138,7 +138,7 @@ namespace sapc {
             } \
         } while(false)
 
-        auto parseAttributes = [&](std::vector<AttributeUsage>& attrs) -> bool {
+        auto parseAttributes = [&](std::vector<Attribute>& attrs) -> bool {
             while (consume(TokenType::LeftBracket)) {
                 do {
                     auto& attr = attrs.emplace_back();
@@ -298,7 +298,7 @@ namespace sapc {
             }
 
             // optionally build up a list of attributes
-            std::vector<AttributeUsage> attributes;
+            std::vector<Attribute> attributes;
             if (!parseAttributes(attributes))
                 return false;
 

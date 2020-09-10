@@ -33,7 +33,7 @@ namespace sapc {
         doc["$schema"] = "https://raw.githubusercontent.com/potatoengine/sapc/master/schema/sap-1.schema.json";
         doc["module"] = module.name;
 
-        auto attrs_to_json = [&](std::vector<AttributeUsage> const& attributes) -> nlohmann::json {
+        auto attrs_to_json = [&](std::vector<Attribute> const& attributes) -> nlohmann::json {
             auto attrs_json = json::object();
             for (auto const& attr : attributes) {
                 auto const it = module.typeMap.find(attr.name);
