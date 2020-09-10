@@ -30,11 +30,11 @@ Input Schema
 Simplified PEG grammar.
 
 ```
-file <- module pragma* statement*
-statement <- attrdef / typedef / enumdef / import / include
+file <- statement*
+statement <- attrdef / typedef / enumdef / import / include / pragma / module
+
 module <- 'module' identifier ';'
 pragma <- 'pragma' identifier ';'
-
 import <- 'import' identifier ';'
 include <- 'include' string ';'
 

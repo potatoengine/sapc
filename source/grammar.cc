@@ -69,13 +69,17 @@ namespace sapc {
             return {};
         };
 
-        auto fail = [&](std::string message, auto const&... args) {
-            auto const& tok = next < tokens.size() ? tokens[next] : tokens.back();
-            Location const loc{ module.filename, tok.pos.line, tok.pos.column };
+        auto error = [&](Location const& loc, std::string message, auto const&... args) {
             std::ostringstream buffer;
             ((buffer << loc << ": " << message) << ... << args);
             errors.push_back({ buffer.str() });
             return false;
+        };
+
+        auto fail = [&](std::string message, auto const&... args) {
+            auto const& tok = next < tokens.size() ? tokens[next] : tokens.back();
+            Location const loc{ module.filename, tok.pos.line, tok.pos.column };
+            return error(loc, message, args...);
         };
 
         auto pos = [&]() {
@@ -183,17 +187,17 @@ namespace sapc {
             return true;
         };
 
-        // expect module first
-        expect(TokenType::KeywordModule);
-        if (module.name.empty())
-            expect(TokenType::Identifier, module.name);
-        else
-            expect(TokenType::Identifier);
-        expect(TokenType::SemiColon);
 
         while (!consume(TokenType::EndOfFile)) {
             if (consume(TokenType::Unknown))
                 return fail("unexpected input");
+
+            if (consume(TokenType::KeywordModule)) {
+                if (!module.name.empty())
+                    return fail("module has already been declared");
+                expect(TokenType::Identifier, module.name);
+                expect(TokenType::SemiColon);
+            }
 
             if (consume(TokenType::KeywordImport)) {
                 std::string import;
@@ -361,5 +365,5 @@ namespace sapc {
 #undef expect
 
         return true;
-    }
 }
+    }
