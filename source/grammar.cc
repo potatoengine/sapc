@@ -96,11 +96,13 @@ namespace sapc {
             if (!consume(_ttype,##__VA_ARGS__)) { \
                 std::ostringstream buf; \
                 buf << "expected " << _ttype; \
+                if (next > 0) \
+                    buf << " after " << tokens[next - 1]; \
                 if (next < tokens.size()) \
                     buf << ", got " << tokens[next]; \
                 return fail(buf.str()); \
             } \
-        }while(false)
+        } while(false)
 
         auto consumeValue = [&](Value& out) {
             if (consume(TokenType::KeywordNull))
@@ -121,6 +123,19 @@ namespace sapc {
             return true;
         };
 
+#define expectValue(out) \
+        do{ \
+            if (!consumeValue((out))) { \
+                std::ostringstream buf; \
+                buf << "expected value"; \
+                if (next > 0) \
+                    buf << " after " << tokens[next - 1]; \
+                if (next < tokens.size()) \
+                    buf << ", got " << tokens[next]; \
+                return fail(buf.str()); \
+            } \
+        } while(false)
+
         auto parseAttributes = [&](std::vector<AttributeUsage>& attrs) -> bool {
             while (consume(TokenType::LeftBracket)) {
                 do {
@@ -131,8 +146,7 @@ namespace sapc {
                         if (!consume(TokenType::RightParen)) {
                             for (;;) {
                                 auto& value = attr.params.emplace_back();
-                                if (!consumeValue(value))
-                                    fail("expected value");
+                                expectValue(value);
                                 if (!consume(TokenType::Comma))
                                     break;
 
@@ -173,13 +187,8 @@ namespace sapc {
                 if (type.location == other.location && type.module == other.module)
                     return true;
 
-                std::ostringstream buffer;
-                buffer << type.location << "duplicate definition of type `" << type.name << '\'';
-                errors.push_back(buffer.str());
-                buffer.clear();
-                buffer << other.location << "previous definition of type `" << other.name << '\'';
-                errors.push_back(buffer.str());
-                return false;
+                error(type.location, "duplicate definition of type `", type.name, '\'');
+                return error(other.location, "previous definition of type `", other.name, '\'');
             }
 
             module.typeMap[type.name] = index;
@@ -187,10 +196,14 @@ namespace sapc {
             return true;
         };
 
-
         while (!consume(TokenType::EndOfFile)) {
-            if (consume(TokenType::Unknown))
-                return fail("unexpected input");
+            if (consume(TokenType::Unknown)) {
+                std::ostringstream buf;
+                buf << "unexpected input";
+                if (next > 0)
+                    buf << " after " << tokens[next - 1];
+                return fail(buf.str());
+            }
 
             if (consume(TokenType::KeywordModule)) {
                 if (!module.name.empty())
@@ -259,8 +272,7 @@ namespace sapc {
                 auto attr = Type{};
                 attr.isAttribute = true;
 
-                if (!consume(TokenType::Identifier, attr.name))
-                    return fail("expected identifier after `attribute'");
+                expect(TokenType::Identifier, attr.name);
 
                 attr.location = pos();
 
@@ -271,10 +283,8 @@ namespace sapc {
                             return false;
                         arg.location = pos();
                         expect(TokenType::Identifier, arg.name);
-                        if (consume(TokenType::Equal)) {
-                            if (!consumeValue(arg.init))
-                                return fail("expected value after `='");
-                        }
+                        if (consume(TokenType::Equal))
+                            expectValue(arg.init);
                         expect(TokenType::SemiColon);
                     }
                 }
@@ -310,10 +320,8 @@ namespace sapc {
                             return false;
                         field.location = pos();
                         expect(TokenType::Identifier, field.name);
-                        if (consume(TokenType::Equal)) {
-                            if (!consumeValue(field.init))
-                                return fail("expected value after `='");
-                        }
+                        if (consume(TokenType::Equal))
+                            expectValue(field.init);
                         expect(TokenType::SemiColon);
                     }
                 }
@@ -357,13 +365,12 @@ namespace sapc {
                 continue;
             }
 
-            std::ostringstream buf;
-            buf << "unexpected " << tokens[next];
-            return fail(buf.str());
+            return fail("unexpect ", tokens[next]);
         }
 
 #undef expect
+#undef expectValue
 
         return true;
-}
     }
+}
