@@ -31,7 +31,6 @@ namespace sapc {
         case TokenType::Equal: os << "="; break;
         case TokenType::Colon: os << ":"; break;
         case TokenType::SemiColon: os << ";"; break;
-        case TokenType::Asterisk: os << "*"; break;
         case TokenType::KeywordModule: os << "`module'"; break;
         case TokenType::KeywordImport: os << "`import'"; break;
         case TokenType::KeywordPragma: os << "`pragma'"; break;
@@ -102,7 +101,6 @@ namespace sapc {
             { "=", TokenType::Equal },
             { ":", TokenType::Colon },
             { ";", TokenType::SemiColon },
-            { "*", TokenType::Asterisk },
             { "module", TokenType::KeywordModule, true },
             { "import", TokenType::KeywordImport, true },
             { "pragma", TokenType::KeywordPragma, true },

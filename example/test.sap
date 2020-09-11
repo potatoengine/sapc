@@ -25,7 +25,7 @@ type test {
     bool skipme = false;
     intptr iptr = null;
     string[] array;
-    bool*[] bit_pointers;
+    bool[] bits;
 }
 
 type derived : test;
