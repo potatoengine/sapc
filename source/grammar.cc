@@ -234,7 +234,6 @@ namespace sapc {
                 expect(TokenType::Identifier, option);
                 expect(TokenType::SemiColon);
 
-                module.pragmas.push_back(std::move(option));
                 continue;
             }
 
