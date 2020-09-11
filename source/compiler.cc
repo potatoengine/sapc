@@ -22,25 +22,32 @@ namespace sapc {
         out_module.filename = filename;
         dependencies.push_back(filename);
 
-        // add built-in types
-        static std::string const builtins[] = {
-            "string", "bool",
-            "i8", "i16", "i32", "i64",
-            "u8", "u16", "u32", "u64",
-            "f328", "f64"
-        };
-
-        for (auto const& builtin : builtins) {
-            auto& type = out_module.types.emplace_back();
-            type.name = builtin;
-            type.module = "$core";
-            out_module.typeMap[builtin] = out_module.types.size() - 1;
-        }
+        addCoreTypes(out_module);
 
         std::vector<Token> tokens;
         tokenize(contents, tokens);
         if (!parse(tokens, search, errors, dependencies, filename, out_module))
             return false;
         return analyze(out_module, errors);
+    }
+
+    void addCoreTypes(Module& module) {
+        using namespace std::literals;
+
+        // add built-in types
+        static constexpr std::string_view builtins[] = {
+            "string"sv,
+            "bool"sv,
+            "byte"sv,
+            "int"sv,
+            "float"sv,
+        };
+
+        for (auto const& builtin : builtins) {
+            auto& type = module.types.emplace_back();
+            type.name = builtin;
+            type.module = "$core";
+            module.typeMap[type.name] = module.types.size() - 1;
+        }
     }
 }
