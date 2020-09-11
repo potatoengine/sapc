@@ -8,11 +8,7 @@ pragma option;
 // test import
 import common;
 
-include "include/base.sap"; # comment at end of include
-
 attribute default { any value = 0; } /* default attribute */
-
-include "include/base.sap"; # duplicate include is safe
 
 [name("Test")]
 type test {
@@ -24,7 +20,7 @@ type test {
     /*
         C-style block comment
     */
-    bool2 skipme = false;
+    bool skipme = false;
     u32* iptr = null;
     string[] array;
     bool*[] bit_pointers;

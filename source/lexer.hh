@@ -27,7 +27,6 @@ namespace sapc {
         Asterisk,
         KeywordModule,
         KeywordImport,
-        KeywordInclude,
         KeywordPragma,
         KeywordType,
         KeywordAttribute,

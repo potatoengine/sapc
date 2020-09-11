@@ -2,6 +2,14 @@ module common;
 
 attribute cxxname { string name; }
 attribute ignore { bool ignored = true; }
+attribute name { string name; } # this is another comment
 
 [cxxname("std::any"), ignore]
 type any;
+
+enum flags {
+    none = 0,
+    base = 1,
+    second,
+    last
+}

@@ -17,7 +17,7 @@ Usage
 
 ```
 sapc [-o <input>] [-I<path>]... [-d <depfile>] [-h] [--] <input>
-  -I<path>              Add a path to the search list for imports and includes
+  -I<path>              Add a path to the search list for imports
   -o|--output <ouput>   Output file path, otherwise prints to stdout
   -d|--deps <depfile>   Specify the path that a Make-style deps file will be written to for build system integration
   -h|--help             Print this help information
@@ -31,12 +31,11 @@ Simplified PEG grammar.
 
 ```
 file <- statement*
-statement <- attrdef / typedef / enumdef / import / include / pragma / module
+statement <- attrdef / typedef / enumdef / import / pragma / module
 
 module <- 'module' identifier ';'
 pragma <- 'pragma' identifier ';'
 import <- 'import' identifier ';'
-include <- 'include' string ';'
 
 value <- number / string / 'true' / 'false' / 'null'
 number <- '-'? [0-9]+

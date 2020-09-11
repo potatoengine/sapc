@@ -34,7 +34,6 @@ namespace sapc {
         case TokenType::Asterisk: os << "*"; break;
         case TokenType::KeywordModule: os << "`module'"; break;
         case TokenType::KeywordImport: os << "`import'"; break;
-        case TokenType::KeywordInclude: os << "`include'"; break;
         case TokenType::KeywordPragma: os << "`pragma'"; break;
         case TokenType::KeywordType: os << "`type'"; break;
         case TokenType::KeywordAttribute: os << "`attribute'"; break;
@@ -106,7 +105,6 @@ namespace sapc {
             { "*", TokenType::Asterisk },
             { "module", TokenType::KeywordModule, true },
             { "import", TokenType::KeywordImport, true },
-            { "include", TokenType::KeywordInclude, true },
             { "pragma", TokenType::KeywordPragma, true },
             { "attribute", TokenType::KeywordAttribute, true },
             { "type", TokenType::KeywordType, true },
