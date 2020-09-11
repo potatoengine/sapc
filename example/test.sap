@@ -13,7 +13,7 @@ attribute default { any value = 0; } /* default attribute */
 [cxxname("int*"), ignore]
 type intptr;
 [name("Test")]
-type test {
+struct test {
     [default]
     i32 x = 0 # a comment
     ;
@@ -28,12 +28,12 @@ type test {
     bool[] bits;
 }
 
-type derived : test;
+struct derived : test {}
 
 enum order {
     first, second, third
 }
 
-type ordered {
+struct ordered {
     order position = second;
 }
