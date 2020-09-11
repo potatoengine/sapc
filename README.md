@@ -31,7 +31,7 @@ Simplified PEG grammar.
 
 ```
 file <- statement*
-statement <- attrdef / typedef / enumdef / import / pragma / module
+statement <- attribute / type / struct / enum/ import / pragma / module
 
 module <- 'module' identifier ';'
 pragma <- 'pragma' identifier ';'
@@ -46,17 +46,19 @@ linecomment <- ( '#' / '//' ) [^\n]*
 blockcomment <- '/*' .* '*/'
 identifier <- [a-zA-Z_][a-zA-Z0-9_]*
 
-attrdef <- 'attribute' identifier ( '{' attrparam* '}' / ';' )
-attrparam <- identifier identifier ( '=' value )? ';'
+attribute <- 'attribute' identifier ( '{' attribute_parameter* '}' / ';' )
+attribute_parameter <- identifier identifier ( '=' value )? ';'
 
-attributes <- ( '[' attribute ( ',' attribute )* ']' )+
-attribute <- identifier ( '(' ( value ( ',' value )* )? ')' )?
+attributes <- ( '[' attribute_usage ( ',' attribute_usage )* ']' )+
+attribute_usage <- identifier ( '(' ( value ( ',' value )* )? ')' )?
 
-typedef <- attributes? 'type' identifier ( ':' identifier )? ( '{' field* '}' / ';' )
+type <- attributes? 'type' identifier ';'
+
+struct <- attributes? 'struct' identifier ( ':' identifier )? ( '{' field* '}' / ';' )
 field <- attributes? identifier identifier ( '=' value / '=' identifier )? ';'
 
-enumdef <- attributes? 'enum' ( ':' identifier )? '{' enumvalue ( ',' enumvalue )* '}'
-enumvalue <- identifier ( '=' number )?
+enum <- attributes? 'enum' ( ':' identifier )? '{' enumerant ( ',' enumerant )* '}'
+enumerant <- identifier ( '=' number )?
 ```
 
 Example:
@@ -76,7 +78,7 @@ enum flags {
 }
 
 [cdecl("test_t")]
-type test {
+struct test {
     [cdecl("t_num")]
     int num = 0;
     flags flg = first;
