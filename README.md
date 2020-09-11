@@ -3,7 +3,7 @@ sapc - IDL compiler
 
 By Sean Middleditch
 
-https://github.com/potatoengine/sapc
+[github.com/potatoengine/sapc](https://github.com/potatoengine/sapc)
 
 Legal
 -----
@@ -88,4 +88,4 @@ struct test {
 Output Schema
 -------------
 
-See [https://raw.githubusercontent.com/potatoengine/sapc/master/schema/sap-1.schema.json]
+See [sap-1.schema.json](https://potatoengine.github.io/sapc/master/schema/sap-1.schema.json)
