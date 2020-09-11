@@ -1,12 +1,10 @@
 # file header comment
 
-module test;
-
-// test pragma
-pragma option;
-
 // test import
 import common;
+
+[tag("Test Tag")]
+module test;
 
 attribute default { any value = 0; } /* default attribute */
 
