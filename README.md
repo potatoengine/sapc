@@ -10,7 +10,7 @@ Legal
 
 This is free and unencumbered software released into the public domain.
 
-See LICENSE.md for more details.
+See [LICENSE.md](./LICENSE.md) for more details.
 
 Usage
 -----
@@ -88,4 +88,4 @@ struct test {
 Output Schema
 -------------
 
-See [sap-1.schema.json](https://potatoengine.github.io/sapc/master/schema/sap-1.schema.json)
+See [sap-1.schema.json](https://potatoengine.github.io/sapc/schema/sap-1.schema.json)
