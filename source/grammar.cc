@@ -229,14 +229,6 @@ namespace sapc {
                 continue;
             }
 
-            if (consume(TokenType::KeywordPragma)) {
-                std::string option;
-                expect(TokenType::Identifier, option);
-                expect(TokenType::SemiColon);
-
-                continue;
-            }
-
             if (consume(TokenType::KeywordAttribute)) {
                 auto attr = Type{};
                 attr.isAttribute = true;
