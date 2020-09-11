@@ -277,6 +277,7 @@ namespace sapc {
                 expect(TokenType::Identifier, module.name);
                 expect(TokenType::SemiColon);
 
+                module.attributes = std::move(attributes);
                 continue;
             }
 
@@ -362,6 +363,9 @@ namespace sapc {
 
 #undef expect
 #undef expectValue
+
+        if (module.name.empty())
+            return fail("missing module declaration");
 
         return true;
     }
