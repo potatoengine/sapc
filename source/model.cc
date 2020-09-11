@@ -9,8 +9,6 @@
 namespace sapc {
     std::ostream& operator<<(std::ostream& os, TypeInfo const& type) {
         os << type.type;
-        if (type.isPointer)
-            os << '*';
         if (type.isArray)
             os << "[]";
         return os;
@@ -89,7 +87,6 @@ namespace sapc {
                     field_json["name"] = field.name;
                     field_json["type"] = field.type.type;
                     field_json["is_array"] = field.type.isArray;
-                    field_json["is_pointer"] = field.type.isPointer;
                     if (field.init.type != Value::Type::None)
                         field_json["default"] = json(field.init);
                     if (!field.attributes.empty())

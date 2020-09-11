@@ -71,7 +71,6 @@
         "type": { "type": "string" },
         "default": { "$ref": "#/definitions/value" },
         "attributes": { "$ref": "#/definitions/attributes" },
-        "is_pointer": { "type": "boolean" },
         "is_array": { "type": "boolean" }
       }
     }
