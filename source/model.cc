@@ -57,6 +57,8 @@ namespace sapc {
             return attrs_json;
         };
 
+        doc["attributes"] = attrs_to_json(module.attributes);
+
         auto modules_json = json::array();
         for (auto const& module : module.imports)
             modules_json.push_back(module);
