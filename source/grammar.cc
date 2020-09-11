@@ -164,8 +164,7 @@ namespace sapc {
 
         auto parseType = [&](TypeInfo& type) -> bool {
             expect(TokenType::Identifier, type.type);
-            if (consume(TokenType::Asterisk))
-                type.isPointer = true;
+            consume(TokenType::Asterisk);
             if (consume(TokenType::LeftBracket)) {
                 expect(TokenType::RightBracket);
                 type.isArray = true;
