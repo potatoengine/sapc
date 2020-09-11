@@ -10,6 +10,8 @@ import common;
 
 attribute default { any value = 0; } /* default attribute */
 
+[cxxname("int*"), ignore]
+type intptr;
 [name("Test")]
 type test {
     [default]
@@ -21,7 +23,7 @@ type test {
         C-style block comment
     */
     bool skipme = false;
-    u32* iptr = null;
+    intptr iptr = null;
     string[] array;
     bool*[] bit_pointers;
 }
