@@ -28,6 +28,7 @@ namespace sapc {
         KeywordImport,
         KeywordPragma,
         KeywordType,
+        KeywordStruct,
         KeywordAttribute,
         KeywordEnum,
         KeywordTrue,

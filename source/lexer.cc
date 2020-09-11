@@ -38,6 +38,7 @@ namespace sapc {
         case TokenType::KeywordAttribute: os << "`attribute'"; break;
         case TokenType::KeywordEnum: os << "`enum'"; break;
         case TokenType::KeywordTrue: os << "`true'"; break;
+        case TokenType::KeywordStruct: os << "`struct'"; break;
         case TokenType::KeywordFalse: os << "`false'"; break;
         case TokenType::KeywordNull: os << "`null'"; break;
         case TokenType::EndOfFile: os << "end of file"; break;
@@ -106,6 +107,7 @@ namespace sapc {
             { "pragma", TokenType::KeywordPragma, true },
             { "attribute", TokenType::KeywordAttribute, true },
             { "type", TokenType::KeywordType, true },
+            { "struct", TokenType::KeywordStruct, true },
             { "enum", TokenType::KeywordEnum, true },
             { "true", TokenType::KeywordTrue, true },
             { "false", TokenType::KeywordFalse, true },
