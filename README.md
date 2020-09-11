@@ -33,7 +33,6 @@ Simplified PEG grammar.
 file <- statement*
 statement <- attribute / type / struct / enum/ import / pragma / module
 
-module <- 'module' identifier ';'
 pragma <- 'pragma' identifier ';'
 import <- 'import' identifier ';'
 
@@ -46,11 +45,14 @@ linecomment <- ( '#' / '//' ) [^\n]*
 blockcomment <- '/*' .* '*/'
 identifier <- [a-zA-Z_][a-zA-Z0-9_]*
 
-attribute <- 'attribute' identifier ( '{' attribute_parameter* '}' / ';' )
-attribute_parameter <- identifier identifier ( '=' value )? ';'
 
 attributes <- ( '[' attribute_usage ( ',' attribute_usage )* ']' )+
 attribute_usage <- identifier ( '(' ( value ( ',' value )* )? ')' )?
+
+attribute <- 'attribute' identifier ( '{' attribute_parameter* '}' / ';' )
+attribute_parameter <- identifier identifier ( '=' value )? ';'
+
+module <- attributes? 'module' identifier ';'
 
 type <- attributes? 'type' identifier ';'
 

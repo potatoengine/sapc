@@ -205,13 +205,6 @@ namespace sapc {
                 return fail(buf.str());
             }
 
-            if (consume(TokenType::KeywordModule)) {
-                if (!module.name.empty())
-                    return fail("module has already been declared");
-                expect(TokenType::Identifier, module.name);
-                expect(TokenType::SemiColon);
-            }
-
             if (consume(TokenType::KeywordImport)) {
                 std::string import;
                 expect(TokenType::Identifier, import);
@@ -276,6 +269,16 @@ namespace sapc {
             std::vector<Attribute> attributes;
             if (!parseAttributes(attributes))
                 return false;
+
+            // parse module
+            if (consume(TokenType::KeywordModule)) {
+                if (!module.name.empty())
+                    return fail("module has already been declared");
+                expect(TokenType::Identifier, module.name);
+                expect(TokenType::SemiColon);
+
+                continue;
+            }
 
             // parse type declarations
             if (consume(TokenType::KeywordType)) {
