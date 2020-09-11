@@ -30,13 +30,13 @@ Input Schema
 Simplified PEG grammar.
 
 ```
-file <- module pragma* statement*
-statement <- attrdef / typedef / enumdef / import / include
+file <- statement*
+statement <- attrdef / typedef / enumdef / import / include / pragma / module
+
 module <- 'module' identifier ';'
 pragma <- 'pragma' identifier ';'
-
 import <- 'import' identifier ';'
-include <- 'include' string EOL
+include <- 'include' string ';'
 
 value <- number / string / 'true' / 'false' / 'null'
 number <- '-'? [0-9]+
@@ -78,8 +78,8 @@ enum flags {
 
 [cdecl("test_t")]
 type test {
-	[cdecl("t_num")]
-	int num = 0;
+    [cdecl("t_num")]
+    int num = 0;
     flags flg = first;
 };
 ```

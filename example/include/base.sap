@@ -1,5 +1,3 @@
-module base;
-
 import common;
 
 attribute name { string name; } # this is another comment

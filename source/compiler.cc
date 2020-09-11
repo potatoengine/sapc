@@ -39,7 +39,7 @@ namespace sapc {
 
         std::vector<Token> tokens;
         tokenize(contents, tokens);
-        if (!parse(tokens, search, errors, dependencies, out_module))
+        if (!parse(tokens, search, errors, dependencies, filename, out_module))
             return false;
         return analyze(out_module, errors);
     }
