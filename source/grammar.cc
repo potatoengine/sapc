@@ -277,8 +277,23 @@ namespace sapc {
             if (!parseAttributes(attributes))
                 return false;
 
-            // parse regular type declarations
+            // parse type declarations
             if (consume(TokenType::KeywordType)) {
+                auto type = Type{};
+
+                type.attributes = std::move(attributes);
+                expect(TokenType::Identifier, type.name);
+
+                type.location = pos();
+
+                expect(TokenType::SemiColon);
+
+                pushType(std::move(type));
+                continue;
+            }
+
+            // parse struct declarations
+            if (consume(TokenType::KeywordStruct)) {
                 auto type = Type{};
 
                 type.attributes = std::move(attributes);
@@ -288,22 +303,19 @@ namespace sapc {
 
                 if (consume(TokenType::Colon))
                     expect(TokenType::Identifier, type.base);
-                if (consume(TokenType::LeftBrace)) {
-                    while (!consume(TokenType::RightBrace)) {
-                        auto& field = type.fields.emplace_back();
-                        if (!parseAttributes(field.attributes))
-                            return false;
-                        if (!parseType(field.type))
-                            return false;
-                        field.location = pos();
-                        expect(TokenType::Identifier, field.name);
-                        if (consume(TokenType::Equal))
-                            expectValue(field.init);
-                        expect(TokenType::SemiColon);
-                    }
-                }
-                else
+                expect(TokenType::LeftBrace);
+                while (!consume(TokenType::RightBrace)) {
+                    auto& field = type.fields.emplace_back();
+                    if (!parseAttributes(field.attributes))
+                        return false;
+                    if (!parseType(field.type))
+                        return false;
+                    field.location = pos();
+                    expect(TokenType::Identifier, field.name);
+                    if (consume(TokenType::Equal))
+                        expectValue(field.init);
                     expect(TokenType::SemiColon);
+                }
 
                 pushType(std::move(type));
                 continue;
