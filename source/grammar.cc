@@ -238,29 +238,6 @@ namespace sapc {
                 continue;
             }
 
-            if (consume(TokenType::KeywordInclude)) {
-                std::string include;
-                expect(TokenType::String, include);
-                expect(TokenType::SemiColon);
-
-                auto includePath = resolve(include);
-                if (includePath.empty())
-                    return fail("could not find include `", include, '\'');
-
-                std::string contents;
-                if (!loadText(includePath, contents))
-                    return fail("failed to open `", includePath.string(), '\'');
-
-                dependencies.push_back(includePath);
-
-                std::vector<Token> includeTokens;
-                tokenize(contents, includeTokens);
-                if (!parse(includeTokens, search, errors, dependencies, includePath, module))
-                    return false;
-
-                continue;
-            }
-
             if (consume(TokenType::KeywordPragma)) {
                 std::string option;
                 expect(TokenType::Identifier, option);
@@ -367,7 +344,7 @@ namespace sapc {
                 continue;
             }
 
-            return fail("unexpect ", tokens[next]);
+            return fail("unexpected ", tokens[next]);
         }
 
 #undef expect
