@@ -10,10 +10,11 @@ attribute default { any value = 0; } /* default attribute */
 
 [cxxname("int*"), ignore]
 type intptr;
+
 [name("Test")]
 struct test {
     [default]
-    i32 x = 0 # a comment
+    int x = 0 # a comment
     ;
     string y = "y"; // C++-style comment
     [ignore, name("fail")]
