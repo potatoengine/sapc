@@ -77,6 +77,10 @@ def main(argv):
 
     types = doc['types']
 
+    for attr, payload in doc['attributes'].items():
+        for attr_args in payload:
+            print(f'// attr: {attr}({",".join([k+":"+encode(v) for k,v in attr_args.items()])})', file=args.output)
+
     typemap = {type['name'] : type for type in types}
 
     if 'imports' in doc:

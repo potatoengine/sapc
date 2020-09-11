@@ -3,11 +3,12 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "sapc output schema",
   "type": "object",
-  "required": [ "module", "types" ],
+  "required": [ "module", "attributes", "types" ],
   "properties": {
     "module": {
       "type": "string"
     },
+    "attributes": { "$ref": "#/definitions/attributes" },
     "imports": {
       "type": "array",
       "items": { "type": "string" }

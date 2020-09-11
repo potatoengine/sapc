@@ -74,9 +74,9 @@ namespace sapc {
     struct Module {
         std::string name;
         std::filesystem::path filename;
+        std::vector<Attribute> attributes;
 
         std::set<std::string> imports;
-        std::vector<std::string> pragmas;
 
         std::vector<Type> types;
 

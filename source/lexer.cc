@@ -33,12 +33,11 @@ namespace sapc {
         case TokenType::SemiColon: os << ";"; break;
         case TokenType::KeywordModule: os << "`module'"; break;
         case TokenType::KeywordImport: os << "`import'"; break;
-        case TokenType::KeywordPragma: os << "`pragma'"; break;
         case TokenType::KeywordType: os << "`type'"; break;
+        case TokenType::KeywordStruct: os << "`struct'"; break;
         case TokenType::KeywordAttribute: os << "`attribute'"; break;
         case TokenType::KeywordEnum: os << "`enum'"; break;
         case TokenType::KeywordTrue: os << "`true'"; break;
-        case TokenType::KeywordStruct: os << "`struct'"; break;
         case TokenType::KeywordFalse: os << "`false'"; break;
         case TokenType::KeywordNull: os << "`null'"; break;
         case TokenType::EndOfFile: os << "end of file"; break;
@@ -104,7 +103,6 @@ namespace sapc {
             { ";", TokenType::SemiColon },
             { "module", TokenType::KeywordModule, true },
             { "import", TokenType::KeywordImport, true },
-            { "pragma", TokenType::KeywordPragma, true },
             { "attribute", TokenType::KeywordAttribute, true },
             { "type", TokenType::KeywordType, true },
             { "struct", TokenType::KeywordStruct, true },

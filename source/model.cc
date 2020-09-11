@@ -57,15 +57,12 @@ namespace sapc {
             return attrs_json;
         };
 
+        doc["attributes"] = attrs_to_json(module.attributes);
+
         auto modules_json = json::array();
         for (auto const& module : module.imports)
             modules_json.push_back(module);
         doc["imports"] = std::move(modules_json);
-
-        auto pragmas_json = json::array();
-        for (auto const& pragma : module.pragmas)
-            pragmas_json.push_back(pragma);
-        doc["pragmas"] = std::move(pragmas_json);
 
         auto types_json = json::array();
         for (auto const& type : module.types) {
