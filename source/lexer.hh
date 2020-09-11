@@ -26,7 +26,6 @@ namespace sapc {
         SemiColon,
         KeywordModule,
         KeywordImport,
-        KeywordPragma,
         KeywordType,
         KeywordStruct,
         KeywordAttribute,
