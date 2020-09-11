@@ -26,10 +26,9 @@ def identifier(name):
     id = clean + '_' if clean == '' or re.match('^[0-9]', clean) else clean
     legal = id + '_' if id in cxx_keywords else id
     return legal
-cxx_type_map = {'string': 'std::string', 'bool': 'bool',
-                'i8': 'int8_t', 'i16': 'int16_t', 'i32': 'int32_t', 'i64': 'int64_t',
-                'u8': 'int8_t', 'u16': 'uint16_t', 'u32': 'uint32_t', 'u64': 'uint64_t',
-                'f32': 'float', 'f64': 'double'}
+cxx_type_map = {'string': 'std::string',
+                'bool': 'bool', 'byte': 'unsigned char',
+                'int': 'int', 'float': 'float'}
 
 def cxxname(el):
     if 'is_builtin' in el and el['is_builtin'] and el['name'] in cxx_type_map:
