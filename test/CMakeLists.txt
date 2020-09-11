@@ -1,4 +1,4 @@
-if(SAPC_BUILD_EXAMPLES)
+if(SAPC_BUILD_TESTS)
     find_package (Python COMPONENTS Interpreter)
 
     add_executable(sapc_gen_test test.cc)
@@ -7,14 +7,14 @@ if(SAPC_BUILD_EXAMPLES)
 
     function(sapc_test_compile_header NAME)
         add_custom_command(OUTPUT ${NAME}.sap.json
-            COMMAND sapc -o example/${NAME}.sap.json -d example/${NAME}.sap.d -- ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.sap
+            COMMAND sapc -o test/${NAME}.sap.json -d test/${NAME}.sap.d -- ${CMAKE_CURRENT_SOURCE_DIR}/${NAME}.sap
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
             MAIN_DEPENDENCY ${NAME}.sap
             DEPENDS sapc
-            DEPFILE example/${NAME}.sap.d
+            DEPFILE test/${NAME}.sap.d
         )
         add_custom_command(OUTPUT ${NAME}.h
-            COMMAND Python::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/gen_header.py -i ${CMAKE_CURRENT_BINARY_DIR}/${NAME}.sap.json -o example/${NAME}.h
+            COMMAND Python::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/gen_header.py -i ${CMAKE_CURRENT_BINARY_DIR}/${NAME}.sap.json -o test/${NAME}.h
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
             MAIN_DEPENDENCY ${NAME}.sap.json
             DEPENDS gen_header.py
