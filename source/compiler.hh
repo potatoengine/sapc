@@ -12,4 +12,5 @@ namespace sapc {
     struct Module;
 
     bool compile(std::filesystem::path filename, std::vector<std::filesystem::path> const& search, std::vector<std::string>& errors, std::vector<std::filesystem::path>& dependencies, Module& out_module);
+    void addCoreTypes(Module& module);
 }
