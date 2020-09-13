@@ -97,6 +97,15 @@ def main(argv):
 
         basetype = typemap[type['base']] if 'base' in type else None
 
+        if 'location' in type:
+            loc = type['location']
+            if 'line' in loc and 'column' in loc:
+                print(f'  // {loc["filename"]}({loc["line"]},{loc["column"]})', file=args.output)
+            elif 'line' in loc:
+                print(f'  // {loc["filename"]}({loc["line"]})', file=args.output)
+            else:
+                print(f'  // {loc["filename"]}', file=args.output)
+
         if 'is_enumeration' in type and type['is_enumeration']:
             if basetype:
                 print(f'  enum class {name} : {cxxname(basetype)} {{', file=args.output)

@@ -57,6 +57,16 @@ namespace sapc {
             return attrs_json;
         };
 
+        auto loc_to_json = [&](Location const& loc) {
+            auto loc_json = json::object();
+            loc_json["filename"] = loc.filename.string();
+            if (loc.line > 0)
+                loc_json["line"] = loc.line;
+            if (loc.column > 0)
+                loc_json["column"] = loc.column;
+            return loc_json;
+        };
+
         doc["attributes"] = attrs_to_json(module.attributes);
 
         auto modules_json = json::array();
@@ -77,6 +87,7 @@ namespace sapc {
                 type_json["base"] = type.base;
             if (!type.attributes.empty())
                 type_json["attributes"] = attrs_to_json(type.attributes);
+            type_json["location"] = loc_to_json(type.location);
 
             if (type.category == Type::Category::Enum) {
                 auto values = json::array();
@@ -109,6 +120,7 @@ namespace sapc {
                         field_json["default"] = json(field.init);
                     if (!field.attributes.empty())
                         field_json["attributes"] = attrs_to_json(field.attributes);
+                    field_json["location"] = loc_to_json(field.location);
                     fields.push_back(std::move(field_json));
                 }
                 type_json["fields"] = std::move(fields);

@@ -35,6 +35,7 @@
         "is_enumeration": { "type": "boolean" },
         "is_union": { "type": "boolean" },
         "attributes": { "$ref": "#/definitions/attributes" },
+        "location": { "$ref": "#/definitions/location" },
         "fields": {
           "type": "array",
           "items": { "$ref": "#/definitions/field" }
@@ -74,7 +75,23 @@
         "type": { "type": "string" },
         "default": { "$ref": "#/definitions/value" },
         "attributes": { "$ref": "#/definitions/attributes" },
-        "is_array": { "type": "boolean" }
+        "is_array": { "type": "boolean" },
+        "location": { "$ref": "#/definitions/location" }
+      }
+    },
+    "location": {
+      "type": "object",
+      "required": [ "filename", "line" ],
+      "properties": {
+        "filename": { "type": "string" },
+        "line": {
+          "type": "number",
+          "minimum": 1
+        },
+        "column": {
+          "type": "number",
+          "minimum": 1
+        }
       }
     }
   }

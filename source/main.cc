@@ -58,7 +58,7 @@ namespace {
                 mode = Arg::None;
                 break;
             case Arg::IncludePath:
-                config.search.push_back(arg);
+                config.search.push_back(fs::path{ arg }.make_preferred());
                 mode = Arg::None;
                 break;
             default:
@@ -71,7 +71,7 @@ namespace {
                 else if (allow_options && (starts_with(arg, "/") || starts_with(arg, "-")))
                     arg = arg.substr(1);
                 else if (config.input.empty()) {
-                    config.input = arg;
+                    config.input = fs::path{ arg }.make_preferred();
                     break;
                 }
                 else {
@@ -89,11 +89,11 @@ namespace {
                 else if (arg == "h" || arg == "help")
                     config.mode = Config::Mode::Help;
                 else if (starts_with(arg, "I") && arg.size() > 1)
-                    config.search.push_back(arg.substr(1));
+                    config.search.push_back(fs::path{ arg.substr(1) }.make_preferred());
                 else if (starts_with(arg, "I") && arg.size() == 1)
                     mode = Arg::IncludePath;
                 else if (starts_with(original_arg, "/") && config.input.empty())
-                    config.input = original_arg;
+                    config.input = fs::path{ original_arg }.make_preferred();
                 else {
                     std::cerr << "error: Unknown command argument '" << original_arg << "'\n";
                     return false;
