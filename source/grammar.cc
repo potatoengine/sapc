@@ -147,7 +147,7 @@ namespace sapc {
                     if (consume(TokenType::LeftParen)) {
                         if (!consume(TokenType::RightParen)) {
                             for (;;) {
-                                auto& value = annotation.params.emplace_back();
+                                auto& value = annotation.arguments.emplace_back();
                                 expectValue(value);
                                 if (!consume(TokenType::Comma))
                                     break;

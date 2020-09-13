@@ -41,7 +41,7 @@ namespace sapc {
 
     struct Annotation {
         std::string name;
-        std::vector<Value> params;
+        std::vector<Value> arguments;
         Location location;
     };
 

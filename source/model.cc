@@ -42,11 +42,11 @@ namespace sapc {
                 assert(def.category == Type::Category::Attribute);
 
                 auto args_json = json::object();
-                for (size_t index = 0; index != annotation.params.size(); ++index) {
-                    assert(def.fields.size() == annotation.params.size());
+                for (size_t index = 0; index != annotation.arguments.size(); ++index) {
+                    assert(def.fields.size() == annotation.arguments.size());
 
                     auto const& param = def.fields[index];
-                    auto const& arg = annotation.params[index];
+                    auto const& arg = annotation.arguments[index];
 
                     assert(arg.type != Value::Type::None);
                     args_json[param.name] = json(arg);

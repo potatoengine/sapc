@@ -72,7 +72,7 @@ namespace sapc {
                 return;
             }
 
-            auto const argc = annotation.params.size();
+            auto const argc = annotation.arguments.size();
             auto const& attrType = module.types[it->second];
             auto const& params = attrType.fields;
 
@@ -92,7 +92,7 @@ namespace sapc {
                 if (param.init.type == Value::Type::None)
                     error(param.init.location, "missing required argument `", param.name, "' to attribute `", annotation.name, '\'');
                 else
-                    annotation.params.push_back(param.init);
+                    annotation.arguments.push_back(param.init);
             }
         };
 
