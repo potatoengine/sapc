@@ -25,7 +25,7 @@
   "definitions": {
     "type": {
       "type": "object",
-      "required": [ "name", "fields", "module" ],
+      "required": [ "name", "fields", "module", "annotations", "location" ],
       "properties": {
         "name": { "type": "string" },
         "module": { "type": "string" },
@@ -59,7 +59,7 @@
     },
     "field": {
       "type": "object",
-      "required": [ "name", "type" ],
+      "required": [ "name", "type", "annotations", "location" ],
       "properties": {
         "name": { "type": "string" },
         "type": { "type": "string" },

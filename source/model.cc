@@ -88,8 +88,7 @@ namespace sapc {
             type_json["is_union"] = type.category == Type::Category::Union;
             if (!type.base.empty())
                 type_json["base"] = type.base;
-            if (!type.annotations.empty())
-                type_json["annotations"] = annotations_to_json(type.annotations);
+            type_json["annotations"] = annotations_to_json(type.annotations);
             type_json["location"] = loc_to_json(type.location);
 
             if (type.category == Type::Category::Enum) {
@@ -121,8 +120,7 @@ namespace sapc {
                     field_json["is_array"] = field.type.isArray;
                     if (field.init.type != Value::Type::None)
                         field_json["default"] = json(field.init);
-                    if (!field.annotations.empty())
-                        field_json["annotations"] = annotations_to_json(field.annotations);
+                    field_json["annotations"] = annotations_to_json(field.annotations);
                     field_json["location"] = loc_to_json(field.location);
                     fields.push_back(std::move(field_json));
                 }
