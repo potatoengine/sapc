@@ -8,12 +8,8 @@
     "module": {
       "type": "string"
     },
-    "attributes": { "$ref": "#/definitions/attributes" },
+    "attributes": { "$ref": "#/definitions/annotations" },
     "imports": {
-      "type": "array",
-      "items": { "type": "string" }
-    },
-    "pragmas": {
       "type": "array",
       "items": { "type": "string" }
     },
