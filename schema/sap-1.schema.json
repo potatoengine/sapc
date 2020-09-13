@@ -3,12 +3,12 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "sapc output schema",
   "type": "object",
-  "required": [ "module", "attributes", "types", "exports" ],
+  "required": [ "module", "annotations", "types", "exports" ],
   "properties": {
     "module": {
       "type": "string"
     },
-    "attributes": { "$ref": "#/definitions/annotations" },
+    "annotations": { "$ref": "#/definitions/annotations" },
     "imports": {
       "type": "array",
       "items": { "type": "string" }
@@ -24,21 +24,115 @@
   },
   "definitions": {
     "type": {
+      "oneOf": [
+        { "$ref": "#/definitions/type_struct" },
+        { "$ref": "#/definitions/type_enum" },
+        { "$ref": "#/definitions/type_opaque" },
+        { "$ref": "#/definitions/type_attribute" },
+        { "$ref": "#/definitions/type_union" }
+      ]
+    },
+    "type_opaque": {
       "type": "object",
-      "required": [ "name", "fields", "module", "annotations", "location" ],
+      "required": [ "name", "category", "module", "annotations", "location" ],
       "properties": {
         "name": { "type": "string" },
+        "category": {
+          "type": "string",
+          "enum": [ "opaque" ]
+        },
         "module": { "type": "string" },
         "base": { "type": "string" },
-        "is_attribute": { "type": "boolean" },
-        "is_enumeration": { "type": "boolean" },
-        "is_union": { "type": "boolean" },
+        "annotations": { "$ref": "#/definitions/annotations" },
+        "location": { "$ref": "#/definitions/location" }
+      }
+    },
+    "type_struct": {
+      "type": "object",
+      "required": [ "name", "category", "fields", "module", "annotations", "location" ],
+      "properties": {
+        "name": { "type": "string" },
+        "category": {
+          "type": "string",
+          "enum": [ "struct" ]
+        },
+        "module": { "type": "string" },
+        "base": { "type": "string" },
         "annotations": { "$ref": "#/definitions/annotations" },
         "location": { "$ref": "#/definitions/location" },
         "fields": {
           "type": "array",
           "items": { "$ref": "#/definitions/field" }
         }
+      }
+    },
+    "type_attribute": {
+      "type": "object",
+      "required": [ "name", "category", "fields", "module", "annotations", "location" ],
+      "properties": {
+        "name": { "type": "string" },
+        "category": {
+          "type": "string",
+          "enum": [ "attribute" ]
+        },
+        "module": { "type": "string" },
+        "annotations": { "$ref": "#/definitions/annotations" },
+        "location": { "$ref": "#/definitions/location" },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/field" }
+        }
+      }
+    },
+    "type_enum": {
+      "type": "object",
+      "required": [ "name", "category", "values", "module", "annotations", "location" ],
+      "properties": {
+        "name": { "type": "string" },
+        "category": {
+          "type": "string",
+          "enum": [ "enum" ]
+        },
+        "module": { "type": "string" },
+        "annotations": { "$ref": "#/definitions/annotations" },
+        "location": { "$ref": "#/definitions/location" },
+        "values": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/enum_value" }
+        }
+      }
+    },
+    "type_union": {
+      "type": "object",
+      "required": [ "name", "category", "types", "module", "annotations", "location" ],
+      "properties": {
+        "name": { "type": "string" },
+        "category": {
+          "type": "string",
+          "enum": [ "union" ]
+        },
+        "module": { "type": "string" },
+        "annotations": { "$ref": "#/definitions/annotations" },
+        "location": { "$ref": "#/definitions/location" },
+        "types": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [ "name", "is_array" ],
+            "properties": {
+              "name": { "type": "string" },
+              "is_array": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "enum_value": {
+      "type": "object",
+      "required": [ "name", "value" ],
+      "properties": {
+        "name": { "type": "string" },
+        "value": { "type": "number" }
       }
     },
     "annotations": {
@@ -59,7 +153,7 @@
     },
     "field": {
       "type": "object",
-      "required": [ "name", "type", "annotations", "location" ],
+      "required": [ "name", "type", "is_array", "annotations", "location" ],
       "properties": {
         "name": { "type": "string" },
         "type": { "type": "string" },
@@ -71,7 +165,7 @@
     },
     "location": {
       "type": "object",
-      "required": [ "filename", "line" ],
+      "required": [ "filename" ],
       "properties": {
         "filename": { "type": "string" },
         "line": {

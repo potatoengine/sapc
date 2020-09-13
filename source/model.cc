@@ -67,6 +67,17 @@ namespace sapc {
             return loc_json;
         };
 
+        auto cat_name = [&](Type const& type) {
+            switch (type.category) {
+            case Type::Category::Attribute: return "attribute";
+            case Type::Category::Enum: return "enum";
+            case Type::Category::Opaque: return "opaque";
+            case Type::Category::Struct: return "struct";
+            case Type::Category::Union: return "union";
+            default: return "unknown";
+            }
+        };
+
         doc["annotations"] = annotations_to_json(module.annotations);
 
         auto modules_json = json::array();
@@ -83,9 +94,7 @@ namespace sapc {
             auto type_json = json::object();
             type_json["name"] = type.name;
             type_json["module"] = type.module;
-            type_json["is_attribute"] = type.category == Type::Category::Attribute;
-            type_json["is_enumeration"] = type.category == Type::Category::Enum;
-            type_json["is_union"] = type.category == Type::Category::Union;
+            type_json["category"] = cat_name(type);
             if (!type.base.empty())
                 type_json["base"] = type.base;
             type_json["annotations"] = annotations_to_json(type.annotations);
