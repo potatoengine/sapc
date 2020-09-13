@@ -120,6 +120,7 @@ namespace sapc {
                         field_json["default"] = json(field.init);
                     if (!field.attributes.empty())
                         field_json["attributes"] = attrs_to_json(field.attributes);
+                    field_json["location"] = loc_to_json(field.location);
                     fields.push_back(std::move(field_json));
                 }
                 type_json["fields"] = std::move(fields);
