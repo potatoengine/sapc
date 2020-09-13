@@ -141,9 +141,16 @@ namespace sapc {
         auto parseAnnotations = [&](std::vector<Annotation>& annotations) -> bool {
             while (consume(TokenType::LeftBracket)) {
                 do {
-                    auto& annotation = annotations.emplace_back();
+                    Annotation annotation;
                     expect(TokenType::Identifier, annotation.name);
                     annotation.location = pos();
+
+                    auto const otherIt = find_if(begin(annotations), end(annotations), [&](Annotation const& other) { return other.name == annotation.name; });
+                    if (otherIt != end(annotations)) {
+                        error(annotation.location, "duplicate annotation `", annotation.name, '\'');
+                        return error(otherIt->location, "previous annotation here");
+                    }
+
                     if (consume(TokenType::LeftParen)) {
                         if (!consume(TokenType::RightParen)) {
                             for (;;) {
@@ -156,6 +163,8 @@ namespace sapc {
                             expect(TokenType::RightParen);
                         }
                     }
+
+                    annotations.push_back(std::move(annotation));
                 } while (consume(TokenType::Comma));
                 expect(TokenType::RightBracket);
             }
