@@ -52,7 +52,7 @@ namespace sapc {
                     args_json[param.name] = json(arg);
                 }
 
-                annotations_json[def.name].push_back(std::move(args_json));
+                annotations_json[def.name] = std::move(args_json);
             }
             return annotations_json;
         };

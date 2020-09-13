@@ -11,7 +11,7 @@ from datetime import datetime
 
 def annotation(el, name, argname, default=None):
     if el is not None and 'annotations' in el and name in el['annotations']:
-        return el['annotations'][name][0][argname]
+        return el['annotations'][name][argname]
     else:
         return default
 
@@ -76,9 +76,8 @@ def main(argv):
 
     types = doc['types']
 
-    for annotation, payload in doc['annotations'].items():
-        for annotation_args in payload:
-            print(f'// annotation: {annotation}({",".join([k+":"+encode(v) for k,v in annotation_args.items()])})', file=args.output)
+    for annotation, annotation_args in doc['annotations'].items():
+        print(f'// annotation: {annotation}({",".join([k+":"+encode(v) for k,v in annotation_args.items()])})', file=args.output)
 
     typemap = {type['name'] : type for type in types}
         
