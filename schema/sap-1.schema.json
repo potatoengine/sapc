@@ -34,7 +34,7 @@
         "is_attribute": { "type": "boolean" },
         "is_enumeration": { "type": "boolean" },
         "is_union": { "type": "boolean" },
-        "attributes": { "$ref": "#/definitions/attributes" },
+        "annotations": { "$ref": "#/definitions/annotations" },
         "location": { "$ref": "#/definitions/location" },
         "fields": {
           "type": "array",
@@ -42,16 +42,16 @@
         }
       }
     },
-    "attributes": {
+    "annotations": {
       "type": "object",
       "patternProperties": {
         "^[a-zA-Z0-9_]+$": {
           "type": "array",
-          "items": { "$ref": "#/definitions/attribute" }
+          "items": { "$ref": "#/definitions/annotation" }
         }
       }
     },
-    "attribute": {
+    "annotation": {
       "type": "object",
       "patternProperties": {
         "^[a-zA-Z0-9_]+$": {
@@ -74,7 +74,7 @@
         "name": { "type": "string" },
         "type": { "type": "string" },
         "default": { "$ref": "#/definitions/value" },
-        "attributes": { "$ref": "#/definitions/attributes" },
+        "annotations": { "$ref": "#/definitions/annotations" },
         "is_array": { "type": "boolean" },
         "location": { "$ref": "#/definitions/location" }
       }

@@ -67,7 +67,7 @@ namespace sapc {
             return loc_json;
         };
 
-        doc["attributes"] = annotations_to_json(module.annotations);
+        doc["annotations"] = annotations_to_json(module.annotations);
 
         auto modules_json = json::array();
         for (auto const& module : module.imports)
@@ -86,7 +86,7 @@ namespace sapc {
             if (!type.base.empty())
                 type_json["base"] = type.base;
             if (!type.annotations.empty())
-                type_json["attributes"] = annotations_to_json(type.annotations);
+                type_json["annotations"] = annotations_to_json(type.annotations);
             type_json["location"] = loc_to_json(type.location);
 
             if (type.category == Type::Category::Enum) {
@@ -119,7 +119,7 @@ namespace sapc {
                     if (field.init.type != Value::Type::None)
                         field_json["default"] = json(field.init);
                     if (!field.annotations.empty())
-                        field_json["attributes"] = annotations_to_json(field.annotations);
+                        field_json["annotations"] = annotations_to_json(field.annotations);
                     field_json["location"] = loc_to_json(field.location);
                     fields.push_back(std::move(field_json));
                 }

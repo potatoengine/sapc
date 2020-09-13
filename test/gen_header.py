@@ -9,9 +9,9 @@ import re
 from os import path
 from datetime import datetime
 
-def attr(el, attrname, argname, default=None):
-    if el is not None and 'attributes' in el and attrname in el['attributes']:
-        return el['attributes'][attrname][0][argname]
+def annotation(el, name, argname, default=None):
+    if el is not None and 'annotations' in el and name in el['annotations']:
+        return el['annotations'][name][0][argname]
     else:
         return default
 
@@ -34,8 +34,8 @@ def cxxname(el):
     if 'is_builtin' in el and el['is_builtin'] and el['name'] in cxx_type_map:
         return cxx_type_map[el['name']]
     else:
-        return attr(el, attrname='cxxname', argname='name', default=identifier(el['name']))
-def ignored(el): return attr(el, attrname='ignore', argname='ignored', default=False)
+        return annotation(el, name='cxxname', argname='name', default=identifier(el['name']))
+def ignored(el): return annotation(el, name='ignore', argname='ignored', default=False)
 def namespace(el): return 'sapc_attr' if 'is_attribute' in el and el['is_attribute'] else 'sapc_type'
 
 def encode(el):
@@ -76,12 +76,12 @@ def main(argv):
 
     types = doc['types']
 
-    for attr, payload in doc['attributes'].items():
-        for attr_args in payload:
-            print(f'// attr: {attr}({",".join([k+":"+encode(v) for k,v in attr_args.items()])})', file=args.output)
+    for annotation, payload in doc['annotations'].items():
+        for annotation_args in payload:
+            print(f'// annotation: {annotation}({",".join([k+":"+encode(v) for k,v in annotation_args.items()])})', file=args.output)
 
     typemap = {type['name'] : type for type in types}
-
+        
     if 'imports' in doc:
         for module in doc['imports']:
             print(f'#include "{module}.h"', file=args.output)
