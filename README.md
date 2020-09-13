@@ -43,22 +43,26 @@ comment <- linecomment / blockcomment
 linecomment <- ( '#' / '//' ) [^\n]*
 blockcomment <- '/*' .* '*/'
 identifier <- [a-zA-Z_][a-zA-Z0-9_]*
+type_info <- identifier ( '[' ']' )?
 
 attributes <- ( '[' attribute_usage ( ',' attribute_usage )* ']' )+
 attribute_usage <- identifier ( '(' ( value ( ',' value )* )? ')' )?
 
 attribute <- 'attribute' identifier ( '{' attribute_parameter* '}' / ';' )
-attribute_parameter <- identifier identifier ( '=' value )? ';'
+attribute_parameter <- type_info identifier ( '=' value )? ';'
 
 module <- attributes? 'module' identifier ';'
 
 type <- attributes? 'type' identifier ';'
 
-struct <- attributes? 'struct' identifier ( ':' identifier )? ( '{' field* '}' / ';' )
-field <- attributes? identifier identifier ( '=' value / '=' identifier )? ';'
+struct <- attributes? 'struct' identifier ( ':' identifier )? ( '{' struct_field* '}' / ';' )
+struct_field <- attributes? type_info identifier ( '=' value / '=' identifier )? ';'
 
-enum <- attributes? 'enum' ( ':' identifier )? '{' enumerant ( ',' enumerant )* '}'
-enumerant <- identifier ( '=' number )?
+union <- attributes? 'union' identifier '{' union_element ( ',' union_element )* '}'
+union_element <- type_info
+
+enum <- attributes? 'enum' ( ':' identifier )? '{' enum_value ( ',' enum_value )* '}'
+enum_value <- identifier ( '=' number )?
 ```
 
 Example:

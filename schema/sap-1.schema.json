@@ -32,6 +32,8 @@
         "imported": { "type": "boolean" },
         "is_builtin": { "type": "boolean" },
         "is_attribute": { "type": "boolean" },
+        "is_enumeration": { "type": "boolean" },
+        "is_union": { "type": "boolean" },
         "attributes": { "$ref": "#/definitions/attributes" },
         "fields": {
           "type": "array",

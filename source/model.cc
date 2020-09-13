@@ -39,7 +39,7 @@ namespace sapc {
                 assert(it->second < module.types.size());
 
                 auto const& def = module.types[it->second];
-                assert(def.isAttribute);
+                assert(def.category == Type::Category::Attribute);
 
                 auto args_json = json::object();
                 for (size_t index = 0; index != attr.params.size(); ++index) {
@@ -70,14 +70,35 @@ namespace sapc {
             type_json["name"] = type.name;
             type_json["imported"] = type.module != module.name;
             type_json["is_builtin"] = type.module == "$core";
-            type_json["is_attribute"] = type.isAttribute;
-            type_json["is_enumeration"] = type.isEnumeration;
+            type_json["is_attribute"] = type.category == Type::Category::Attribute;
+            type_json["is_enumeration"] = type.category == Type::Category::Enum;
+            type_json["is_union"] = type.category == Type::Category::Union;
             if (!type.base.empty())
                 type_json["base"] = type.base;
             if (!type.attributes.empty())
                 type_json["attributes"] = attrs_to_json(type.attributes);
 
-            if (!type.isEnumeration) {
+            if (type.category == Type::Category::Enum) {
+                auto values = json::array();
+                for (auto const& value : type.fields) {
+                    auto value_json = json::object();
+                    value_json["name"] = value.name;
+                    value_json["value"] = value.init.dataNumber;
+                    values.push_back(std::move(value_json));
+                }
+                type_json["values"] = std::move(values);
+            }
+            else if (type.category == Type::Category::Union) {
+                auto types = json::array();
+                for (auto const& unionType : type.fields) {
+                    auto union_type_json = json::object();
+                    union_type_json["name"] = unionType.type.type;
+                    union_type_json["is_array"] = unionType.type.isArray;
+                    types.push_back(std::move(union_type_json));
+                }
+                type_json["types"] = std::move(types);
+            }
+            else {
                 auto fields = json::array();
                 for (auto const& field : type.fields) {
                     auto field_json = json::object();
@@ -91,17 +112,6 @@ namespace sapc {
                     fields.push_back(std::move(field_json));
                 }
                 type_json["fields"] = std::move(fields);
-            }
-
-            if (type.isEnumeration) {
-                auto values = json::array();
-                for (auto const& value : type.values) {
-                    auto value_json = json::object();
-                    value_json["name"] = value.name;
-                    value_json["value"] = value.value;
-                    values.push_back(std::move(value_json));
-                }
-                type_json["values"] = std::move(values);
             }
 
             types_json.push_back(std::move(type_json));

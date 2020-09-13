@@ -172,6 +172,7 @@ namespace sapc {
         };
 
         auto pushType = [&](Type&& type) -> bool {
+            assert(type.category != Type::Category::Unknown);
             assert(!type.name.empty());
 
             if (type.module.empty())
@@ -231,7 +232,7 @@ namespace sapc {
 
             if (consume(TokenType::KeywordAttribute)) {
                 auto attr = Type{};
-                attr.isAttribute = true;
+                attr.category = Type::Category::Attribute;
 
                 expect(TokenType::Identifier, attr.name);
 
@@ -275,6 +276,7 @@ namespace sapc {
             // parse type declarations
             if (consume(TokenType::KeywordType)) {
                 auto type = Type{};
+                type.category = Type::Category::Opaque;
 
                 type.attributes = std::move(attributes);
                 expect(TokenType::Identifier, type.name);
@@ -287,9 +289,35 @@ namespace sapc {
                 continue;
             }
 
+            // parse unions
+            if (consume(TokenType::KeywordUnion)) {
+                auto union_ = Type{};
+                union_.category = Type::Category::Union;
+
+                union_.attributes = std::move(attributes);
+                expect(TokenType::Identifier, union_.name);
+
+                union_.location = pos();
+
+                expect(TokenType::LeftBrace);
+                for (;;) {
+                    auto& unionType = union_.fields.emplace_back();
+                    if (!parseType(unionType.type))
+                        return false;
+                    unionType.location = pos();
+                    if (!consume(TokenType::Comma))
+                        break;
+                }
+                expect(TokenType::RightBrace);
+
+                pushType(std::move(union_));
+                continue;
+            }
+
             // parse struct declarations
             if (consume(TokenType::KeywordStruct)) {
                 auto type = Type{};
+                type.category = Type::Category::Struct;
 
                 type.attributes = std::move(attributes);
                 expect(TokenType::Identifier, type.name);
@@ -319,7 +347,7 @@ namespace sapc {
             // parse enumerations
             if (consume(TokenType::KeywordEnum)) {
                 auto enum_ = Type{};
-                enum_.isEnumeration = true;
+                enum_.category = Type::Category::Enum;
 
                 enum_.attributes = std::move(attributes);
                 expect(TokenType::Identifier, enum_.name);
@@ -331,14 +359,16 @@ namespace sapc {
                 expect(TokenType::LeftBrace);
                 long long nextValue = 0;
                 for (;;) {
-                    auto& value = enum_.values.emplace_back();
+                    auto& value = enum_.fields.emplace_back();
                     expect(TokenType::Identifier, value.name);
+                    value.location = pos();
+                    value.init.type = Value::Type::Number;
                     if (consume(TokenType::Equal)) {
-                        expect(TokenType::Number, value.value);
-                        nextValue = value.value + 1;
+                        expect(TokenType::Number, value.init.dataNumber);
+                        nextValue = value.init.dataNumber + 1;
                     }
                     else
-                        value.value = nextValue++;
+                        value.init.dataNumber = nextValue++;
                     if (!consume(TokenType::Comma))
                         break;
                 }

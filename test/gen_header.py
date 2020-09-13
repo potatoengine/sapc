@@ -105,6 +105,10 @@ def main(argv):
 
             for value in type['values']:
                 print(f'    {identifier(value["name"])} = {encode(value["value"])},', file=args.output)
+        elif 'is_union' in type and type['is_union']:
+            print(f'  union {name} {{', file=args.output)
+            for unionType in type['types']:
+                print(f'    {cxxname(typemap[unionType["name"]])} {identifier(unionType["name"])};', file=args.output)
         else:
             if basetype:
                 print(f'  struct {name} : {cxxname(basetype)} {{', file=args.output)
