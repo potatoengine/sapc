@@ -53,28 +53,22 @@ namespace sapc {
         Location location;
     };
 
-    struct EnumValue {
-        std::string name;
-        long long value = 0;
-        Location location;
-    };
-
-    struct UnionType {
-        TypeInfo type;
-        Location location;
-    };
-
     struct Type {
+        enum class Category {
+            Unknown,
+            Struct,
+            Enum,
+            Union,
+            Attribute,
+            Opaque
+        };
+
+        Category category = Category::Unknown;
         std::string name;
         std::string base;
         std::string module;
         std::vector<Attribute> attributes;
         std::vector<TypeField> fields;
-        std::vector<EnumValue> enumValues;
-        std::vector<UnionType> unionTypes;
-        bool isAttribute = false;
-        bool isEnumeration = false;
-        bool isUnion = false;
         Location location;
     };
 

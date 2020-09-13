@@ -25,40 +25,42 @@ namespace sapc {
                 error(type.location, "unknown type `", type.base, '\'');
             }
 
-            for (auto& field : type.fields) {
-                auto typeIt = module.typeMap.find(field.type.type);
-                if (typeIt == module.typeMap.end()) {
-                    error(field.location, "unknown type `", field.type, '\'');
-                    continue;
-                }
-                auto const& fieldType = module.types[typeIt->second];
-
-                if (fieldType.isEnumeration && field.init.type != Value::Type::None) {
-                    if (field.init.type != Value::Type::Enum) {
-                        error(field.location, "enumeration type `", field.type, "' may only be initialized by enumerants");
+            if (type.category != Type::Category::Enum) {
+                for (auto& field : type.fields) {
+                    auto typeIt = module.typeMap.find(field.type.type);
+                    if (typeIt == module.typeMap.end()) {
+                        error(field.location, "unknown type `", field.type, '\'');
                         continue;
                     }
+                    auto const& fieldType = module.types[typeIt->second];
 
-                    auto findEnumerant = [&](std::string const& name) -> EnumValue const* {
-                        for (auto const& value : fieldType.enumValues) {
-                            if (value.name == name)
-                                return &value;
+                    if (fieldType.category == Type::Category::Enum && field.init.type != Value::Type::None) {
+                        if (field.init.type != Value::Type::Enum) {
+                            error(field.location, "enumeration type `", field.type, "' may only be initialized by enumerants");
+                            continue;
                         }
-                        return nullptr;
-                    };
 
-                    auto const* enumValue = findEnumerant(field.init.dataString);
-                    if (enumValue == nullptr) {
-                        error(field.init.location, "enumerant `", field.init.dataString, "' not found in enumeration '", fieldType.name, '\'');
-                        error(fieldType.location, "enumeration `", fieldType.name, "' defined here");
-                        continue;
+                        auto findEnumerant = [&](std::string const& name) -> TypeField const* {
+                            for (auto const& value : fieldType.fields) {
+                                if (value.name == name)
+                                    return &value;
+                            }
+                            return nullptr;
+                        };
+
+                        auto const* enumValue = findEnumerant(field.init.dataString);
+                        if (enumValue == nullptr) {
+                            error(field.init.location, "enumerant `", field.init.dataString, "' not found in enumeration '", fieldType.name, '\'');
+                            error(fieldType.location, "enumeration `", fieldType.name, "' defined here");
+                            continue;
+                        }
+
+                        field.init.type = Value::Type::Number;
+                        field.init.dataNumber = enumValue->init.dataNumber;
                     }
-
-                    field.init.type = Value::Type::Number;
-                    field.init.dataNumber = enumValue->value;
+                    else if (field.init.type == Value::Type::Enum)
+                        error(field.init.location, "only enumeration types can be initialized by enumerants");
                 }
-                else if (field.init.type == Value::Type::Enum)
-                    error(field.init.location, "only enumeration types can be initialized by enumerants");
             }
         }
 
@@ -74,7 +76,7 @@ namespace sapc {
             auto const& attrType = module.types[it->second];
             auto const& params = attrType.fields;
 
-            if (!attrType.isAttribute) {
+            if (attrType.category != Type::Category::Attribute) {
                 error(attr.location, "attribute type `", attr.name, "' is declared as a regular type (not attribute) at ", attrType.location);
                 return;
             }
