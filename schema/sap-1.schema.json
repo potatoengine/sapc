@@ -1,5 +1,5 @@
 {
-  "$id": "https://raw.githubusercontent.com/potatoengine/sapc/master/schema/sap-1.schema.json",
+  "id": "https://raw.githubusercontent.com/potatoengine/sapc/master/schema/sap-1.schema.json",
   "$schema": "http://json-schema.org/draft-05/schema#",
   "title": "sapc output schema",
   "type": "object",
@@ -32,14 +32,20 @@
         { "$ref": "#/definitions/type_union" }
       ]
     },
-    "type_opaque": {
+    "type_common": {
       "type": "object",
       "required": [ "name", "category", "module", "annotations", "location" ],
       "properties": {
         "name": { "type": "string" },
         "category": {
           "type": "string",
-          "enum": [ "opaque" ]
+          "enum": [
+            "opaque",
+            "struct",
+            "enum",
+            "attribute",
+            "union"
+          ]
         },
         "module": { "type": "string" },
         "base": { "type": "string" },
@@ -47,85 +53,104 @@
         "location": { "$ref": "#/definitions/location" }
       }
     },
-    "type_struct": {
-      "type": "object",
-      "required": [ "name", "category", "fields", "module", "annotations", "location" ],
-      "properties": {
-        "name": { "type": "string" },
-        "category": {
-          "type": "string",
-          "enum": [ "struct" ]
-        },
-        "module": { "type": "string" },
-        "base": { "type": "string" },
-        "annotations": { "$ref": "#/definitions/annotations" },
-        "location": { "$ref": "#/definitions/location" },
-        "fields": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/field" }
-        }
-      }
-    },
-    "type_attribute": {
-      "type": "object",
-      "required": [ "name", "category", "fields", "module", "annotations", "location" ],
-      "properties": {
-        "name": { "type": "string" },
-        "category": {
-          "type": "string",
-          "enum": [ "attribute" ]
-        },
-        "module": { "type": "string" },
-        "annotations": { "$ref": "#/definitions/annotations" },
-        "location": { "$ref": "#/definitions/location" },
-        "fields": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/field" }
-        }
-      }
-    },
-    "type_enum": {
-      "type": "object",
-      "required": [ "name", "category", "values", "module", "annotations", "location" ],
-      "properties": {
-        "name": { "type": "string" },
-        "category": {
-          "type": "string",
-          "enum": [ "enum" ]
-        },
-        "module": { "type": "string" },
-        "annotations": { "$ref": "#/definitions/annotations" },
-        "location": { "$ref": "#/definitions/location" },
-        "values": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/enum_value" }
-        }
-      }
-    },
-    "type_union": {
-      "type": "object",
-      "required": [ "name", "category", "types", "module", "annotations", "location" ],
-      "properties": {
-        "name": { "type": "string" },
-        "category": {
-          "type": "string",
-          "enum": [ "union" ]
-        },
-        "module": { "type": "string" },
-        "annotations": { "$ref": "#/definitions/annotations" },
-        "location": { "$ref": "#/definitions/location" },
-        "types": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [ "name", "is_array" ],
-            "properties": {
-              "name": { "type": "string" },
-              "is_array": { "type": "boolean" }
+    "type_opaque": {
+      "allOf": [
+        { "$ref": "#/definitions/type_common" },
+        {
+          "type": "object",
+          "required": [ "category" ],
+          "properties": {
+            "category": {
+              "type": "string",
+              "enum": [ "opaque" ]
             }
           }
         }
-      }
+      ]
+    },
+    "type_struct": {
+      "allOf": [
+        { "$ref": "#/definitions/type_common" },
+        {
+          "type": "object",
+          "required": [ "category", "fields" ],
+          "properties": {
+            "category": {
+              "type": "string",
+              "enum": [ "struct" ]
+            },
+            "base": { "type": "string" },
+            "fields": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/field" }
+            }
+          }
+        }
+      ]
+    },
+    "type_attribute": {
+      "allOf": [
+        { "$ref": "#/definitions/type_common" },
+        {
+          "type": "object",
+          "required": [ "category", "fields" ],
+          "properties": {
+            "category": {
+              "type": "string",
+              "enum": [ "attribute" ]
+            },
+            "fields": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/field" }
+            }
+          }
+        }
+      ]
+    },
+    "type_enum": {
+      "allOf": [
+        { "$ref": "#/definitions/type_common" },
+        {
+          "type": "object",
+          "required": [ "category", "values" ],
+          "properties": {
+            "category": {
+              "type": "string",
+              "enum": [ "enum" ]
+            },
+            "values": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/enum_value" }
+            }
+          }
+        }
+      ]
+    },
+    "type_union": {
+      "allOf": [
+        { "$ref": "#/definitions/type_common" },
+        {
+          "type": "object",
+          "required": [ "category", "types" ],
+          "properties": {
+            "category": {
+              "type": "string",
+              "enum": [ "union" ]
+            },
+            "types": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [ "name", "is_array" ],
+                "properties": {
+                  "name": { "type": "string" },
+                  "is_array": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "enum_value": {
       "type": "object",
