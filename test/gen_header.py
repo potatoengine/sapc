@@ -79,22 +79,20 @@ def main(argv):
 
     for annotation, annotation_args in doc['annotations'].items():
         print(f'// annotation: {annotation}({",".join([k+":"+encode(v) for k,v in annotation_args.items()])})', file=args.output)
-
-    typemap = {type['name'] : type for type in types}
         
     if 'imports' in doc:
         for module in doc['imports']:
             print(f'#include "{module}.h"', file=args.output)
 
     for typename in exports:
-        type = typemap[typename]
+        type = types[typename]
         if ignored(type): continue
 
         print(f'namespace {namespace(type)} {{', file=args.output)
 
         name = cxxname(type)
 
-        basetype = typemap[type['base']] if 'base' in type else None
+        basetype = types[type['base']] if 'base' in type else None
 
         if 'location' in type:
             loc = type['location']
@@ -116,7 +114,7 @@ def main(argv):
         elif 'is_union' in type and type['is_union']:
             print(f'  union {name} {{', file=args.output)
             for unionType in type['types']:
-                print(f'    {cxxname(typemap[unionType["name"]])} {identifier(unionType["name"])};', file=args.output)
+                print(f'    {cxxname(types[unionType["name"]])} {identifier(unionType["name"])};', file=args.output)
         else:
             if basetype:
                 print(f'  struct {name} : {cxxname(basetype)} {{', file=args.output)
@@ -126,7 +124,7 @@ def main(argv):
             for field in type['fields']:
                 if ignored(field): continue
 
-                field_type = typemap[field["type"]]
+                field_type = types[field["type"]]
                 field_cxxtype = cxxname(field_type)
                 if "is_pointer" in field and field["is_pointer"]:
                     field_cxxtype = f'std::unique_ptr<{field_cxxtype}>'
@@ -148,9 +146,8 @@ def main(argv):
     if 'imports' in doc:
         for module in doc['imports']:
             print(f'  sapc_test_{identifier(module)}();', file=args.output)
-    for type in types:
-        if type['imported']: continue
-        if type['is_builtin']: continue
+    for typename in exports:
+        type = types[typename]
         if ignored(type): continue
 
         name = cxxname(type)
