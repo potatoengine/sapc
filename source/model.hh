@@ -59,15 +59,22 @@ namespace sapc {
         Location location;
     };
 
+    struct UnionType {
+        TypeInfo type;
+        Location location;
+    };
+
     struct Type {
         std::string name;
         std::string base;
         std::string module;
-        std::vector<TypeField> fields;
-        std::vector<EnumValue> values;
         std::vector<Attribute> attributes;
+        std::vector<TypeField> fields;
+        std::vector<EnumValue> enumValues;
+        std::vector<UnionType> unionTypes;
         bool isAttribute = false;
         bool isEnumeration = false;
+        bool isUnion = false;
         Location location;
     };
 

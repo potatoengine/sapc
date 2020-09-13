@@ -40,7 +40,7 @@ namespace sapc {
                     }
 
                     auto findEnumerant = [&](std::string const& name) -> EnumValue const* {
-                        for (auto const& value : fieldType.values) {
+                        for (auto const& value : fieldType.enumValues) {
                             if (value.name == name)
                                 return &value;
                         }

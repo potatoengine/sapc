@@ -287,6 +287,30 @@ namespace sapc {
                 continue;
             }
 
+            // parse unions
+            if (consume(TokenType::KeywordUnion)) {
+                auto union_ = Type{};
+                union_.isUnion = true;
+
+                union_.attributes = std::move(attributes);
+                expect(TokenType::Identifier, union_.name);
+
+                union_.location = pos();
+
+                expect(TokenType::LeftBrace);
+                for (;;) {
+                    auto& unionType = union_.unionTypes.emplace_back();
+                    if (!parseType(unionType.type))
+                        return false;
+                    if (!consume(TokenType::Comma))
+                        break;
+                }
+                expect(TokenType::RightBrace);
+
+                pushType(std::move(union_));
+                continue;
+            }
+
             // parse struct declarations
             if (consume(TokenType::KeywordStruct)) {
                 auto type = Type{};
@@ -331,7 +355,7 @@ namespace sapc {
                 expect(TokenType::LeftBrace);
                 long long nextValue = 0;
                 for (;;) {
-                    auto& value = enum_.values.emplace_back();
+                    auto& value = enum_.enumValues.emplace_back();
                     expect(TokenType::Identifier, value.name);
                     if (consume(TokenType::Equal)) {
                         expect(TokenType::Number, value.value);
