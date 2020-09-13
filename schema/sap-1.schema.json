@@ -25,12 +25,11 @@
   "definitions": {
     "type": {
       "type": "object",
-      "required": [ "name", "fields" ],
+      "required": [ "name", "fields", "module" ],
       "properties": {
         "name": { "type": "string" },
+        "module": { "type": "string" },
         "base": { "type": "string" },
-        "imported": { "type": "boolean" },
-        "is_builtin": { "type": "boolean" },
         "is_attribute": { "type": "boolean" },
         "is_enumeration": { "type": "boolean" },
         "is_union": { "type": "boolean" },

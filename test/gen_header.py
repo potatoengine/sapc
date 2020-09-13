@@ -31,7 +31,7 @@ cxx_type_map = {'string': 'std::string',
                 'int': 'int', 'float': 'float'}
 
 def cxxname(el):
-    if 'is_builtin' in el and el['is_builtin'] and el['name'] in cxx_type_map:
+    if el['name'] in cxx_type_map:
         return cxx_type_map[el['name']]
     else:
         return annotation(el, name='cxxname', argname='name', default=identifier(el['name']))

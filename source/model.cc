@@ -82,8 +82,7 @@ namespace sapc {
 
             auto type_json = json::object();
             type_json["name"] = type.name;
-            type_json["imported"] = type.module != module.name;
-            type_json["is_builtin"] = type.module == "$core";
+            type_json["module"] = type.module;
             type_json["is_attribute"] = type.category == Type::Category::Attribute;
             type_json["is_enumeration"] = type.category == Type::Category::Enum;
             type_json["is_union"] = type.category == Type::Category::Union;
