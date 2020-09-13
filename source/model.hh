@@ -39,9 +39,9 @@ namespace sapc {
         friend void to_json(nlohmann::json& j, Value const& value);
     };
 
-    struct Attribute {
+    struct Annotation {
         std::string name;
-        std::vector<Value> params;
+        std::vector<Value> arguments;
         Location location;
     };
 
@@ -49,7 +49,7 @@ namespace sapc {
         std::string name;
         TypeInfo type;
         Value init;
-        std::vector<Attribute> attributes;
+        std::vector<Annotation> annotations;
         Location location;
     };
 
@@ -67,7 +67,7 @@ namespace sapc {
         std::string name;
         std::string base;
         std::string module;
-        std::vector<Attribute> attributes;
+        std::vector<Annotation> annotations;
         std::vector<TypeField> fields;
         Location location;
     };
@@ -75,7 +75,7 @@ namespace sapc {
     struct Module {
         std::string name;
         std::filesystem::path filename;
-        std::vector<Attribute> attributes;
+        std::vector<Annotation> annotations;
 
         std::set<std::string> imports;
 

@@ -138,16 +138,16 @@ namespace sapc {
             } \
         } while(false)
 
-        auto parseAttributes = [&](std::vector<Attribute>& attrs) -> bool {
+        auto parseAnnotations = [&](std::vector<Annotation>& annotations) -> bool {
             while (consume(TokenType::LeftBracket)) {
                 do {
-                    auto& attr = attrs.emplace_back();
-                    expect(TokenType::Identifier, attr.name);
-                    attr.location = pos();
+                    auto& annotation = annotations.emplace_back();
+                    expect(TokenType::Identifier, annotation.name);
+                    annotation.location = pos();
                     if (consume(TokenType::LeftParen)) {
                         if (!consume(TokenType::RightParen)) {
                             for (;;) {
-                                auto& value = attr.params.emplace_back();
+                                auto& value = annotation.arguments.emplace_back();
                                 expectValue(value);
                                 if (!consume(TokenType::Comma))
                                     break;
@@ -257,9 +257,9 @@ namespace sapc {
                 continue;
             }
 
-            // optionally build up a list of attributes
-            std::vector<Attribute> attributes;
-            if (!parseAttributes(attributes))
+            // optionally build up a list of annotations
+            std::vector<Annotation> annotations;
+            if (!parseAnnotations(annotations))
                 return false;
 
             // parse module
@@ -269,7 +269,7 @@ namespace sapc {
                 expect(TokenType::Identifier, module.name);
                 expect(TokenType::SemiColon);
 
-                module.attributes = std::move(attributes);
+                module.annotations = std::move(annotations);
                 continue;
             }
 
@@ -278,7 +278,7 @@ namespace sapc {
                 auto type = Type{};
                 type.category = Type::Category::Opaque;
 
-                type.attributes = std::move(attributes);
+                type.annotations = std::move(annotations);
                 expect(TokenType::Identifier, type.name);
 
                 type.location = pos();
@@ -294,7 +294,7 @@ namespace sapc {
                 auto union_ = Type{};
                 union_.category = Type::Category::Union;
 
-                union_.attributes = std::move(attributes);
+                union_.annotations = std::move(annotations);
                 expect(TokenType::Identifier, union_.name);
 
                 union_.location = pos();
@@ -319,7 +319,7 @@ namespace sapc {
                 auto type = Type{};
                 type.category = Type::Category::Struct;
 
-                type.attributes = std::move(attributes);
+                type.annotations = std::move(annotations);
                 expect(TokenType::Identifier, type.name);
 
                 type.location = pos();
@@ -329,7 +329,7 @@ namespace sapc {
                 expect(TokenType::LeftBrace);
                 while (!consume(TokenType::RightBrace)) {
                     auto& field = type.fields.emplace_back();
-                    if (!parseAttributes(field.attributes))
+                    if (!parseAnnotations(field.annotations))
                         return false;
                     if (!parseType(field.type))
                         return false;
@@ -349,7 +349,7 @@ namespace sapc {
                 auto enum_ = Type{};
                 enum_.category = Type::Category::Enum;
 
-                enum_.attributes = std::move(attributes);
+                enum_.annotations = std::move(annotations);
                 expect(TokenType::Identifier, enum_.name);
 
                 enum_.location = pos();

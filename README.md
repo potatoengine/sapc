@@ -31,7 +31,8 @@ Simplified PEG grammar.
 
 ```
 file <- statement*
-statement <- attribute / type / struct / enum / import / module
+statement <- module / import / definition
+definition <- attribute / type / struct / enum / union
 
 import <- 'import' identifier ';'
 
@@ -45,23 +46,23 @@ blockcomment <- '/*' .* '*/'
 identifier <- [a-zA-Z_][a-zA-Z0-9_]*
 type_info <- identifier ( '[' ']' )?
 
-attributes <- ( '[' attribute_usage ( ',' attribute_usage )* ']' )+
-attribute_usage <- identifier ( '(' ( value ( ',' value )* )? ')' )?
+annotations <- ( '[' annotation ( ',' annotation )* ']' )+
+annotation <- identifier ( '(' ( value ( ',' value )* )? ')' )?
 
-attribute <- 'attribute' identifier ( '{' attribute_parameter* '}' / ';' )
-attribute_parameter <- type_info identifier ( '=' value )? ';'
+attribute <- 'attribute' identifier ( '{' attribute_param* '}' / ';' )
+attribute_param <- type_info identifier ( '=' value )? ';'
 
-module <- attributes? 'module' identifier ';'
+module <- annotations? 'module' identifier ';'
 
-type <- attributes? 'type' identifier ';'
+type <- annotations? 'type' identifier ';'
 
-struct <- attributes? 'struct' identifier ( ':' identifier )? ( '{' struct_field* '}' / ';' )
-struct_field <- attributes? type_info identifier ( '=' value / '=' identifier )? ';'
+struct <- annotations? 'struct' identifier ( ':' identifier )? ( '{' struct_field* '}' / ';' )
+struct_field <- annotations? type_info identifier ( '=' value / '=' identifier )? ';'
 
-union <- attributes? 'union' identifier '{' union_element ( ',' union_element )* '}'
+union <- annotations? 'union' identifier '{' union_element ( ',' union_element )* '}'
 union_element <- type_info
 
-enum <- attributes? 'enum' ( ':' identifier )? '{' enum_value ( ',' enum_value )* '}'
+enum <- annotations? 'enum' ( ':' identifier )? '{' enum_value ( ',' enum_value )* '}'
 enum_value <- identifier ( '=' number )?
 ```
 

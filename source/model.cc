@@ -31,10 +31,10 @@ namespace sapc {
         doc["$schema"] = "https://raw.githubusercontent.com/potatoengine/sapc/master/schema/sap-1.schema.json";
         doc["module"] = module.name;
 
-        auto attrs_to_json = [&](std::vector<Attribute> const& attributes) -> nlohmann::json {
-            auto attrs_json = json::object();
-            for (auto const& attr : attributes) {
-                auto const it = module.typeMap.find(attr.name);
+        auto annotations_to_json = [&](std::vector<Annotation> const& annotations) -> nlohmann::json {
+            auto annotations_json = json::object();
+            for (auto const& annotation : annotations) {
+                auto const it = module.typeMap.find(annotation.name);
                 assert(it != module.typeMap.end());
                 assert(it->second < module.types.size());
 
@@ -42,19 +42,19 @@ namespace sapc {
                 assert(def.category == Type::Category::Attribute);
 
                 auto args_json = json::object();
-                for (size_t index = 0; index != attr.params.size(); ++index) {
-                    assert(def.fields.size() == attr.params.size());
+                for (size_t index = 0; index != annotation.arguments.size(); ++index) {
+                    assert(def.fields.size() == annotation.arguments.size());
 
                     auto const& param = def.fields[index];
-                    auto const& arg = attr.params[index];
+                    auto const& arg = annotation.arguments[index];
 
                     assert(arg.type != Value::Type::None);
                     args_json[param.name] = json(arg);
                 }
 
-                attrs_json[def.name].push_back(std::move(args_json));
+                annotations_json[def.name].push_back(std::move(args_json));
             }
-            return attrs_json;
+            return annotations_json;
         };
 
         auto loc_to_json = [&](Location const& loc) {
@@ -67,7 +67,7 @@ namespace sapc {
             return loc_json;
         };
 
-        doc["attributes"] = attrs_to_json(module.attributes);
+        doc["annotations"] = annotations_to_json(module.annotations);
 
         auto modules_json = json::array();
         for (auto const& module : module.imports)
@@ -85,8 +85,8 @@ namespace sapc {
             type_json["is_union"] = type.category == Type::Category::Union;
             if (!type.base.empty())
                 type_json["base"] = type.base;
-            if (!type.attributes.empty())
-                type_json["attributes"] = attrs_to_json(type.attributes);
+            if (!type.annotations.empty())
+                type_json["annotations"] = annotations_to_json(type.annotations);
             type_json["location"] = loc_to_json(type.location);
 
             if (type.category == Type::Category::Enum) {
@@ -118,8 +118,8 @@ namespace sapc {
                     field_json["is_array"] = field.type.isArray;
                     if (field.init.type != Value::Type::None)
                         field_json["default"] = json(field.init);
-                    if (!field.attributes.empty())
-                        field_json["attributes"] = attrs_to_json(field.attributes);
+                    if (!field.annotations.empty())
+                        field_json["annotations"] = annotations_to_json(field.annotations);
                     field_json["location"] = loc_to_json(field.location);
                     fields.push_back(std::move(field_json));
                 }
