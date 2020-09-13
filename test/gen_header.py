@@ -75,6 +75,7 @@ def main(argv):
     print('#include <any>', file=args.output)
 
     types = doc['types']
+    exports = doc['exports']
 
     for annotation, annotation_args in doc['annotations'].items():
         print(f'// annotation: {annotation}({",".join([k+":"+encode(v) for k,v in annotation_args.items()])})', file=args.output)
@@ -85,9 +86,8 @@ def main(argv):
         for module in doc['imports']:
             print(f'#include "{module}.h"', file=args.output)
 
-    for type in types:
-        if type['imported']: continue
-        if type['is_builtin']: continue
+    for typename in exports:
+        type = typemap[typename]
         if ignored(type): continue
 
         print(f'namespace {namespace(type)} {{', file=args.output)

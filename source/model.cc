@@ -75,7 +75,11 @@ namespace sapc {
         doc["imports"] = std::move(modules_json);
 
         auto types_json = json::array();
+        auto exports_json = json::array();
         for (auto const& type : module.types) {
+            if (type.module == module.name)
+                exports_json.push_back(type.name);
+
             auto type_json = json::object();
             type_json["name"] = type.name;
             type_json["imported"] = type.module != module.name;
@@ -129,6 +133,7 @@ namespace sapc {
             types_json.push_back(std::move(type_json));
         }
         doc["types"] = std::move(types_json);
+        doc["exports"] = std::move(exports_json);
 
         return doc;
     }
