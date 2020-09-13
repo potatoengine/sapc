@@ -64,25 +64,25 @@ namespace sapc {
             }
         }
 
-        // expand attribute parameters
-        auto expand = [&](Attribute& attr) {
-            auto const it = module.typeMap.find(attr.name);
+        // expand attribute arguments
+        auto expand = [&](Annotation& annotation) {
+            auto const it = module.typeMap.find(annotation.name);
             if (it == module.typeMap.end()) {
-                error(attr.location, "unknown attribute `", attr.name, '\'');
+                error(annotation.location, "unknown attribute `", annotation.name, '\'');
                 return;
             }
 
-            auto const argc = attr.params.size();
+            auto const argc = annotation.params.size();
             auto const& attrType = module.types[it->second];
             auto const& params = attrType.fields;
 
             if (attrType.category != Type::Category::Attribute) {
-                error(attr.location, "attribute type `", attr.name, "' is declared as a regular type (not attribute) at ", attrType.location);
+                error(annotation.location, "attribute type `", annotation.name, "' is declared as a regular type (not attribute) at ", attrType.location);
                 return;
             }
 
             if (argc > params.size()) {
-                error(attr.location, "too many arguments to attribute `", attr.name, '\'');
+                error(annotation.location, "too many arguments to attribute `", annotation.name, '\'');
                 return;
             }
 
@@ -90,19 +90,19 @@ namespace sapc {
                 auto const& param = params[index];
 
                 if (param.init.type == Value::Type::None)
-                    error(param.init.location, "missing required argument `", param.name, "' to attribute `", attr.name, '\'');
+                    error(param.init.location, "missing required argument `", param.name, "' to attribute `", annotation.name, '\'');
                 else
-                    attr.params.push_back(param.init);
+                    annotation.params.push_back(param.init);
             }
         };
 
         for (auto& type : module.types) {
-            for (auto& attr : type.attributes)
-                expand(attr);
+            for (auto& annotation : type.annotations)
+                expand(annotation);
 
             for (auto& field : type.fields) {
-                for (auto& attr : field.attributes)
-                    expand(attr);
+                for (auto& annotation : field.annotations)
+                    expand(annotation);
             }
         }
 
