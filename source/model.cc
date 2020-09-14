@@ -14,18 +14,25 @@ namespace sapc {
         return os;
     }
 
-    void to_json(nlohmann::json& j, Value const& value) {
+    template <typename JsonT>
+    void to_json(JsonT& j, Value const& value) {
         switch (value.type) {
         case Value::Type::String: j = value.dataString; break;
         case Value::Type::Number: j = value.dataNumber; break;
         case Value::Type::Boolean: j = value.dataNumber ? true : false; break;
         case Value::Type::Null: j = nullptr; break;
+        case Value::Type::Enum: j = JsonT{
+            { "kind", "enum" },
+            { "type", value.dataString.c_str() },
+            { "name", value.dataName.c_str() },
+            { "value", value.dataNumber }
+        }; break;
         default: break;
         }
     }
 
-    nlohmann::json to_json(Module const& module) {
-        using namespace nlohmann;
+    nlohmann::ordered_json to_json(Module const& module) {
+        using json = nlohmann::ordered_json;
 
         auto doc = json::object();
         doc["$schema"] = "https://raw.githubusercontent.com/potatoengine/sapc/master/schema/sap-1.schema.json";
@@ -39,7 +46,7 @@ namespace sapc {
                 assert(it->second < module.types.size());
 
                 auto const& def = module.types[it->second];
-                assert(def.category == Type::Category::Attribute);
+                assert(def.kind == Type::Kind::Attribute);
 
                 auto args_json = json::object();
                 for (size_t index = 0; index != annotation.arguments.size(); ++index) {
@@ -49,12 +56,22 @@ namespace sapc {
                     auto const& arg = annotation.arguments[index];
 
                     assert(arg.type != Value::Type::None);
-                    args_json[param.name] = json(arg);
+                    args_json[param.name.c_str()] = json(arg);
                 }
 
-                annotations_json[def.name].push_back(std::move(args_json));
+                annotations_json[def.name.c_str()] = std::move(args_json);
             }
             return annotations_json;
+        };
+
+        auto typeinfo_to_json = [&](TypeInfo const& type) -> json {
+            if (!type.isArray)
+                return type.type;
+
+            auto type_json = json::object();
+            type_json["kind"] = "array";
+            type_json["of"] = type.type;
+            return type_json;
         };
 
         auto loc_to_json = [&](Location const& loc) {
@@ -67,6 +84,17 @@ namespace sapc {
             return loc_json;
         };
 
+        auto cat_name = [&](Type const& type) {
+            switch (type.kind) {
+            case Type::Kind::Attribute: return "attribute";
+            case Type::Kind::Enum: return "enum";
+            case Type::Kind::Opaque: return "opaque";
+            case Type::Kind::Struct: return "struct";
+            case Type::Kind::Union: return "union";
+            default: return "unknown";
+            }
+        };
+
         doc["annotations"] = annotations_to_json(module.annotations);
 
         auto modules_json = json::array();
@@ -74,60 +102,53 @@ namespace sapc {
             modules_json.push_back(module);
         doc["imports"] = std::move(modules_json);
 
-        auto types_json = json::array();
+        auto types_json = json::object();
+        auto exports_json = json::array();
         for (auto const& type : module.types) {
+            if (type.module == module.name)
+                exports_json.push_back(type.name);
+
             auto type_json = json::object();
             type_json["name"] = type.name;
-            type_json["imported"] = type.module != module.name;
-            type_json["is_builtin"] = type.module == "$core";
-            type_json["is_attribute"] = type.category == Type::Category::Attribute;
-            type_json["is_enumeration"] = type.category == Type::Category::Enum;
-            type_json["is_union"] = type.category == Type::Category::Union;
+            type_json["module"] = type.module;
+            type_json["kind"] = cat_name(type);
             if (!type.base.empty())
                 type_json["base"] = type.base;
-            if (!type.annotations.empty())
-                type_json["annotations"] = annotations_to_json(type.annotations);
-            type_json["location"] = loc_to_json(type.location);
+            type_json["annotations"] = annotations_to_json(type.annotations);
 
-            if (type.category == Type::Category::Enum) {
-                auto values = json::array();
+            if (type.kind == Type::Kind::Enum) {
+                auto names = json::array();
+                auto values = json::object();
                 for (auto const& value : type.fields) {
-                    auto value_json = json::object();
-                    value_json["name"] = value.name;
-                    value_json["value"] = value.init.dataNumber;
-                    values.push_back(std::move(value_json));
+                    names.push_back(value.name);
+                    values[value.name.c_str()] = value.init.dataNumber;
                 }
+                type_json["names"] = std::move(names);
                 type_json["values"] = std::move(values);
             }
-            else if (type.category == Type::Category::Union) {
-                auto types = json::array();
-                for (auto const& unionType : type.fields) {
-                    auto union_type_json = json::object();
-                    union_type_json["name"] = unionType.type.type;
-                    union_type_json["is_array"] = unionType.type.isArray;
-                    types.push_back(std::move(union_type_json));
-                }
-                type_json["types"] = std::move(types);
-            }
             else {
-                auto fields = json::array();
+                auto fields = json::object();
+                auto order = json::array();
                 for (auto const& field : type.fields) {
                     auto field_json = json::object();
                     field_json["name"] = field.name;
-                    field_json["type"] = field.type.type;
-                    field_json["is_array"] = field.type.isArray;
+                    field_json["type"] = typeinfo_to_json(field.type);
                     if (field.init.type != Value::Type::None)
                         field_json["default"] = json(field.init);
-                    if (!field.annotations.empty())
-                        field_json["annotations"] = annotations_to_json(field.annotations);
+                    field_json["annotations"] = annotations_to_json(field.annotations);
                     field_json["location"] = loc_to_json(field.location);
-                    fields.push_back(std::move(field_json));
+
+                    order.push_back(field.name);
+                    fields[field.name.c_str()] = std::move(field_json);
                 }
+                type_json["order"] = std::move(order);
                 type_json["fields"] = std::move(fields);
             }
 
-            types_json.push_back(std::move(type_json));
+            type_json["location"] = loc_to_json(type.location);
+            types_json[type.name.c_str()] = std::move(type_json);
         }
+        doc["exports"] = std::move(exports_json);
         doc["types"] = std::move(types_json);
 
         return doc;

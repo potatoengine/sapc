@@ -56,11 +56,11 @@ module <- annotations? 'module' identifier ';'
 
 type <- annotations? 'type' identifier ';'
 
-struct <- annotations? 'struct' identifier ( ':' identifier )? ( '{' struct_field* '}' / ';' )
+struct <- annotations? 'struct' identifier ( ':' identifier )? '{' struct_field* '}'
 struct_field <- annotations? type_info identifier ( '=' value / '=' identifier )? ';'
 
-union <- annotations? 'union' identifier '{' union_element ( ',' union_element )* '}'
-union_element <- type_info
+union <- annotations? 'union' identifier '{' union_element+ '}'
+union_element <- type_info identifier ';'
 
 enum <- annotations? 'enum' ( ':' identifier )? '{' enum_value ( ',' enum_value )* '}'
 enum_value <- identifier ( '=' number )?

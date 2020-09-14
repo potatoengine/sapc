@@ -11,7 +11,7 @@ from datetime import datetime
 
 def annotation(el, name, argname, default=None):
     if el is not None and 'annotations' in el and name in el['annotations']:
-        return el['annotations'][name][0][argname]
+        return el['annotations'][name][argname]
     else:
         return default
 
@@ -30,11 +30,7 @@ cxx_type_map = {'string': 'std::string',
                 'bool': 'bool', 'byte': 'unsigned char',
                 'int': 'int', 'float': 'float'}
 
-def cxxname(el):
-    if 'is_builtin' in el and el['is_builtin'] and el['name'] in cxx_type_map:
-        return cxx_type_map[el['name']]
-    else:
-        return annotation(el, name='cxxname', argname='name', default=identifier(el['name']))
+def cxxname(el): return annotation(el, name='cxxname', argname='name', default=cxx_type_map[el['name']] if el['name'] in cxx_type_map else identifier(el['name']))
 def ignored(el): return annotation(el, name='ignore', argname='ignored', default=False)
 def namespace(el): return 'sapc_attr' if 'is_attribute' in el and el['is_attribute'] else 'sapc_type'
 
@@ -43,6 +39,8 @@ def encode(el):
         return '"' + el + '"'
     elif isinstance(el, bool):
         return 'true' if el else 'false'
+    elif isinstance(el, dict) and el['kind'] == 'enum':
+        return f'{identifier(el["type"])}::{identifier(el["name"])}'
     elif el is None:
         return 'nullptr'
     else:
@@ -75,27 +73,26 @@ def main(argv):
     print('#include <any>', file=args.output)
 
     types = doc['types']
+    exports = doc['exports']
 
-    for annotation, payload in doc['annotations'].items():
-        for annotation_args in payload:
-            print(f'// annotation: {annotation}({",".join([k+":"+encode(v) for k,v in annotation_args.items()])})', file=args.output)
-
-    typemap = {type['name'] : type for type in types}
+    for annotation, annotation_args in doc['annotations'].items():
+        print(f'// annotation: {annotation}({",".join([k+":"+encode(v) for k,v in annotation_args.items()])})', file=args.output)
         
     if 'imports' in doc:
         for module in doc['imports']:
             print(f'#include "{module}.h"', file=args.output)
 
-    for type in types:
-        if type['imported']: continue
-        if type['is_builtin']: continue
+    for typename in exports:
+        type = types[typename]
         if ignored(type): continue
 
         print(f'namespace {namespace(type)} {{', file=args.output)
 
         name = cxxname(type)
+        kind = type['kind']
 
-        basetype = typemap[type['base']] if 'base' in type else None
+        basetype = types[type['base']] if 'base' in type else None
+        basespec = f' : {cxxname(basetype)}' if basetype is not None else ''
 
         if 'location' in type:
             loc = type['location']
@@ -106,57 +103,35 @@ def main(argv):
             else:
                 print(f'  // {loc["filename"]}', file=args.output)
 
-        if 'is_enumeration' in type and type['is_enumeration']:
-            if basetype:
-                print(f'  enum class {name} : {cxxname(basetype)} {{', file=args.output)
-            else:
-                print(f'  enum class {name} {{', file=args.output)
+        if kind == 'enum':
+            print(f'  enum class {name}{basespec} {{', file=args.output)
 
-            for value in type['values']:
-                print(f'    {identifier(value["name"])} = {encode(value["value"])},', file=args.output)
-        elif 'is_union' in type and type['is_union']:
-            print(f'  union {name} {{', file=args.output)
-            for unionType in type['types']:
-                print(f'    {cxxname(typemap[unionType["name"]])} {identifier(unionType["name"])};', file=args.output)
+            for ename in type['names']:
+                value = type['values'][ename]
+                print(f'    {identifier(ename)} = {value},', file=args.output)
         else:
-            if basetype:
-                print(f'  struct {name} : {cxxname(basetype)} {{', file=args.output)
-            else:
-                print(f'  struct {name} {{', file=args.output)
+            print(f'  struct {name}{basespec} {{', file=args.output)
 
-            for field in type['fields']:
-                if ignored(field): continue
+            if kind != 'opaque':
+                for fieldname in type['order']:
+                    field = type['fields'][fieldname]
+                    if ignored(field): continue
 
-                field_type = typemap[field["type"]]
-                field_cxxtype = cxxname(field_type)
-                if "is_pointer" in field and field["is_pointer"]:
-                    field_cxxtype = f'std::unique_ptr<{field_cxxtype}>'
-                if "is_array" in field and field["is_array"]:
-                    field_cxxtype = f'std::vector<{field_cxxtype}>'
-
-                if ('default' in field):
-                    if 'is_enumeration' in field_type and field_type['is_enumeration']:
-                        print(f'    {field_cxxtype} {cxxname(field)} = ({field_cxxtype}){encode(field["default"])};', file=args.output)
+                    type_info = field['type']
+                    if 'kind' in type_info and type_info['kind'] == 'array':
+                        field_type = types[type_info['of']]
+                        field_cxxtype = f'std::vector<{cxxname(field_type)}>'
                     else:
+                        field_type = types[type_info]
+                        field_cxxtype = cxxname(field_type)
+
+                    if 'default' in field:
                         print(f'    {field_cxxtype} {cxxname(field)} = {encode(field["default"])};', file=args.output)
-                else:
-                    print(f'    {field_cxxtype} {cxxname(field)};', file=args.output)
+                    else:
+                        print(f'    {field_cxxtype} {cxxname(field)};', file=args.output)
 
         print(f'  }};', file=args.output)
         print(f'}}', file=args.output)
-
-    print(f'inline void sapc_test_{identifier(doc["module"])}() {{', file=args.output)
-    if 'imports' in doc:
-        for module in doc['imports']:
-            print(f'  sapc_test_{identifier(module)}();', file=args.output)
-    for type in types:
-        if type['imported']: continue
-        if type['is_builtin']: continue
-        if ignored(type): continue
-
-        name = cxxname(type)
-        print(f'  [[maybe_unused]] {namespace(type)}::{name} val_{identifier(name)} = {{}};', file=args.output)
-    print('}', file=args.output)
 
     print('#endif', file=args.output)
 

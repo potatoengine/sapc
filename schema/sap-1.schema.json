@@ -1,87 +1,187 @@
 {
-  "$id": "https://raw.githubusercontent.com/potatoengine/sapc/master/schema/sap-1.schema.json",
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "https://raw.githubusercontent.com/potatoengine/sapc/master/schema/sap-1.schema.json",
+  "$schema": "http://json-schema.org/draft-05/schema#",
   "title": "sapc output schema",
   "type": "object",
-  "required": [ "module", "attributes", "types" ],
+  "required": [ "module", "annotations", "types", "exports" ],
   "properties": {
     "module": {
       "type": "string"
     },
-    "attributes": { "$ref": "#/definitions/attributes" },
+    "annotations": { "$ref": "#/definitions/annotations" },
     "imports": {
       "type": "array",
       "items": { "type": "string" }
     },
-    "pragmas": {
+    "types": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/definitions/type" }
+    },
+    "exports": {
       "type": "array",
       "items": { "type": "string" }
-    },
-    "types": {
-      "type": "array",
-      "items": { "$ref": "#/definitions/type" }
     }
   },
   "definitions": {
     "type": {
+      "oneOf": [
+        { "$ref": "#/definitions/type_struct" },
+        { "$ref": "#/definitions/type_enum" },
+        { "$ref": "#/definitions/type_opaque" }
+      ]
+    },
+    "type_common": {
       "type": "object",
-      "required": [ "name", "fields" ],
+      "required": [ "name", "kind", "module", "annotations", "location" ],
       "properties": {
         "name": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "opaque",
+            "struct",
+            "enum",
+            "attribute",
+            "union"
+          ]
+        },
+        "module": { "type": "string" },
         "base": { "type": "string" },
-        "imported": { "type": "boolean" },
-        "is_builtin": { "type": "boolean" },
-        "is_attribute": { "type": "boolean" },
-        "is_enumeration": { "type": "boolean" },
-        "is_union": { "type": "boolean" },
         "annotations": { "$ref": "#/definitions/annotations" },
-        "location": { "$ref": "#/definitions/location" },
-        "fields": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/field" }
+        "location": { "$ref": "#/definitions/location" }
+      }
+    },
+    "type_opaque": {
+      "allOf": [
+        { "$ref": "#/definitions/type_common" },
+        {
+          "type": "object",
+          "required": [ "kind" ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [ "opaque" ]
+            }
+          }
         }
+      ]
+    },
+    "type_struct": {
+      "allOf": [
+        { "$ref": "#/definitions/type_common" },
+        {
+          "type": "object",
+          "required": [ "kind", "order", "fields" ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [ "struct", "union", "attribute" ]
+            },
+            "base": { "type": "string" },
+            "order": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "fields": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/field"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "type_enum": {
+      "allOf": [
+        { "$ref": "#/definitions/type_common" },
+        {
+          "type": "object",
+          "required": [ "kind", "values" ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [ "enum" ]
+            },
+            "names": {
+              "types": "array",
+              "items": { "type": "string" }
+            },
+            "values": {
+              "type": "object",
+              "additionalProperties": { "type": "number" }
+            }
+          }
+        }
+      ]
+    },
+    "enum_value": {
+      "type": "object",
+      "required": [ "name", "value" ],
+      "properties": {
+        "name": { "type": "string" },
+        "value": { "type": "number" }
       }
     },
     "annotations": {
       "type": "object",
-      "patternProperties": {
-        "^[a-zA-Z0-9_]+$": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/annotation" }
-        }
-      }
+      "additionalProperties": { "$ref": "#/definitions/annotation" }
     },
     "annotation": {
       "type": "object",
-      "patternProperties": {
-        "^[a-zA-Z0-9_]+$": {
-          "$ref": "#/definitions/value"
-        }
-      }
+      "additionalProperties": { "$ref": "#/definitions/value" }
     },
     "value": {
       "oneOf": [
         { "type": "integer" },
         { "type": "string" },
         { "type": "boolean" },
-        { "type": "null" }
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": [ "kind", "type", "name", "value" ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "kind": [ "enum" ]
+            },
+            "type": { "type": "string" },
+            "name": { "type": "string" },
+            "value": { "type": "number" }
+          }
+        }
       ]
     },
     "field": {
       "type": "object",
-      "required": [ "name", "type" ],
+      "required": [ "name", "type", "annotations", "location" ],
       "properties": {
         "name": { "type": "string" },
-        "type": { "type": "string" },
+        "type": { "$ref": "#/definitions/field_type" },
         "default": { "$ref": "#/definitions/value" },
         "annotations": { "$ref": "#/definitions/annotations" },
-        "is_array": { "type": "boolean" },
         "location": { "$ref": "#/definitions/location" }
       }
     },
+    "field_type": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "required": [ "kind", "of" ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [ "array" ]
+            },
+            "of": { "type": "string" }
+          }
+        }
+      ]
+    },
     "location": {
       "type": "object",
-      "required": [ "filename", "line" ],
+      "required": [ "filename" ],
       "properties": {
         "filename": { "type": "string" },
         "line": {

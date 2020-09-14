@@ -13,8 +13,6 @@
 #include <vector>
 #include <fstream>
 
-#include <nlohmann/json.hpp>
-
 namespace fs = std::filesystem;
 
 namespace {

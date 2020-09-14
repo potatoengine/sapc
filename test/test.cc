@@ -1,7 +1,9 @@
 #include "test.h"
 
 int main(int argc, char** argv) {
-    sapc_test_test();
-
-    sapc_type::test test;
+    [[maybe_unused]] sapc_type::default_ val_default_ = {};
+    [[maybe_unused]] sapc_type::test val_test = {};
+    [[maybe_unused]] sapc_type::number val_number = {};
+    [[maybe_unused]] sapc_type::derived val_derived = {};
+    [[maybe_unused]] sapc_type::ordered val_ordered = {};
 }

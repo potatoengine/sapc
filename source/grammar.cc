@@ -141,9 +141,16 @@ namespace sapc {
         auto parseAnnotations = [&](std::vector<Annotation>& annotations) -> bool {
             while (consume(TokenType::LeftBracket)) {
                 do {
-                    auto& annotation = annotations.emplace_back();
+                    Annotation annotation;
                     expect(TokenType::Identifier, annotation.name);
                     annotation.location = pos();
+
+                    auto const otherIt = find_if(begin(annotations), end(annotations), [&](Annotation const& other) { return other.name == annotation.name; });
+                    if (otherIt != end(annotations)) {
+                        error(annotation.location, "duplicate annotation `", annotation.name, '\'');
+                        return error(otherIt->location, "previous annotation here");
+                    }
+
                     if (consume(TokenType::LeftParen)) {
                         if (!consume(TokenType::RightParen)) {
                             for (;;) {
@@ -156,6 +163,8 @@ namespace sapc {
                             expect(TokenType::RightParen);
                         }
                     }
+
+                    annotations.push_back(std::move(annotation));
                 } while (consume(TokenType::Comma));
                 expect(TokenType::RightBracket);
             }
@@ -172,7 +181,7 @@ namespace sapc {
         };
 
         auto pushType = [&](Type&& type) -> bool {
-            assert(type.category != Type::Category::Unknown);
+            assert(type.kind != Type::Kind::Unknown);
             assert(!type.name.empty());
 
             if (type.module.empty())
@@ -232,7 +241,7 @@ namespace sapc {
 
             if (consume(TokenType::KeywordAttribute)) {
                 auto attr = Type{};
-                attr.category = Type::Category::Attribute;
+                attr.kind = Type::Kind::Attribute;
 
                 expect(TokenType::Identifier, attr.name);
 
@@ -276,7 +285,7 @@ namespace sapc {
             // parse type declarations
             if (consume(TokenType::KeywordType)) {
                 auto type = Type{};
-                type.category = Type::Category::Opaque;
+                type.kind = Type::Kind::Opaque;
 
                 type.annotations = std::move(annotations);
                 expect(TokenType::Identifier, type.name);
@@ -292,7 +301,7 @@ namespace sapc {
             // parse unions
             if (consume(TokenType::KeywordUnion)) {
                 auto union_ = Type{};
-                union_.category = Type::Category::Union;
+                union_.kind = Type::Kind::Union;
 
                 union_.annotations = std::move(annotations);
                 expect(TokenType::Identifier, union_.name);
@@ -300,15 +309,17 @@ namespace sapc {
                 union_.location = pos();
 
                 expect(TokenType::LeftBrace);
-                for (;;) {
-                    auto& unionType = union_.fields.emplace_back();
-                    if (!parseType(unionType.type))
+                while (!consume(TokenType::RightBrace)) {
+                    auto& field = union_.fields.emplace_back();
+                    if (!parseType(field.type))
                         return false;
-                    unionType.location = pos();
-                    if (!consume(TokenType::Comma))
-                        break;
+                    expect(TokenType::Identifier, field.name);
+                    field.location = pos();
+                    expect(TokenType::SemiColon);
                 }
-                expect(TokenType::RightBrace);
+
+                if (union_.fields.empty())
+                    return error(union_.location, "union `", union_.name, "' must have at least one field");
 
                 pushType(std::move(union_));
                 continue;
@@ -317,7 +328,7 @@ namespace sapc {
             // parse struct declarations
             if (consume(TokenType::KeywordStruct)) {
                 auto type = Type{};
-                type.category = Type::Category::Struct;
+                type.kind = Type::Kind::Struct;
 
                 type.annotations = std::move(annotations);
                 expect(TokenType::Identifier, type.name);
@@ -333,8 +344,8 @@ namespace sapc {
                         return false;
                     if (!parseType(field.type))
                         return false;
-                    field.location = pos();
                     expect(TokenType::Identifier, field.name);
+                    field.location = pos();
                     if (consume(TokenType::Equal))
                         expectValue(field.init);
                     expect(TokenType::SemiColon);
@@ -347,7 +358,7 @@ namespace sapc {
             // parse enumerations
             if (consume(TokenType::KeywordEnum)) {
                 auto enum_ = Type{};
-                enum_.category = Type::Category::Enum;
+                enum_.kind = Type::Kind::Enum;
 
                 enum_.annotations = std::move(annotations);
                 expect(TokenType::Identifier, enum_.name);

@@ -28,8 +28,8 @@ struct test {
 }
 
 union number {
-    int,
-    float
+    int i;
+    float f;
 }
 
 struct derived : test {}

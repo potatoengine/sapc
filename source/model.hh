@@ -33,10 +33,9 @@ namespace sapc {
             Enum
         } type = Type::None;
         long long dataNumber;
+        std::string dataName;
         std::string dataString;
         Location location;
-
-        friend void to_json(nlohmann::json& j, Value const& value);
     };
 
     struct Annotation {
@@ -54,7 +53,7 @@ namespace sapc {
     };
 
     struct Type {
-        enum class Category {
+        enum class Kind {
             Unknown,
             Struct,
             Enum,
@@ -63,7 +62,7 @@ namespace sapc {
             Opaque
         };
 
-        Category category = Category::Unknown;
+        Kind kind = Kind::Unknown;
         std::string name;
         std::string base;
         std::string module;
@@ -83,6 +82,6 @@ namespace sapc {
 
         std::unordered_map<std::string, size_t> typeMap;
 
-        friend nlohmann::json to_json(Module const& module);
+        friend nlohmann::ordered_json to_json(Module const& module);
     };
 }
