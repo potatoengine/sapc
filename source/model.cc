@@ -14,13 +14,19 @@ namespace sapc {
         return os;
     }
 
-    template <template<class...> class JsonT>
-    void to_json(nlohmann::basic_json<JsonT>& j, Value const& value) {
+    template <typename JsonT>
+    void to_json(JsonT& j, Value const& value) {
         switch (value.type) {
         case Value::Type::String: j = value.dataString; break;
         case Value::Type::Number: j = value.dataNumber; break;
         case Value::Type::Boolean: j = value.dataNumber ? true : false; break;
         case Value::Type::Null: j = nullptr; break;
+        case Value::Type::Enum: j = JsonT{
+            { "kind", "enum" },
+            { "type", value.dataString.c_str() },
+            { "name", value.dataName.c_str() },
+            { "value", value.dataNumber }
+        }; break;
         default: break;
         }
     }
@@ -56,6 +62,10 @@ namespace sapc {
                 annotations_json[def.name.c_str()] = std::move(args_json);
             }
             return annotations_json;
+        };
+
+        auto typeinfo_to_json = [&](TypeInfo const& type) {
+
         };
 
         auto loc_to_json = [&](Location const& loc) {

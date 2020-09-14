@@ -55,7 +55,9 @@ namespace sapc {
                             continue;
                         }
 
-                        field.init.type = Value::Type::Number;
+                        field.init.type = Value::Type::Enum;
+                        field.init.dataName = enumValue->name;
+                        field.init.dataString = fieldType.name;
                         field.init.dataNumber = enumValue->init.dataNumber;
                     }
                     else if (field.init.type == Value::Type::Enum)

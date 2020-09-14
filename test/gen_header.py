@@ -39,6 +39,8 @@ def encode(el):
         return '"' + el + '"'
     elif isinstance(el, bool):
         return 'true' if el else 'false'
+    elif isinstance(el, dict) and el['kind'] == 'enum':
+        return f'{identifier(el["type"])}::{identifier(el["name"])}'
     elif el is None:
         return 'nullptr'
     else:
@@ -128,10 +130,7 @@ def main(argv):
                         field_cxxtype = f'std::vector<{field_cxxtype}>'
 
                     if 'default' in field:
-                        if field_type['kind'] == 'enum':
-                            print(f'    {field_cxxtype} {cxxname(field)} = ({field_cxxtype}){encode(field["default"])};', file=args.output)
-                        else:
-                            print(f'    {field_cxxtype} {cxxname(field)} = {encode(field["default"])};', file=args.output)
+                        print(f'    {field_cxxtype} {cxxname(field)} = {encode(field["default"])};', file=args.output)
                     else:
                         print(f'    {field_cxxtype} {cxxname(field)};', file=args.output)
 

@@ -136,7 +136,20 @@
         { "type": "integer" },
         { "type": "string" },
         { "type": "boolean" },
-        { "type": "null" }
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": [ "kind", "type", "name", "value" ]
+          "properties": {
+            "kind": {
+              "type": "string",
+              "kind": [ "enum" ]
+            },
+            "type": { "type": "string" },
+            "name": { "type": "string" },
+            "value": { "type": "number" }
+          }
+        }
       ]
     },
     "field": {

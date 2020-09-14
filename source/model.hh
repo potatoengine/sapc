@@ -33,10 +33,9 @@ namespace sapc {
             Enum
         } type = Type::None;
         long long dataNumber;
+        std::string dataName;
         std::string dataString;
         Location location;
-
-        friend void to_json(nlohmann::json& j, Value const& value);
     };
 
     struct Annotation {
