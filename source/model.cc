@@ -40,7 +40,7 @@ namespace sapc {
                 assert(it->second < module.types.size());
 
                 auto const& def = module.types[it->second];
-                assert(def.category == Type::Category::Attribute);
+                assert(def.kind == Type::Kind::Attribute);
 
                 auto args_json = json::object();
                 for (size_t index = 0; index != annotation.arguments.size(); ++index) {
@@ -69,12 +69,12 @@ namespace sapc {
         };
 
         auto cat_name = [&](Type const& type) {
-            switch (type.category) {
-            case Type::Category::Attribute: return "attribute";
-            case Type::Category::Enum: return "enum";
-            case Type::Category::Opaque: return "opaque";
-            case Type::Category::Struct: return "struct";
-            case Type::Category::Union: return "union";
+            switch (type.kind) {
+            case Type::Kind::Attribute: return "attribute";
+            case Type::Kind::Enum: return "enum";
+            case Type::Kind::Opaque: return "opaque";
+            case Type::Kind::Struct: return "struct";
+            case Type::Kind::Union: return "union";
             default: return "unknown";
             }
         };
@@ -95,12 +95,12 @@ namespace sapc {
             auto type_json = json::object();
             type_json["name"] = type.name;
             type_json["module"] = type.module;
-            type_json["category"] = cat_name(type);
+            type_json["kind"] = cat_name(type);
             if (!type.base.empty())
                 type_json["base"] = type.base;
             type_json["annotations"] = annotations_to_json(type.annotations);
 
-            if (type.category == Type::Category::Enum) {
+            if (type.kind == Type::Kind::Enum) {
                 auto names = json::array();
                 auto values = json::object();
                 for (auto const& value : type.fields) {

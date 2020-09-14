@@ -181,7 +181,7 @@ namespace sapc {
         };
 
         auto pushType = [&](Type&& type) -> bool {
-            assert(type.category != Type::Category::Unknown);
+            assert(type.kind != Type::Kind::Unknown);
             assert(!type.name.empty());
 
             if (type.module.empty())
@@ -241,7 +241,7 @@ namespace sapc {
 
             if (consume(TokenType::KeywordAttribute)) {
                 auto attr = Type{};
-                attr.category = Type::Category::Attribute;
+                attr.kind = Type::Kind::Attribute;
 
                 expect(TokenType::Identifier, attr.name);
 
@@ -285,7 +285,7 @@ namespace sapc {
             // parse type declarations
             if (consume(TokenType::KeywordType)) {
                 auto type = Type{};
-                type.category = Type::Category::Opaque;
+                type.kind = Type::Kind::Opaque;
 
                 type.annotations = std::move(annotations);
                 expect(TokenType::Identifier, type.name);
@@ -301,7 +301,7 @@ namespace sapc {
             // parse unions
             if (consume(TokenType::KeywordUnion)) {
                 auto union_ = Type{};
-                union_.category = Type::Category::Union;
+                union_.kind = Type::Kind::Union;
 
                 union_.annotations = std::move(annotations);
                 expect(TokenType::Identifier, union_.name);
@@ -328,7 +328,7 @@ namespace sapc {
             // parse struct declarations
             if (consume(TokenType::KeywordStruct)) {
                 auto type = Type{};
-                type.category = Type::Category::Struct;
+                type.kind = Type::Kind::Struct;
 
                 type.annotations = std::move(annotations);
                 expect(TokenType::Identifier, type.name);
@@ -358,7 +358,7 @@ namespace sapc {
             // parse enumerations
             if (consume(TokenType::KeywordEnum)) {
                 auto enum_ = Type{};
-                enum_.category = Type::Category::Enum;
+                enum_.kind = Type::Kind::Enum;
 
                 enum_.annotations = std::move(annotations);
                 expect(TokenType::Identifier, enum_.name);

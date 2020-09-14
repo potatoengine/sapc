@@ -45,7 +45,7 @@ namespace sapc {
 
         for (auto const& builtin : builtins) {
             auto& type = module.types.emplace_back();
-            type.category = Type::Category::Opaque;
+            type.kind = Type::Kind::Opaque;
             type.name = builtin;
             type.module = "$core";
             module.typeMap[type.name] = module.types.size() - 1;

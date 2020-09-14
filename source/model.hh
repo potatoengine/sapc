@@ -54,7 +54,7 @@ namespace sapc {
     };
 
     struct Type {
-        enum class Category {
+        enum class Kind {
             Unknown,
             Struct,
             Enum,
@@ -63,7 +63,7 @@ namespace sapc {
             Opaque
         };
 
-        Category category = Category::Unknown;
+        Kind kind = Kind::Unknown;
         std::string name;
         std::string base;
         std::string module;

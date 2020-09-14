@@ -25,7 +25,7 @@ namespace sapc {
                 error(type.location, "unknown type `", type.base, '\'');
             }
 
-            if (type.category != Type::Category::Enum) {
+            if (type.kind != Type::Kind::Enum) {
                 for (auto& field : type.fields) {
                     auto typeIt = module.typeMap.find(field.type.type);
                     if (typeIt == module.typeMap.end()) {
@@ -34,7 +34,7 @@ namespace sapc {
                     }
                     auto const& fieldType = module.types[typeIt->second];
 
-                    if (fieldType.category == Type::Category::Enum && field.init.type != Value::Type::None) {
+                    if (fieldType.kind == Type::Kind::Enum && field.init.type != Value::Type::None) {
                         if (field.init.type != Value::Type::Enum) {
                             error(field.location, "enumeration type `", field.type, "' may only be initialized by enumerants");
                             continue;
@@ -76,7 +76,7 @@ namespace sapc {
             auto const& attrType = module.types[it->second];
             auto const& params = attrType.fields;
 
-            if (attrType.category != Type::Category::Attribute) {
+            if (attrType.kind != Type::Kind::Attribute) {
                 error(annotation.location, "attribute type `", annotation.name, "' is declared as a regular type (not attribute) at ", attrType.location);
                 return;
             }

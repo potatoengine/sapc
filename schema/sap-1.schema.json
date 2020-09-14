@@ -32,10 +32,10 @@
     },
     "type_common": {
       "type": "object",
-      "required": [ "name", "category", "module", "annotations", "location" ],
+      "required": [ "name", "kind", "module", "annotations", "location" ],
       "properties": {
         "name": { "type": "string" },
-        "category": {
+        "kind": {
           "type": "string",
           "enum": [
             "opaque",
@@ -56,9 +56,9 @@
         { "$ref": "#/definitions/type_common" },
         {
           "type": "object",
-          "required": [ "category" ],
+          "required": [ "kind" ],
           "properties": {
-            "category": {
+            "kind": {
               "type": "string",
               "enum": [ "opaque" ]
             }
@@ -71,9 +71,9 @@
         { "$ref": "#/definitions/type_common" },
         {
           "type": "object",
-          "required": [ "category", "order", "fields" ],
+          "required": [ "kind", "order", "fields" ],
           "properties": {
-            "category": {
+            "kind": {
               "type": "string",
               "enum": [ "struct", "union", "attribute" ]
             },
@@ -97,9 +97,9 @@
         { "$ref": "#/definitions/type_common" },
         {
           "type": "object",
-          "required": [ "category", "values" ],
+          "required": [ "kind", "values" ],
           "properties": {
-            "category": {
+            "kind": {
               "type": "string",
               "enum": [ "enum" ]
             },

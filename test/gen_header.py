@@ -91,6 +91,7 @@ def main(argv):
         print(f'namespace {namespace(type)} {{', file=args.output)
 
         name = cxxname(type)
+        kind = type['kind']
 
         basetype = types[type['base']] if 'base' in type else None
 
@@ -103,7 +104,7 @@ def main(argv):
             else:
                 print(f'  // {loc["filename"]}', file=args.output)
 
-        if type['category'] == 'enum':
+        if kind == 'enum':
             if basetype:
                 print(f'  enum class {name} : {cxxname(basetype)} {{', file=args.output)
             else:
@@ -118,7 +119,7 @@ def main(argv):
             else:
                 print(f'  struct {name} {{', file=args.output)
 
-            if type['category'] != 'opaque':
+            if kind != 'opaque':
                 for fieldname in type['order']:
                     field = type['fields'][fieldname]
                     if ignored(field): continue
@@ -131,7 +132,7 @@ def main(argv):
                         field_cxxtype = f'std::vector<{field_cxxtype}>'
 
                     if ('default' in field):
-                        if field_type['category'] == 'enum':
+                        if field_type['kind'] == 'enum':
                             print(f'    {field_cxxtype} {cxxname(field)} = ({field_cxxtype}){encode(field["default"])};', file=args.output)
                         else:
                             print(f'    {field_cxxtype} {cxxname(field)} = {encode(field["default"])};', file=args.output)
