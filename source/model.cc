@@ -64,8 +64,14 @@ namespace sapc {
             return annotations_json;
         };
 
-        auto typeinfo_to_json = [&](TypeInfo const& type) {
+        auto typeinfo_to_json = [&](TypeInfo const& type) -> json {
+            if (!type.isArray)
+                return type.type;
 
+            auto type_json = json::object();
+            type_json["kind"] = "array";
+            type_json["of"] = type.type;
+            return type_json;
         };
 
         auto loc_to_json = [&](Location const& loc) {
@@ -126,8 +132,7 @@ namespace sapc {
                 for (auto const& field : type.fields) {
                     auto field_json = json::object();
                     field_json["name"] = field.name;
-                    field_json["type"] = field.type.type;
-                    field_json["is_array"] = field.type.isArray;
+                    field_json["type"] = typeinfo_to_json(field.type);
                     if (field.init.type != Value::Type::None)
                         field_json["default"] = json(field.init);
                     field_json["annotations"] = annotations_to_json(field.annotations);

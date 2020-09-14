@@ -139,7 +139,7 @@
         { "type": "null" },
         {
           "type": "object",
-          "required": [ "kind", "type", "name", "value" ]
+          "required": [ "kind", "type", "name", "value" ],
           "properties": {
             "kind": {
               "type": "string",
@@ -154,15 +154,30 @@
     },
     "field": {
       "type": "object",
-      "required": [ "name", "type", "is_array", "annotations", "location" ],
+      "required": [ "name", "type", "annotations", "location" ],
       "properties": {
         "name": { "type": "string" },
-        "type": { "type": "string" },
+        "type": { "$ref": "#/definitions/field_type" },
         "default": { "$ref": "#/definitions/value" },
         "annotations": { "$ref": "#/definitions/annotations" },
-        "is_array": { "type": "boolean" },
         "location": { "$ref": "#/definitions/location" }
       }
+    },
+    "field_type": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "required": [ "kind", "of" ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [ "array" ]
+            },
+            "of": { "type": "string" }
+          }
+        }
+      ]
     },
     "location": {
       "type": "object",
