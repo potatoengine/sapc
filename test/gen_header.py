@@ -30,11 +30,7 @@ cxx_type_map = {'string': 'std::string',
                 'bool': 'bool', 'byte': 'unsigned char',
                 'int': 'int', 'float': 'float'}
 
-def cxxname(el):
-    if el['name'] in cxx_type_map:
-        return cxx_type_map[el['name']]
-    else:
-        return annotation(el, name='cxxname', argname='name', default=identifier(el['name']))
+def cxxname(el): return annotation(el, name='cxxname', argname='name', default=cxx_type_map[el['name']] if el['name'] in cxx_type_map else identifier(el['name']))
 def ignored(el): return annotation(el, name='ignore', argname='ignored', default=False)
 def namespace(el): return 'sapc_attr' if 'is_attribute' in el and el['is_attribute'] else 'sapc_type'
 
@@ -131,7 +127,7 @@ def main(argv):
                     if "is_array" in field and field["is_array"]:
                         field_cxxtype = f'std::vector<{field_cxxtype}>'
 
-                    if ('default' in field):
+                    if 'default' in field:
                         if field_type['kind'] == 'enum':
                             print(f'    {field_cxxtype} {cxxname(field)} = ({field_cxxtype}){encode(field["default"])};', file=args.output)
                         else:
