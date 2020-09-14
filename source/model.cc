@@ -121,7 +121,8 @@ namespace sapc {
                 type_json["types"] = std::move(types);
             }
             else {
-                auto fields = json::array();
+                auto fields = json::object();
+                auto order = json::array();
                 for (auto const& field : type.fields) {
                     auto field_json = json::object();
                     field_json["name"] = field.name;
@@ -131,8 +132,11 @@ namespace sapc {
                         field_json["default"] = json(field.init);
                     field_json["annotations"] = annotations_to_json(field.annotations);
                     field_json["location"] = loc_to_json(field.location);
-                    fields.push_back(std::move(field_json));
+
+                    order.push_back(field.name);
+                    fields[field.name] = std::move(field_json);
                 }
+                type_json["order"] = std::move(order);
                 type_json["fields"] = std::move(fields);
             }
 

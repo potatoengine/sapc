@@ -73,16 +73,22 @@
         { "$ref": "#/definitions/type_common" },
         {
           "type": "object",
-          "required": [ "category", "fields" ],
+          "required": [ "category", "order", "fields" ],
           "properties": {
             "category": {
               "type": "string",
               "enum": [ "struct" ]
             },
             "base": { "type": "string" },
-            "fields": {
+            "order": {
               "type": "array",
-              "items": { "$ref": "#/definitions/field" }
+              "items": { "type": "string" }
+            },
+            "fields": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/field"
+              }
             }
           }
         }
@@ -93,15 +99,21 @@
         { "$ref": "#/definitions/type_common" },
         {
           "type": "object",
-          "required": [ "category", "fields" ],
+          "required": [ "category", "order", "fields" ],
           "properties": {
             "category": {
               "type": "string",
               "enum": [ "attribute" ]
             },
-            "fields": {
+            "order": {
               "type": "array",
-              "items": { "$ref": "#/definitions/field" }
+              "items": { "type": "string" }
+            },
+            "fields": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/definitions/field"
+              }
             }
           }
         }

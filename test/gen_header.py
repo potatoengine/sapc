@@ -121,8 +121,9 @@ def main(argv):
             else:
                 print(f'  struct {name} {{', file=args.output)
 
-            if 'fields' in type:
-                for field in type['fields']:
+            if type['category'] == 'struct' or type['category'] == 'attribute':
+                for fieldname in type['order']:
+                    field = type['fields'][fieldname]
                     if ignored(field): continue
 
                     field_type = types[field["type"]]
