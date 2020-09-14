@@ -109,8 +109,9 @@ def main(argv):
             else:
                 print(f'  enum class {name} {{', file=args.output)
 
-            for value in type['values']:
-                print(f'    {identifier(value["name"])} = {encode(value["value"])},', file=args.output)
+            for ename in type['names']:
+                value = type['values'][ename]
+                print(f'    {identifier(ename)} = {value},', file=args.output)
         else:
             if basetype:
                 print(f'  struct {name} : {cxxname(basetype)} {{', file=args.output)

@@ -103,9 +103,13 @@
               "type": "string",
               "enum": [ "enum" ]
             },
+            "names": {
+              "types": "array",
+              "items": { "type": "string" }
+            },
             "values": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/enum_value" }
+              "type": "object",
+              "additionalProperties": { "type": "number" }
             }
           }
         }

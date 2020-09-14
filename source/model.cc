@@ -101,13 +101,13 @@ namespace sapc {
             type_json["annotations"] = annotations_to_json(type.annotations);
 
             if (type.category == Type::Category::Enum) {
-                auto values = json::array();
+                auto names = json::array();
+                auto values = json::object();
                 for (auto const& value : type.fields) {
-                    auto value_json = json::object();
-                    value_json["name"] = value.name;
-                    value_json["value"] = value.init.dataNumber;
-                    values.push_back(std::move(value_json));
+                    names.push_back(value.name);
+                    values[value.name.c_str()] = value.init.dataNumber;
                 }
+                type_json["names"] = std::move(names);
                 type_json["values"] = std::move(values);
             }
             else {
