@@ -27,9 +27,7 @@
       "oneOf": [
         { "$ref": "#/definitions/type_struct" },
         { "$ref": "#/definitions/type_enum" },
-        { "$ref": "#/definitions/type_opaque" },
-        { "$ref": "#/definitions/type_attribute" },
-        { "$ref": "#/definitions/type_union" }
+        { "$ref": "#/definitions/type_opaque" }
       ]
     },
     "type_common": {
@@ -77,34 +75,9 @@
           "properties": {
             "category": {
               "type": "string",
-              "enum": [ "struct" ]
+              "enum": [ "struct", "union", "attribute" ]
             },
             "base": { "type": "string" },
-            "order": {
-              "type": "array",
-              "items": { "type": "string" }
-            },
-            "fields": {
-              "type": "object",
-              "additionalProperties": {
-                "$ref": "#/definitions/field"
-              }
-            }
-          }
-        }
-      ]
-    },
-    "type_attribute": {
-      "allOf": [
-        { "$ref": "#/definitions/type_common" },
-        {
-          "type": "object",
-          "required": [ "category", "order", "fields" ],
-          "properties": {
-            "category": {
-              "type": "string",
-              "enum": [ "attribute" ]
-            },
             "order": {
               "type": "array",
               "items": { "type": "string" }
@@ -133,32 +106,6 @@
             "values": {
               "type": "array",
               "items": { "$ref": "#/definitions/enum_value" }
-            }
-          }
-        }
-      ]
-    },
-    "type_union": {
-      "allOf": [
-        { "$ref": "#/definitions/type_common" },
-        {
-          "type": "object",
-          "required": [ "category", "types" ],
-          "properties": {
-            "category": {
-              "type": "string",
-              "enum": [ "union" ]
-            },
-            "types": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": [ "name", "is_array" ],
-                "properties": {
-                  "name": { "type": "string" },
-                  "is_array": { "type": "boolean" }
-                }
-              }
             }
           }
         }

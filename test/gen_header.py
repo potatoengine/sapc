@@ -111,17 +111,13 @@ def main(argv):
 
             for value in type['values']:
                 print(f'    {identifier(value["name"])} = {encode(value["value"])},', file=args.output)
-        elif type['category'] == 'union':
-            print(f'  union {name} {{', file=args.output)
-            for unionType in type['types']:
-                print(f'    {cxxname(types[unionType["name"]])} {identifier(unionType["name"])};', file=args.output)
         else:
             if basetype:
                 print(f'  struct {name} : {cxxname(basetype)} {{', file=args.output)
             else:
                 print(f'  struct {name} {{', file=args.output)
 
-            if type['category'] == 'struct' or type['category'] == 'attribute':
+            if type['category'] != 'opaque':
                 for fieldname in type['order']:
                     field = type['fields'][fieldname]
                     if ignored(field): continue

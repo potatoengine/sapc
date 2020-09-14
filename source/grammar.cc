@@ -309,15 +309,17 @@ namespace sapc {
                 union_.location = pos();
 
                 expect(TokenType::LeftBrace);
-                for (;;) {
-                    auto& unionType = union_.fields.emplace_back();
-                    if (!parseType(unionType.type))
+                while (!consume(TokenType::RightBrace)) {
+                    auto& field = union_.fields.emplace_back();
+                    if (!parseType(field.type))
                         return false;
-                    unionType.location = pos();
-                    if (!consume(TokenType::Comma))
-                        break;
+                    expect(TokenType::Identifier, field.name);
+                    field.location = pos();
+                    expect(TokenType::SemiColon);
                 }
-                expect(TokenType::RightBrace);
+
+                if (union_.fields.empty())
+                    return error(union_.location, "union `", union_.name, "' must have at least one field");
 
                 pushType(std::move(union_));
                 continue;
@@ -342,8 +344,8 @@ namespace sapc {
                         return false;
                     if (!parseType(field.type))
                         return false;
-                    field.location = pos();
                     expect(TokenType::Identifier, field.name);
+                    field.location = pos();
                     if (consume(TokenType::Equal))
                         expectValue(field.init);
                     expect(TokenType::SemiColon);

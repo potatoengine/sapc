@@ -110,16 +110,6 @@ namespace sapc {
                 }
                 type_json["values"] = std::move(values);
             }
-            else if (type.category == Type::Category::Union) {
-                auto types = json::array();
-                for (auto const& unionType : type.fields) {
-                    auto union_type_json = json::object();
-                    union_type_json["name"] = unionType.type.type;
-                    union_type_json["is_array"] = unionType.type.isArray;
-                    types.push_back(std::move(union_type_json));
-                }
-                type_json["types"] = std::move(types);
-            }
             else {
                 auto fields = json::object();
                 auto order = json::array();
