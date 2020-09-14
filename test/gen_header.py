@@ -133,18 +133,6 @@ def main(argv):
         print(f'  }};', file=args.output)
         print(f'}}', file=args.output)
 
-    print(f'inline void sapc_test_{identifier(doc["module"])}() {{', file=args.output)
-    if 'imports' in doc:
-        for module in doc['imports']:
-            print(f'  sapc_test_{identifier(module)}();', file=args.output)
-    for typename in exports:
-        type = types[typename]
-        if ignored(type): continue
-
-        name = cxxname(type)
-        print(f'  [[maybe_unused]] {namespace(type)}::{name} val_{identifier(name)} = {{}};', file=args.output)
-    print('}', file=args.output)
-
     print('#endif', file=args.output)
 
     args.output.close()
