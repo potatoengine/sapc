@@ -83,6 +83,6 @@ namespace sapc {
 
         std::unordered_map<std::string, size_t> typeMap;
 
-        friend nlohmann::json to_json(Module const& module);
+        friend nlohmann::ordered_json to_json(Module const& module);
     };
 }

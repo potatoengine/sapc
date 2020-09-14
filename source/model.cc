@@ -14,7 +14,8 @@ namespace sapc {
         return os;
     }
 
-    void to_json(nlohmann::json& j, Value const& value) {
+    template <template<class...> class JsonT>
+    void to_json(nlohmann::basic_json<JsonT>& j, Value const& value) {
         switch (value.type) {
         case Value::Type::String: j = value.dataString; break;
         case Value::Type::Number: j = value.dataNumber; break;
@@ -24,8 +25,8 @@ namespace sapc {
         }
     }
 
-    nlohmann::json to_json(Module const& module) {
-        using namespace nlohmann;
+    nlohmann::ordered_json to_json(Module const& module) {
+        using json = nlohmann::ordered_json;
 
         auto doc = json::object();
         doc["$schema"] = "https://raw.githubusercontent.com/potatoengine/sapc/master/schema/sap-1.schema.json";
@@ -49,10 +50,10 @@ namespace sapc {
                     auto const& arg = annotation.arguments[index];
 
                     assert(arg.type != Value::Type::None);
-                    args_json[param.name] = json(arg);
+                    args_json[param.name.c_str()] = json(arg);
                 }
 
-                annotations_json[def.name] = std::move(args_json);
+                annotations_json[def.name.c_str()] = std::move(args_json);
             }
             return annotations_json;
         };
@@ -98,7 +99,6 @@ namespace sapc {
             if (!type.base.empty())
                 type_json["base"] = type.base;
             type_json["annotations"] = annotations_to_json(type.annotations);
-            type_json["location"] = loc_to_json(type.location);
 
             if (type.category == Type::Category::Enum) {
                 auto values = json::array();
@@ -134,16 +134,17 @@ namespace sapc {
                     field_json["location"] = loc_to_json(field.location);
 
                     order.push_back(field.name);
-                    fields[field.name] = std::move(field_json);
+                    fields[field.name.c_str()] = std::move(field_json);
                 }
                 type_json["order"] = std::move(order);
                 type_json["fields"] = std::move(fields);
             }
 
-            types_json[type.name] = std::move(type_json);
+            type_json["location"] = loc_to_json(type.location);
+            types_json[type.name.c_str()] = std::move(type_json);
         }
-        doc["types"] = std::move(types_json);
         doc["exports"] = std::move(exports_json);
+        doc["types"] = std::move(types_json);
 
         return doc;
     }
