@@ -148,14 +148,14 @@ static int compile(Config& config) {
             return 3;
         }
 
-        deps_stream << config.output.string() << ": ";
+        deps_stream << fs::relative(config.output).string() << ": ";
 
         auto const num_deps = dependencies.size();
         for (size_t i = 0; i != num_deps; ++i) {
             if (i != 0)
                 deps_stream << "  ";
 
-            deps_stream << dependencies[i].string() << ' ';
+            deps_stream << fs::relative(dependencies[i]).string() << ' ';
 
             if (i != num_deps - 1)
                 deps_stream << '\\';
