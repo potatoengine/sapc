@@ -149,6 +149,17 @@
             "name": { "type": "string" },
             "value": { "type": "number" }
           }
+        },
+        {
+          "type": "object",
+          "required": [ "kind", "type" ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "kind": [ "typename" ]
+            },
+            "type": { "type": "string" }
+          }
         }
       ]
     },
@@ -186,6 +197,17 @@
               "enum": [ "pointer" ]
             },
             "to": { "$ref": "#/definitions/field_type" }
+          }
+        },
+        {
+          "type": "object",
+          "required": [ "kind", "type" ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [ "typename" ]
+            },
+            "type": "string"
           }
         }
       ]

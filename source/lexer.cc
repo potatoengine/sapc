@@ -38,6 +38,7 @@ namespace sapc {
         case TokenType::KeywordStruct: os << "`struct'"; break;
         case TokenType::KeywordUnion: os << "`union'"; break;
         case TokenType::KeywordAttribute: os << "`attribute'"; break;
+        case TokenType::KeywordTypename: os << "`typename'"; break;
         case TokenType::KeywordEnum: os << "`enum'"; break;
         case TokenType::KeywordTrue: os << "`true'"; break;
         case TokenType::KeywordFalse: os << "`false'"; break;
@@ -108,6 +109,7 @@ namespace sapc {
             { "module", TokenType::KeywordModule, true },
             { "import", TokenType::KeywordImport, true },
             { "attribute", TokenType::KeywordAttribute, true },
+            { "typename", TokenType::KeywordTypename, true },
             { "struct", TokenType::KeywordStruct, true },
             { "union", TokenType::KeywordUnion, true },
             { "enum", TokenType::KeywordEnum, true },

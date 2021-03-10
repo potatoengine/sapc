@@ -41,6 +41,8 @@ def encode(el):
         return 'true' if el else 'false'
     elif isinstance(el, dict) and el['kind'] == 'enum':
         return f'{identifier(el["type"])}::{identifier(el["name"])}'
+    elif isinstance(el, dict) and el['kind'] == 'typename':
+        return f'typeid({identifier(el["type"])})'
     elif el is None:
         return 'nullptr'
     else:
@@ -48,6 +50,8 @@ def encode(el):
 
 def field_cxxtype(types, type_info):
     if 'kind' in type_info:
+        if type_info['kind'] == 'typename':
+            return 'std::type_info'
         if type_info['kind'] == 'array':
             field_type = type_info['of']
             return f'std::vector<{field_cxxtype(types, field_type)}>'

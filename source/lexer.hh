@@ -31,6 +31,7 @@ namespace sapc {
         KeywordStruct,
         KeywordUnion,
         KeywordAttribute,
+        KeywordTypename,
         KeywordEnum,
         KeywordTrue,
         KeywordFalse,

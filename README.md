@@ -50,7 +50,7 @@ annotations <- ( '[' annotation ( ',' annotation )* ']' )+
 annotation <- identifier ( '(' ( value ( ',' value )* )? ')' )?
 
 attribute <- 'attribute' identifier ( '{' attribute_param* '}' / ';' )
-attribute_param <- type_info identifier ( '=' value )? ';'
+attribute_param <- ( type_info / 'typename' ) identifier ( '=' value )? ';'
 
 module <- annotations? 'module' identifier ';'
 

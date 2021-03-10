@@ -20,6 +20,7 @@ namespace sapc {
         std::string type;
         bool isPointer = false;
         bool isArray = false;
+        bool isTypeName = false;
 
         friend std::ostream& operator<<(std::ostream& os, TypeInfo const& type);
     };

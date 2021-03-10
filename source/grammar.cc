@@ -259,7 +259,9 @@ namespace sapc {
                 if (consume(TokenType::LeftBrace)) {
                     while (!consume(TokenType::RightBrace)) {
                         auto& arg = attr.fields.emplace_back();
-                        if (!parseType(arg.type))
+                        if (consume(TokenType::KeywordTypename))
+                            arg.type.isTypeName = true;
+                        else if (!parseType(arg.type))
                             return false;
                         arg.location = pos();
                         expect(TokenType::Identifier, arg.name);

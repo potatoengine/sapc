@@ -67,6 +67,12 @@ namespace sapc {
         };
 
         auto typeinfo_to_json = [&](TypeInfo const& type) -> json {
+            if (type.isTypeName) {
+                auto type_json = json::object();
+                type_json["kind"] = "typename";
+                type_json["type"] = type.type;
+                return type_json;
+            }
             if (type.isArray && type.isPointer) {
                 auto subtype_json = json::object();
                 subtype_json["kind"] = "pointer";

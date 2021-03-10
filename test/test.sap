@@ -38,6 +38,7 @@ union number {
     float f;
 }
 
+[forward(Vec)]
 struct derived : test {}
 
 enum order {

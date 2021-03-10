@@ -8,6 +8,7 @@ Version 0.11-beta (WIP)
  - Added pointer support via `name*`
  - Added array-of-pointer via `name*[]`
  - Enum field values must be qualified with `.`, e.g. `my_enum e = my_enum.value;`
+ - Attributes can have `typename` fields
 
 Version 0.10-beta
 -----------------
