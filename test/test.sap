@@ -16,6 +16,8 @@ struct Vec {
     float y = 0;
 }
 
+const int zero = 0;
+
 [name("Test")]
 struct test {
     [default]

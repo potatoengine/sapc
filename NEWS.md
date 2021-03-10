@@ -9,6 +9,7 @@ Version 0.11-beta (WIP)
  - Added array-of-pointer via `name*[]`
  - Enum field values must be qualified with `.`, e.g. `my_enum e = my_enum.value;`
  - Attributes can have `typename` fields
+ - Module scope constants with `const`
 
 Version 0.10-beta
 -----------------

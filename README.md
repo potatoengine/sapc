@@ -32,7 +32,7 @@ Simplified PEG grammar.
 ```
 file <- statement*
 statement <- module / import / definition
-definition <- attribute / opaque_type / struct / enum / union
+definition <- attribute / opaque_type / struct / enum / union / constant
 
 import <- 'import' identifier ';'
 
@@ -53,6 +53,8 @@ attribute <- 'attribute' identifier ( '{' attribute_param* '}' / ';' )
 attribute_param <- ( type_info / 'typename' ) identifier ( '=' value )? ';'
 
 module <- annotations? 'module' identifier ';'
+
+constant <- annotations? 'const' type_info identifier '=' value ';'
 
 opaque_type <- annotations? 'struct' identifier ';'
 

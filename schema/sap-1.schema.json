@@ -13,6 +13,10 @@
       "type": "array",
       "items": { "type": "string" }
     },
+    "contants": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/definitions/constant" }
+    },
     "types": {
       "type": "object",
       "additionalProperties": { "$ref": "#/definitions/type" }
@@ -23,6 +27,18 @@
     }
   },
   "definitions": {
+    "constant": {
+      "type": "object",
+      "required": [ "name", "module", "type", "annotations", "value", "location" ],
+      "properties": {
+        "name": { "type": "string" },
+        "module": { "type": "string" },
+        "type": { "$ref": "#/definitions/field_type" },
+        "value": { "$ref": "#/definitions/value" },
+        "annotations": { "$ref": "#/definitions/annotations" },
+        "location": { "$ref": "#/definitions/location" }
+      }
+    },
     "type": {
       "oneOf": [
         { "$ref": "#/definitions/type_struct" },

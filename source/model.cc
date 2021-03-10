@@ -129,6 +129,19 @@ namespace sapc {
             modules_json.push_back(module);
         doc["imports"] = std::move(modules_json);
 
+        auto constants_json = json::object();
+        for (auto const& constant : module.constants) {
+            auto const_json = json::object();
+            const_json["name"] = constant.name;
+            const_json["module"] = constant.module;
+            const_json["type"] = typeinfo_to_json(constant.type);
+            const_json["value"] = json(constant.init);
+            const_json["annotations"] = annotations_to_json(constant.annotations);
+            const_json["location"] = loc_to_json(constant.location);
+            constants_json[constant.name.c_str()] = std::move(const_json);
+        }
+        doc["constants"] = std::move(constants_json);
+
         auto types_json = json::object();
         auto exports_json = json::array();
         for (auto const& type : module.types) {

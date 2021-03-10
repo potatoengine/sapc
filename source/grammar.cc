@@ -215,6 +215,31 @@ namespace sapc {
             return true;
         };
 
+        auto pushConstant = [&](Constant&& constant) -> bool {
+            assert(!constant.name.empty());
+
+            if (constant.module.empty())
+                constant.module = module.name;
+
+            auto const index = module.constants.size();
+
+            auto const it = module.constantMap.find(constant.name);
+            if (it != module.constantMap.end()) {
+                auto const& other = module.constants[it->second];
+
+                // duplicate type definitions from the same location/module are allowed
+                if (constant.location == other.location && constant.module == other.module)
+                    return true;
+
+                error(constant.location, "duplicate definition of constant `", constant.name, '\'');
+                return error(other.location, "previous definition of constant `", other.name, '\'');
+            }
+
+            module.constantMap[constant.name] = index;
+            module.constants.push_back(std::move(constant));
+            return true;
+        };
+
         while (!consume(TokenType::EndOfFile)) {
             if (consume(TokenType::Unknown)) {
                 std::ostringstream buf;
@@ -290,6 +315,27 @@ namespace sapc {
                 expect(TokenType::SemiColon);
 
                 module.annotations = std::move(annotations);
+                continue;
+            }
+
+            // parse constants
+            if (consume(TokenType::KeywordConst)) {
+                auto constant = Constant{};
+
+                constant.annotations = std::move(annotations);
+
+                if (!parseType(constant.type))
+                    return false;
+
+                expect(TokenType::Identifier, constant.name);
+
+                constant.location = pos();
+
+                expect(TokenType::Equal);
+                expectValue(constant.init);
+                expect(TokenType::SemiColon);
+
+                pushConstant(std::move(constant));
                 continue;
             }
 

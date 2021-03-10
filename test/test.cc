@@ -7,7 +7,7 @@ int main(int argc, char** argv) {
 
     sapc_type::test val_test = {};
     val_test.array.push_back("a string");
-    int i = 7;
+    int i = sapc_type::zero;
     val_test.iptr = &i;
     val_test.vecPtrs.push_back(std::make_unique<sapc_type::Vec>());
 

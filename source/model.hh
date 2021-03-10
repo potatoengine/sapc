@@ -74,6 +74,15 @@ namespace sapc {
         Location location;
     };
 
+    struct Constant {
+        std::string name;
+        std::string module;
+        TypeInfo type;
+        Value init;
+        std::vector<Annotation> annotations;
+        Location location;
+    };
+
     struct Module {
         std::string name;
         std::filesystem::path filename;
@@ -82,8 +91,10 @@ namespace sapc {
         std::set<std::string> imports;
 
         std::vector<Type> types;
+        std::vector<Constant> constants;
 
         std::unordered_map<std::string, size_t> typeMap;
+        std::unordered_map<std::string, size_t> constantMap;
 
         friend nlohmann::ordered_json to_json(Module const& module);
     };

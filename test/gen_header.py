@@ -140,6 +140,26 @@ def main(argv):
 
         print(f'  }};', file=args.output)
         print(f'}}', file=args.output)
+        
+    for constname in doc['constants']:
+        constant = doc['constants'][constname]
+        if ignored(constant): continue;
+
+        print(f'namespace {namespace(constant)} {{', file=args.output)
+
+        name = cxxname(constant)
+
+        if 'location' in constant:
+            loc = constant['location']
+            if 'line' in loc and 'column' in loc:
+                print(f'  // {loc["filename"]}({loc["line"]},{loc["column"]})', file=args.output)
+            elif 'line' in loc:
+                print(f'  // {loc["filename"]}({loc["line"]})', file=args.output)
+            else:
+                print(f'  // {loc["filename"]}', file=args.output)
+
+        print(f'  constexpr {field_cxxtype(types, constant["type"])} {cxxname(constant)} = {encode(constant["value"])};', file=args.output)
+        print(f'}}', file=args.output)
 
     print('#endif', file=args.output)
 
