@@ -48,9 +48,9 @@ namespace sapc {
                             return nullptr;
                         };
 
-                        auto const* enumValue = findEnumerant(field.init.dataString);
+                        auto const* enumValue = findEnumerant(field.init.dataName);
                         if (enumValue == nullptr) {
-                            error(field.init.location, "enumerant `", field.init.dataString, "' not found in enumeration '", fieldType.name, '\'');
+                            error(field.init.location, "enumerant `", field.init.dataName, "' not found in enumeration '", fieldType.name, '\'');
                             error(fieldType.location, "enumeration `", fieldType.name, "' defined here");
                             continue;
                         }

@@ -45,5 +45,5 @@ enum order {
 }
 
 struct ordered {
-    order position = second;
+    order position = order.second;
 }

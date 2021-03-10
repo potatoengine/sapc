@@ -7,6 +7,7 @@ Version 0.11-beta (WIP)
  - Removed `type` keyword
  - Added pointer support via `name*`
  - Added array-of-pointer via `name*[]`
+ - Enum field values must be qualified with `.`, e.g. `my_enum e = my_enum.value;`
 
 Version 0.10-beta
 -----------------

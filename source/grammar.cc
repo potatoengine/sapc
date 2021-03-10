@@ -117,8 +117,15 @@ namespace sapc {
                 out.type = Value::Type::String;
             else if (consume(TokenType::Number, out.dataNumber))
                 out.type = Value::Type::Number;
-            else if (consume(TokenType::Identifier, out.dataString))
-                out.type = Value::Type::Enum;
+            else if (consume(TokenType::Identifier, out.dataString)) {
+                if (consume(TokenType::Dot)) {
+                    expect(TokenType::Identifier, out.dataName);
+                    out.type = Value::Type::Enum;
+                }
+                else {
+                    out.type = Value::Type::TypeName;
+                }
+            }
             else
                 return false;
             out.location = pos();

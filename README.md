@@ -36,7 +36,7 @@ definition <- attribute / opaque_type / struct / enum / union
 
 import <- 'import' identifier ';'
 
-value <- number / string / 'true' / 'false' / 'null'
+value <- number / string / 'true' / 'false' / 'null' / identifier ( '.' identifier )?
 number <- '-'? [0-9]+
 string <- '"' <[^"\n]*> '"'
 
@@ -57,7 +57,7 @@ module <- annotations? 'module' identifier ';'
 opaque_type <- annotations? 'struct' identifier ';'
 
 struct <- annotations? 'struct' identifier ( ':' identifier )? '{' struct_field* '}'
-struct_field <- annotations? type_info identifier ( '=' value / '=' identifier )? ';'
+struct_field <- annotations? type_info identifier ( '=' value )? ';'
 
 union <- annotations? 'union' identifier '{' union_element+ '}'
 union_element <- type_info identifier ';'

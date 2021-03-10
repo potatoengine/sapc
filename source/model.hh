@@ -31,7 +31,8 @@ namespace sapc {
             Boolean,
             Number,
             String,
-            Enum
+            Enum,
+            TypeName,
         } type = Type::None;
         long long dataNumber;
         std::string dataName;

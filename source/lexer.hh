@@ -21,6 +21,7 @@ namespace sapc {
         LeftBracket,
         RightBracket,
         Comma,
+        Dot,
         Equal,
         Colon,
         SemiColon,

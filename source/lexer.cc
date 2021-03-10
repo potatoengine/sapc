@@ -28,6 +28,7 @@ namespace sapc {
         case TokenType::LeftBracket: os << "["; break;
         case TokenType::RightBracket: os << "]"; break;
         case TokenType::Comma: os << ","; break;
+        case TokenType::Dot: os << "."; break;
         case TokenType::Equal: os << "="; break;
         case TokenType::Colon: os << ":"; break;
         case TokenType::SemiColon: os << ";"; break;
@@ -99,6 +100,7 @@ namespace sapc {
             { "[", TokenType::LeftBracket },
             { "]", TokenType::RightBracket },
             { ",", TokenType::Comma },
+            { ".", TokenType::Dot },
             { "=", TokenType::Equal },
             { ":", TokenType::Colon },
             { ";", TokenType::SemiColon },
