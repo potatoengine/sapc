@@ -18,6 +18,7 @@
 namespace sapc {
     struct TypeInfo {
         std::string type;
+        bool isPointer = false;
         bool isArray = false;
 
         friend std::ostream& operator<<(std::ostream& os, TypeInfo const& type);

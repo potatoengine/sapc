@@ -174,7 +174,18 @@
               "type": "string",
               "enum": [ "array" ]
             },
-            "of": { "type": "string" }
+            "of": { "$ref": "#/definitions/field_type" }
+          }
+        },
+        {
+          "type": "object",
+          "required": [ "kind", "to" ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [ "pointer" ]
+            },
+            "to": { "$ref": "#/definitions/field_type" }
           }
         }
       ]

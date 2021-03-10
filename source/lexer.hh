@@ -24,6 +24,7 @@ namespace sapc {
         Equal,
         Colon,
         SemiColon,
+        Asterisk,
         KeywordModule,
         KeywordImport,
         KeywordStruct,

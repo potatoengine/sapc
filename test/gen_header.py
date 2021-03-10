@@ -46,6 +46,18 @@ def encode(el):
     else:
         return +el
 
+def field_cxxtype(types, type_info):
+    if 'kind' in type_info:
+        if type_info['kind'] == 'array':
+            field_type = type_info['of']
+            return f'std::vector<{field_cxxtype(types, field_type)}>'
+        elif type_info['kind'] == 'pointer':
+            field_type = type_info['to']
+            return f'std::unique_ptr<{field_cxxtype(types, field_type)}>'
+    else:
+        field_type = types[type_info]
+        return cxxname(field_type)
+
 def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', type=argparse.FileType(mode='r', encoding='utf8'), required=True)
@@ -117,18 +129,10 @@ def main(argv):
                     field = type['fields'][fieldname]
                     if ignored(field): continue
 
-                    type_info = field['type']
-                    if 'kind' in type_info and type_info['kind'] == 'array':
-                        field_type = types[type_info['of']]
-                        field_cxxtype = f'std::vector<{cxxname(field_type)}>'
-                    else:
-                        field_type = types[type_info]
-                        field_cxxtype = cxxname(field_type)
-
                     if 'default' in field:
-                        print(f'    {field_cxxtype} {cxxname(field)} = {encode(field["default"])};', file=args.output)
+                        print(f'    {field_cxxtype(types, field["type"])} {cxxname(field)} = {encode(field["default"])};', file=args.output)
                     else:
-                        print(f'    {field_cxxtype} {cxxname(field)};', file=args.output)
+                        print(f'    {field_cxxtype(types, field["type"])} {cxxname(field)};', file=args.output)
 
         print(f'  }};', file=args.output)
         print(f'}}', file=args.output)

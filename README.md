@@ -44,7 +44,7 @@ comment <- linecomment / blockcomment
 linecomment <- ( '#' / '//' ) [^\n]*
 blockcomment <- '/*' .* '*/'
 identifier <- [a-zA-Z_][a-zA-Z0-9_]*
-type_info <- identifier ( '[' ']' )?
+type_info <- identifier '*'? ( '[' ']' )?
 
 annotations <- ( '[' annotation ( ',' annotation )* ']' )+
 annotation <- identifier ( '(' ( value ( ',' value )* )? ')' )?

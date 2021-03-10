@@ -11,6 +11,11 @@ attribute default { any value = 0; } /* default attribute */
 [cxxname("int*"), ignore]
 struct intptr;
 
+struct Vec {
+    float x = 0;
+    float y = 0;
+}
+
 [name("Test")]
 struct test {
     [default]
@@ -25,6 +30,7 @@ struct test {
     intptr iptr = null;
     string[] array;
     bool[] bits;
+    Vec*[] vecPtrs;
 }
 
 union number {

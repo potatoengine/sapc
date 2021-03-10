@@ -9,6 +9,8 @@
 namespace sapc {
     std::ostream& operator<<(std::ostream& os, TypeInfo const& type) {
         os << type.type;
+        if (type.isPointer)
+            os << "*";
         if (type.isArray)
             os << "[]";
         return os;
@@ -65,13 +67,32 @@ namespace sapc {
         };
 
         auto typeinfo_to_json = [&](TypeInfo const& type) -> json {
-            if (!type.isArray)
-                return type.type;
+            if (type.isArray && type.isPointer) {
+                auto subtype_json = json::object();
+                subtype_json["kind"] = "pointer";
+                subtype_json["to"] = type.type;
 
-            auto type_json = json::object();
-            type_json["kind"] = "array";
-            type_json["of"] = type.type;
-            return type_json;
+                auto type_json = json::object();
+                type_json["kind"] = "array";
+                type_json["of"] = subtype_json;
+                return type_json;
+            }
+            else if (type.isArray) {
+                auto type_json = json::object();
+                type_json["kind"] = "array";
+                type_json["of"] = type.type;
+                return type_json;
+            }
+            else if (type.isPointer) {
+                auto type_json = json::object();
+                type_json["kind"] = "pointer";
+                type_json["to"] = type.type;
+                return type_json;
+            }
+            else {
+                return type.type;
+            }
+
         };
 
         auto loc_to_json = [&](Location const& loc) {
