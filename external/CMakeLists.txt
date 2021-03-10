@@ -2,11 +2,11 @@ if(SAPC_USE_EMBEDDED_JSON)
     include(FetchContent)
 
     if(NOT TARGET nlohmann_json)
-        find_package(nlohmann_json 3.9.0 QUIET)
+        find_package(nlohmann_json 3.9.1 QUIET)
         if(NOT nlohmann_json_FOUND)
             FetchContent_Declare(json
                 GIT_REPOSITORY https://github.com/nlohmann/json
-                GIT_TAG v3.9.0
+                GIT_TAG v3.9.1
             )
 
             FetchContent_GetProperties(json)
