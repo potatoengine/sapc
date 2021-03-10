@@ -9,7 +9,7 @@ module test;
 attribute default { any value = 0; } /* default attribute */
 
 [cxxname("int*"), ignore]
-type intptr;
+struct intptr;
 
 [name("Test")]
 struct test {

@@ -32,7 +32,7 @@ Simplified PEG grammar.
 ```
 file <- statement*
 statement <- module / import / definition
-definition <- attribute / type / struct / enum / union
+definition <- attribute / opaque_type / struct / enum / union
 
 import <- 'import' identifier ';'
 
@@ -54,7 +54,7 @@ attribute_param <- type_info identifier ( '=' value )? ';'
 
 module <- annotations? 'module' identifier ';'
 
-type <- annotations? 'type' identifier ';'
+opaque_type <- annotations? 'struct' identifier ';'
 
 struct <- annotations? 'struct' identifier ( ':' identifier )? '{' struct_field* '}'
 struct_field <- annotations? type_info identifier ( '=' value / '=' identifier )? ';'
@@ -71,8 +71,8 @@ Example:
 ```
 module example;
 
-type string;
-type int;
+struct string;
+struct int;
 
 attribute cdecl { string name; }
 

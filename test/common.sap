@@ -6,7 +6,7 @@ attribute name { string name; } # this is another comment
 attribute tag { string tag; }
 
 [cxxname("std::any"), ignore]
-type any;
+struct any;
 
 enum flags {
     none = 0,
