@@ -28,15 +28,18 @@ namespace sapc {
         case TokenType::LeftBracket: os << "["; break;
         case TokenType::RightBracket: os << "]"; break;
         case TokenType::Comma: os << ","; break;
+        case TokenType::Dot: os << "."; break;
         case TokenType::Equal: os << "="; break;
         case TokenType::Colon: os << ":"; break;
         case TokenType::SemiColon: os << ";"; break;
+        case TokenType::Asterisk: os << "*"; break;
         case TokenType::KeywordModule: os << "`module'"; break;
         case TokenType::KeywordImport: os << "`import'"; break;
-        case TokenType::KeywordType: os << "`type'"; break;
         case TokenType::KeywordStruct: os << "`struct'"; break;
         case TokenType::KeywordUnion: os << "`union'"; break;
         case TokenType::KeywordAttribute: os << "`attribute'"; break;
+        case TokenType::KeywordTypename: os << "`typename'"; break;
+        case TokenType::KeywordConst: os << "`const'"; break;
         case TokenType::KeywordEnum: os << "`enum'"; break;
         case TokenType::KeywordTrue: os << "`true'"; break;
         case TokenType::KeywordFalse: os << "`false'"; break;
@@ -99,13 +102,16 @@ namespace sapc {
             { "[", TokenType::LeftBracket },
             { "]", TokenType::RightBracket },
             { ",", TokenType::Comma },
+            { ".", TokenType::Dot },
             { "=", TokenType::Equal },
             { ":", TokenType::Colon },
             { ";", TokenType::SemiColon },
+            { "*", TokenType::Asterisk },
             { "module", TokenType::KeywordModule, true },
             { "import", TokenType::KeywordImport, true },
             { "attribute", TokenType::KeywordAttribute, true },
-            { "type", TokenType::KeywordType, true },
+            { "typename", TokenType::KeywordTypename, true },
+            { "const", TokenType::KeywordConst, true },
             { "struct", TokenType::KeywordStruct, true },
             { "union", TokenType::KeywordUnion, true },
             { "enum", TokenType::KeywordEnum, true },

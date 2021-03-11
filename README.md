@@ -32,11 +32,13 @@ Simplified PEG grammar.
 ```
 file <- statement*
 statement <- module / import / definition
-definition <- attribute / type / struct / enum / union
+definition <- attribute / opaque_type / struct / enum / union / constant
 
 import <- 'import' identifier ';'
 
-value <- number / string / 'true' / 'false' / 'null'
+value <- number / string / 'true' / 'false' / 'null' / qual_ident / list_init
+list_init <- '{' value_list? '}'
+value_list <- value ( ',' value )*
 number <- '-'? [0-9]+
 string <- '"' <[^"\n]*> '"'
 
@@ -44,20 +46,23 @@ comment <- linecomment / blockcomment
 linecomment <- ( '#' / '//' ) [^\n]*
 blockcomment <- '/*' .* '*/'
 identifier <- [a-zA-Z_][a-zA-Z0-9_]*
-type_info <- identifier ( '[' ']' )?
+qual_ident <- identifier ( '.' identifier )?
+type_info <- identifier '*'? ( '[' ']' )?
 
 annotations <- ( '[' annotation ( ',' annotation )* ']' )+
-annotation <- identifier ( '(' ( value ( ',' value )* )? ')' )?
+annotation <- identifier ( '(' value_list? ')' )?
 
 attribute <- 'attribute' identifier ( '{' attribute_param* '}' / ';' )
-attribute_param <- type_info identifier ( '=' value )? ';'
+attribute_param <- ( type_info / 'typename' ) identifier ( '=' value )? ';'
 
 module <- annotations? 'module' identifier ';'
 
-type <- annotations? 'type' identifier ';'
+constant <- annotations? 'const' type_info identifier '=' value ';'
+
+opaque_type <- annotations? 'struct' identifier ';'
 
 struct <- annotations? 'struct' identifier ( ':' identifier )? '{' struct_field* '}'
-struct_field <- annotations? type_info identifier ( '=' value / '=' identifier )? ';'
+struct_field <- annotations? type_info identifier ( '=' value )? ';'
 
 union <- annotations? 'union' identifier '{' union_element+ '}'
 union_element <- type_info identifier ';'
@@ -71,8 +76,8 @@ Example:
 ```
 module example;
 
-type string;
-type int;
+struct string;
+struct int;
 
 attribute cdecl { string name; }
 

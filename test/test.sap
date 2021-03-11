@@ -9,7 +9,14 @@ module test;
 attribute default { any value = 0; } /* default attribute */
 
 [cxxname("int*"), ignore]
-type intptr;
+struct intptr;
+
+struct Vec {
+    float x = 0;
+    float y = 0;
+}
+
+const Vec zero = { 0, 0 };
 
 [name("Test")]
 struct test {
@@ -23,8 +30,9 @@ struct test {
     */
     bool skipme = false;
     intptr iptr = null;
-    string[] array;
-    bool[] bits;
+    string[] array = { "first", "second", "third" };
+    bool[] bits = {{}};
+    Vec*[] vecPtrs;
 }
 
 union number {
@@ -32,6 +40,7 @@ union number {
     float f;
 }
 
+[forward(Vec)]
 struct derived : test {}
 
 enum order {
@@ -39,5 +48,5 @@ enum order {
 }
 
 struct ordered {
-    order position = second;
+    order position = order.second;
 }

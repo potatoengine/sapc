@@ -32,7 +32,7 @@ cxx_type_map = {'string': 'std::string',
 
 def cxxname(el): return annotation(el, name='cxxname', argname='name', default=cxx_type_map[el['name']] if el['name'] in cxx_type_map else identifier(el['name']))
 def ignored(el): return annotation(el, name='ignore', argname='ignored', default=False)
-def namespace(el): return 'sapc_attr' if 'is_attribute' in el and el['is_attribute'] else 'sapc_type'
+def namespace(el): return 'sapc_attr' if 'is_attribute' in el and el['is_attribute'] else 'st'
 
 def encode(el):
     if isinstance(el, str):
@@ -41,10 +41,28 @@ def encode(el):
         return 'true' if el else 'false'
     elif isinstance(el, dict) and el['kind'] == 'enum':
         return f'{identifier(el["type"])}::{identifier(el["name"])}'
+    elif isinstance(el, dict) and el['kind'] == 'typename':
+        return f'typeid({identifier(el["type"])})'
+    elif isinstance(el, list):
+        return f'{{{",".join(encode(v) for v in el)}}}'
     elif el is None:
         return 'nullptr'
     else:
-        return +el
+        return str(+el)
+
+def field_cxxtype(types, type_info):
+    if 'kind' in type_info:
+        if type_info['kind'] == 'typename':
+            return 'std::type_info'
+        if type_info['kind'] == 'array':
+            field_type = type_info['of']
+            return f'std::vector<{field_cxxtype(types, field_type)}>'
+        elif type_info['kind'] == 'pointer':
+            field_type = type_info['to']
+            return f'std::unique_ptr<{field_cxxtype(types, field_type)}>'
+    else:
+        field_type = types[type_info]
+        return cxxname(field_type)
 
 def main(argv):
     parser = argparse.ArgumentParser()
@@ -117,20 +135,32 @@ def main(argv):
                     field = type['fields'][fieldname]
                     if ignored(field): continue
 
-                    type_info = field['type']
-                    if 'kind' in type_info and type_info['kind'] == 'array':
-                        field_type = types[type_info['of']]
-                        field_cxxtype = f'std::vector<{cxxname(field_type)}>'
-                    else:
-                        field_type = types[type_info]
-                        field_cxxtype = cxxname(field_type)
-
                     if 'default' in field:
-                        print(f'    {field_cxxtype} {cxxname(field)} = {encode(field["default"])};', file=args.output)
+                        print(f'    {field_cxxtype(types, field["type"])} {cxxname(field)} = {encode(field["default"])};', file=args.output)
                     else:
-                        print(f'    {field_cxxtype} {cxxname(field)};', file=args.output)
+                        print(f'    {field_cxxtype(types, field["type"])} {cxxname(field)};', file=args.output)
 
         print(f'  }};', file=args.output)
+        print(f'}}', file=args.output)
+        
+    for constname in doc['constants']:
+        constant = doc['constants'][constname]
+        if ignored(constant): continue;
+
+        print(f'namespace {namespace(constant)} {{', file=args.output)
+
+        name = cxxname(constant)
+
+        if 'location' in constant:
+            loc = constant['location']
+            if 'line' in loc and 'column' in loc:
+                print(f'  // {loc["filename"]}({loc["line"]},{loc["column"]})', file=args.output)
+            elif 'line' in loc:
+                print(f'  // {loc["filename"]}({loc["line"]})', file=args.output)
+            else:
+                print(f'  // {loc["filename"]}', file=args.output)
+
+        print(f'  constexpr {field_cxxtype(types, constant["type"])} {cxxname(constant)} = {encode(constant["value"])};', file=args.output)
         print(f'}}', file=args.output)
 
     print('#endif', file=args.output)

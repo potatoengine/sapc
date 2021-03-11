@@ -9,9 +9,22 @@
 namespace sapc {
     std::ostream& operator<<(std::ostream& os, TypeInfo const& type) {
         os << type.type;
+        if (type.isPointer)
+            os << "*";
         if (type.isArray)
             os << "[]";
         return os;
+    }
+
+    template <typename JsonT>
+    void to_json(JsonT& j, Value const& value);
+
+    template <typename JsonT>
+    void to_json(JsonT& j, std::vector<Value> const& value) {
+        j = JsonT::array();
+        for (Value const& val : value) {
+            j.push_back(val);
+        }
     }
 
     template <typename JsonT>
@@ -27,6 +40,7 @@ namespace sapc {
             { "name", value.dataName.c_str() },
             { "value", value.dataNumber }
         }; break;
+        case Value::Type::List: j = value.dataList; break;
         default: break;
         }
     }
@@ -65,13 +79,38 @@ namespace sapc {
         };
 
         auto typeinfo_to_json = [&](TypeInfo const& type) -> json {
-            if (!type.isArray)
-                return type.type;
+            if (type.isTypeName) {
+                auto type_json = json::object();
+                type_json["kind"] = "typename";
+                type_json["type"] = type.type;
+                return type_json;
+            }
+            if (type.isArray && type.isPointer) {
+                auto subtype_json = json::object();
+                subtype_json["kind"] = "pointer";
+                subtype_json["to"] = type.type;
 
-            auto type_json = json::object();
-            type_json["kind"] = "array";
-            type_json["of"] = type.type;
-            return type_json;
+                auto type_json = json::object();
+                type_json["kind"] = "array";
+                type_json["of"] = subtype_json;
+                return type_json;
+            }
+            else if (type.isArray) {
+                auto type_json = json::object();
+                type_json["kind"] = "array";
+                type_json["of"] = type.type;
+                return type_json;
+            }
+            else if (type.isPointer) {
+                auto type_json = json::object();
+                type_json["kind"] = "pointer";
+                type_json["to"] = type.type;
+                return type_json;
+            }
+            else {
+                return type.type;
+            }
+
         };
 
         auto loc_to_json = [&](Location const& loc) {
@@ -101,6 +140,19 @@ namespace sapc {
         for (auto const& module : module.imports)
             modules_json.push_back(module);
         doc["imports"] = std::move(modules_json);
+
+        auto constants_json = json::object();
+        for (auto const& constant : module.constants) {
+            auto const_json = json::object();
+            const_json["name"] = constant.name;
+            const_json["module"] = constant.module;
+            const_json["type"] = typeinfo_to_json(constant.type);
+            const_json["value"] = json(constant.init);
+            const_json["annotations"] = annotations_to_json(constant.annotations);
+            const_json["location"] = loc_to_json(constant.location);
+            constants_json[constant.name.c_str()] = std::move(const_json);
+        }
+        doc["constants"] = std::move(constants_json);
 
         auto types_json = json::object();
         auto exports_json = json::array();

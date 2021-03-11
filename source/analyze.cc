@@ -25,44 +25,52 @@ namespace sapc {
                 error(type.location, "unknown type `", type.base, '\'');
             }
 
-            if (type.kind != Type::Kind::Enum) {
-                for (auto& field : type.fields) {
-                    auto typeIt = module.typeMap.find(field.type.type);
-                    if (typeIt == module.typeMap.end()) {
-                        error(field.location, "unknown type `", field.type, '\'');
+            if (type.kind == Type::Kind::Enum)
+                continue;
+
+            for (auto& field : type.fields) {
+                if (field.type.isTypeName) {
+                    if (type.kind != Type::Kind::Attribute)
+                        error(field.location, "illegal field `", field.type, "', only attributes may have `typename' fields");
+
+                    continue;
+                }
+
+                auto typeIt = module.typeMap.find(field.type.type);
+                if (typeIt == module.typeMap.end()) {
+                    error(field.location, "unknown type `", field.type, '\'');
+                    continue;
+                }
+                auto const& fieldType = module.types[typeIt->second];
+
+                if (fieldType.kind == Type::Kind::Enum && field.init.type != Value::Type::None) {
+                    if (field.init.type != Value::Type::Enum) {
+                        error(field.location, "enumeration type `", field.type, "' may only be initialized by enumerants");
                         continue;
                     }
-                    auto const& fieldType = module.types[typeIt->second];
 
-                    if (fieldType.kind == Type::Kind::Enum && field.init.type != Value::Type::None) {
-                        if (field.init.type != Value::Type::Enum) {
-                            error(field.location, "enumeration type `", field.type, "' may only be initialized by enumerants");
-                            continue;
+                    auto findEnumerant = [&](std::string const& name) -> TypeField const* {
+                        for (auto const& value : fieldType.fields) {
+                            if (value.name == name)
+                                return &value;
                         }
+                        return nullptr;
+                    };
 
-                        auto findEnumerant = [&](std::string const& name) -> TypeField const* {
-                            for (auto const& value : fieldType.fields) {
-                                if (value.name == name)
-                                    return &value;
-                            }
-                            return nullptr;
-                        };
-
-                        auto const* enumValue = findEnumerant(field.init.dataString);
-                        if (enumValue == nullptr) {
-                            error(field.init.location, "enumerant `", field.init.dataString, "' not found in enumeration '", fieldType.name, '\'');
-                            error(fieldType.location, "enumeration `", fieldType.name, "' defined here");
-                            continue;
-                        }
-
-                        field.init.type = Value::Type::Enum;
-                        field.init.dataName = enumValue->name;
-                        field.init.dataString = fieldType.name;
-                        field.init.dataNumber = enumValue->init.dataNumber;
+                    auto const* enumValue = findEnumerant(field.init.dataName);
+                    if (enumValue == nullptr) {
+                        error(field.init.location, "enumerant `", field.init.dataName, "' not found in enumeration '", fieldType.name, '\'');
+                        error(fieldType.location, "enumeration `", fieldType.name, "' defined here");
+                        continue;
                     }
-                    else if (field.init.type == Value::Type::Enum)
-                        error(field.init.location, "only enumeration types can be initialized by enumerants");
+
+                    field.init.type = Value::Type::Enum;
+                    field.init.dataName = enumValue->name;
+                    field.init.dataString = fieldType.name;
+                    field.init.dataNumber = enumValue->init.dataNumber;
                 }
+                else if (field.init.type == Value::Type::Enum)
+                    error(field.init.location, "only enumeration types can be initialized by enumerants");
             }
         }
 
@@ -86,6 +94,24 @@ namespace sapc {
             if (argc > params.size()) {
                 error(annotation.location, "too many arguments to attribute `", annotation.name, '\'');
                 return;
+            }
+
+            for (size_t index = 0; index != argc; ++index) {
+                auto const& param = params[index];
+                auto const& arg = annotation.arguments[index];
+
+                if (param.type.isTypeName) {
+                    if (arg.type != Value::Type::TypeName) {
+                        error(arg.location, "typename field `", param.name, "' requires initialization to a type");
+                        continue;
+                    }
+
+                    auto typeIt = module.typeMap.find(arg.dataString);
+                    if (typeIt == module.typeMap.end()) {
+                        error(arg.location, "unknown type `", arg.dataString, '\'');
+                        continue;
+                    }
+                }
             }
 
             for (size_t index = argc; index != params.size(); ++index) {

@@ -14,198 +14,64 @@
 
 namespace fs = std::filesystem;
 
-namespace sapc {
-    bool parse(std::vector<Token> const& tokens, std::vector<fs::path> const& search, std::vector<std::string>& errors, std::vector<fs::path>& dependencies, fs::path const& filename, Module& module) {
-        size_t next = 0;
-
-        struct Consume {
-            size_t& next;
-            std::vector<Token> const& tokens;
-
-            bool operator()(TokenType type) {
-                if (next >= tokens.size())
-                    return false;
-
-                if (tokens[next].type != type)
-                    return false;
-
-                ++next;
-                return true;
-            }
-
-            bool operator()(TokenType type, std::string& out) {
-                auto const index = next;
-                if (!(*this)(type))
-                    return false;
-
-                out = tokens[index].dataString;
-                return true;
-            }
-
-            bool operator()(TokenType type, long long& out) {
-                auto const index = next;
-                if (!(*this)(type))
-                    return false;
-
-                out = tokens[index].dataNumber;
-                return true;
-            }
-        } consume{ next, tokens };
-
-        auto resolve = [&](fs::path target) ->  fs::path {
-            if (target.is_absolute())
-                return filename;
-
-            if (!filename.empty()) {
-                auto tmp = filename.parent_path() / target;
-                if (fs::exists(tmp))
-                    return tmp;
-            }
-
-            for (auto const& path : search) {
-                auto tmp = path / target;
-                if (fs::exists(tmp))
-                    return tmp;
-            }
-
-            return {};
-        };
-
-        auto error = [&](Location const& loc, std::string message, auto const&... args) {
-            std::ostringstream buffer;
-            ((buffer << loc << ": " << message) << ... << args);
-            errors.push_back({ buffer.str() });
-            return false;
-        };
-
-        auto fail = [&](std::string message, auto const&... args) {
-            auto const& tok = next < tokens.size() ? tokens[next] : tokens.back();
-            Location const loc{ filename, tok.pos.line, tok.pos.column };
-            return error(loc, message, args...);
-        };
-
-        auto pos = [&]() {
-            auto const& tokPos = next > 0 ? tokens[next - 1].pos : tokens.front().pos;
-            return Location{ filename, tokPos.line, tokPos.column };
-        };
-
-#if defined(expect)
-#   undef expect
+#if defined(EXPECT)
+#   undef EXPECT
 #endif
-#define expect(type,...) \
-        do{ \
-            auto const _ttype = (type); \
-            if (!consume(_ttype,##__VA_ARGS__)) { \
-                std::ostringstream buf; \
-                buf << "expected " << _ttype; \
-                if (next > 0) \
-                    buf << " after " << tokens[next - 1]; \
-                if (next < tokens.size()) \
-                    buf << ", got " << tokens[next]; \
-                return fail(buf.str()); \
-            } \
-        } while(false)
+#define EXPECT(type,...) do{ if (!mustConsume((type),##__VA_ARGS__)) return false; }while(0)
 
-        auto consumeValue = [&](Value& out) {
-            if (consume(TokenType::KeywordNull))
-                out = Value{ Value::Type::Null };
-            else if (consume(TokenType::KeywordFalse))
-                out = Value{ Value::Type::Boolean, 0 };
-            else if (consume(TokenType::KeywordTrue))
-                out = Value{ Value::Type::Boolean, 1 };
-            else if (consume(TokenType::String, out.dataString))
-                out.type = Value::Type::String;
-            else if (consume(TokenType::Number, out.dataNumber))
-                out.type = Value::Type::Number;
-            else if (consume(TokenType::Identifier, out.dataString))
-                out.type = Value::Type::Enum;
-            else
-                return false;
-            out.location = pos();
-            return true;
+#if defined(EXPECT_VALUE)
+#   undef EXPECT_VALUE
+#endif
+#define EXPECT_VALUE(out) do{ if (!mustConsumeValue((out))) return false; }while(0)
+
+namespace sapc {
+    namespace {
+        struct Grammar {
+            std::vector<Token> const& tokens;
+            std::vector<fs::path> const& search;
+            std::vector<std::string>& errors;
+            std::vector<fs::path>& dependencies;
+            fs::path const& filename;
+            Module& module;
+            size_t next = 0;
+
+            inline bool consume(TokenType type);
+            inline bool consume(TokenType type, std::string& out);
+            inline bool consume(TokenType type, long long& out);
+
+            inline Location pos();
+
+            template <typename... T>
+            bool error(Location const& loc, std::string message, T const&... args);
+
+            template <typename... T>
+            bool fail(std::string message, T const&... args);
+
+            inline bool mustConsume(TokenType type);
+            template <typename T>
+            bool mustConsume(TokenType type, T& out);
+            inline bool mustConsumeFail(TokenType type);
+
+            inline bool consumeValue(Value& out);
+            inline bool mustConsumeValue(Value& out);
+
+            inline fs::path resolve(fs::path target);
+
+            inline bool parseAnnotations(std::vector<Annotation>& annotations);
+            inline bool parseType(TypeInfo& type);
+            inline bool parseFile();
+
+            inline bool pushType(Type&& type);
+            inline bool pushConstant(Constant&& constant);
         };
+    }
 
-#define expectValue(out) \
-        do{ \
-            if (!consumeValue((out))) { \
-                std::ostringstream buf; \
-                buf << "expected value"; \
-                if (next > 0) \
-                    buf << " after " << tokens[next - 1]; \
-                if (next < tokens.size()) \
-                    buf << ", got " << tokens[next]; \
-                return fail(buf.str()); \
-            } \
-        } while(false)
+    bool parse(std::vector<Token> const& tokens, std::vector<fs::path> const& search, std::vector<std::string>& errors, std::vector<fs::path>& dependencies, fs::path const& filename, Module& module) {
+        Grammar grammar{ tokens, search, errors, dependencies, filename, module };
+        return grammar.parseFile();
+    }
 
-        auto parseAnnotations = [&](std::vector<Annotation>& annotations) -> bool {
-            while (consume(TokenType::LeftBracket)) {
-                do {
-                    Annotation annotation;
-                    expect(TokenType::Identifier, annotation.name);
-                    annotation.location = pos();
-
-                    auto const otherIt = find_if(begin(annotations), end(annotations), [&](Annotation const& other) { return other.name == annotation.name; });
-                    if (otherIt != end(annotations)) {
-                        error(annotation.location, "duplicate annotation `", annotation.name, '\'');
-                        return error(otherIt->location, "previous annotation here");
-                    }
-
-                    if (consume(TokenType::LeftParen)) {
-                        if (!consume(TokenType::RightParen)) {
-                            for (;;) {
-                                auto& value = annotation.arguments.emplace_back();
-                                expectValue(value);
-                                if (!consume(TokenType::Comma))
-                                    break;
-
-                            }
-                            expect(TokenType::RightParen);
-                        }
-                    }
-
-                    annotations.push_back(std::move(annotation));
-                } while (consume(TokenType::Comma));
-                expect(TokenType::RightBracket);
-            }
-            return true;
-        };
-
-        auto parseType = [&](TypeInfo& type) -> bool {
-            expect(TokenType::Identifier, type.type);
-            if (consume(TokenType::LeftBracket)) {
-                expect(TokenType::RightBracket);
-                type.isArray = true;
-            }
-            return true;
-        };
-
-        auto pushType = [&](Type&& type) -> bool {
-            assert(type.kind != Type::Kind::Unknown);
-            assert(!type.name.empty());
-
-            if (type.module.empty())
-                type.module = module.name;
-
-            auto const index = module.types.size();
-
-            auto const it = module.typeMap.find(type.name);
-            if (it != module.typeMap.end()) {
-                auto const& other = module.types[it->second];
-
-                // duplicate type definitions from the same location/module are allowed
-                if (type.location == other.location && type.module == other.module)
-                    return true;
-
-                error(type.location, "duplicate definition of type `", type.name, '\'');
-                return error(other.location, "previous definition of type `", other.name, '\'');
-            }
-
-            module.typeMap[type.name] = index;
-            module.types.push_back(std::move(type));
-            return true;
-        };
-
+    bool Grammar::parseFile() {
         while (!consume(TokenType::EndOfFile)) {
             if (consume(TokenType::Unknown)) {
                 std::ostringstream buf;
@@ -217,8 +83,8 @@ namespace sapc {
 
             if (consume(TokenType::KeywordImport)) {
                 std::string import;
-                expect(TokenType::Identifier, import);
-                expect(TokenType::SemiColon);
+                EXPECT(TokenType::Identifier, import);
+                EXPECT(TokenType::SemiColon);
 
                 if (module.imports.count(import) != 0)
                     continue;
@@ -243,24 +109,26 @@ namespace sapc {
                 auto attr = Type{};
                 attr.kind = Type::Kind::Attribute;
 
-                expect(TokenType::Identifier, attr.name);
+                EXPECT(TokenType::Identifier, attr.name);
 
                 attr.location = pos();
 
                 if (consume(TokenType::LeftBrace)) {
                     while (!consume(TokenType::RightBrace)) {
                         auto& arg = attr.fields.emplace_back();
-                        if (!parseType(arg.type))
+                        if (consume(TokenType::KeywordTypename))
+                            arg.type.isTypeName = true;
+                        else if (!parseType(arg.type))
                             return false;
                         arg.location = pos();
-                        expect(TokenType::Identifier, arg.name);
+                        EXPECT(TokenType::Identifier, arg.name);
                         if (consume(TokenType::Equal))
-                            expectValue(arg.init);
-                        expect(TokenType::SemiColon);
+                            EXPECT_VALUE(arg.init);
+                        EXPECT(TokenType::SemiColon);
                     }
                 }
                 else
-                    expect(TokenType::SemiColon);
+                    EXPECT(TokenType::SemiColon);
 
                 pushType(std::move(attr));
                 continue;
@@ -275,26 +143,31 @@ namespace sapc {
             if (consume(TokenType::KeywordModule)) {
                 if (!module.name.empty())
                     return fail("module has already been declared");
-                expect(TokenType::Identifier, module.name);
-                expect(TokenType::SemiColon);
+                EXPECT(TokenType::Identifier, module.name);
+                EXPECT(TokenType::SemiColon);
 
                 module.annotations = std::move(annotations);
                 continue;
             }
 
-            // parse type declarations
-            if (consume(TokenType::KeywordType)) {
-                auto type = Type{};
-                type.kind = Type::Kind::Opaque;
+            // parse constants
+            if (consume(TokenType::KeywordConst)) {
+                auto constant = Constant{};
 
-                type.annotations = std::move(annotations);
-                expect(TokenType::Identifier, type.name);
+                constant.annotations = std::move(annotations);
 
-                type.location = pos();
+                if (!parseType(constant.type))
+                    return false;
 
-                expect(TokenType::SemiColon);
+                EXPECT(TokenType::Identifier, constant.name);
 
-                pushType(std::move(type));
+                constant.location = pos();
+
+                EXPECT(TokenType::Equal);
+                EXPECT_VALUE(constant.init);
+                EXPECT(TokenType::SemiColon);
+
+                pushConstant(std::move(constant));
                 continue;
             }
 
@@ -304,18 +177,18 @@ namespace sapc {
                 union_.kind = Type::Kind::Union;
 
                 union_.annotations = std::move(annotations);
-                expect(TokenType::Identifier, union_.name);
+                EXPECT(TokenType::Identifier, union_.name);
 
                 union_.location = pos();
 
-                expect(TokenType::LeftBrace);
+                EXPECT(TokenType::LeftBrace);
                 while (!consume(TokenType::RightBrace)) {
                     auto& field = union_.fields.emplace_back();
                     if (!parseType(field.type))
                         return false;
-                    expect(TokenType::Identifier, field.name);
+                    EXPECT(TokenType::Identifier, field.name);
                     field.location = pos();
-                    expect(TokenType::SemiColon);
+                    EXPECT(TokenType::SemiColon);
                 }
 
                 if (union_.fields.empty())
@@ -325,30 +198,35 @@ namespace sapc {
                 continue;
             }
 
-            // parse struct declarations
+            // parse aggregate declarations
             if (consume(TokenType::KeywordStruct)) {
                 auto type = Type{};
                 type.kind = Type::Kind::Struct;
 
                 type.annotations = std::move(annotations);
-                expect(TokenType::Identifier, type.name);
+                EXPECT(TokenType::Identifier, type.name);
 
                 type.location = pos();
 
-                if (consume(TokenType::Colon))
-                    expect(TokenType::Identifier, type.base);
-                expect(TokenType::LeftBrace);
-                while (!consume(TokenType::RightBrace)) {
-                    auto& field = type.fields.emplace_back();
-                    if (!parseAnnotations(field.annotations))
-                        return false;
-                    if (!parseType(field.type))
-                        return false;
-                    expect(TokenType::Identifier, field.name);
-                    field.location = pos();
-                    if (consume(TokenType::Equal))
-                        expectValue(field.init);
-                    expect(TokenType::SemiColon);
+                if (consume(TokenType::SemiColon)) {
+                    type.kind = Type::Kind::Opaque;
+                }
+                else {
+                    if (consume(TokenType::Colon))
+                        EXPECT(TokenType::Identifier, type.base);
+                    EXPECT(TokenType::LeftBrace);
+                    while (!consume(TokenType::RightBrace)) {
+                        auto& field = type.fields.emplace_back();
+                        if (!parseAnnotations(field.annotations))
+                            return false;
+                        if (!parseType(field.type))
+                            return false;
+                        EXPECT(TokenType::Identifier, field.name);
+                        field.location = pos();
+                        if (consume(TokenType::Equal))
+                            EXPECT_VALUE(field.init);
+                        EXPECT(TokenType::SemiColon);
+                    }
                 }
 
                 pushType(std::move(type));
@@ -361,21 +239,21 @@ namespace sapc {
                 enum_.kind = Type::Kind::Enum;
 
                 enum_.annotations = std::move(annotations);
-                expect(TokenType::Identifier, enum_.name);
+                EXPECT(TokenType::Identifier, enum_.name);
 
                 enum_.location = pos();
 
                 if (consume(TokenType::Colon))
-                    expect(TokenType::Identifier, enum_.base);
-                expect(TokenType::LeftBrace);
+                    EXPECT(TokenType::Identifier, enum_.base);
+                EXPECT(TokenType::LeftBrace);
                 long long nextValue = 0;
                 for (;;) {
                     auto& value = enum_.fields.emplace_back();
-                    expect(TokenType::Identifier, value.name);
+                    EXPECT(TokenType::Identifier, value.name);
                     value.location = pos();
                     value.init.type = Value::Type::Number;
                     if (consume(TokenType::Equal)) {
-                        expect(TokenType::Number, value.init.dataNumber);
+                        EXPECT(TokenType::Number, value.init.dataNumber);
                         nextValue = value.init.dataNumber + 1;
                     }
                     else
@@ -383,7 +261,7 @@ namespace sapc {
                     if (!consume(TokenType::Comma))
                         break;
                 }
-                expect(TokenType::RightBrace);
+                EXPECT(TokenType::RightBrace);
 
                 pushType(std::move(enum_));
 
@@ -393,12 +271,248 @@ namespace sapc {
             return fail("unexpected ", tokens[next]);
         }
 
-#undef expect
-#undef expectValue
-
         if (module.name.empty())
             return fail("missing module declaration");
 
         return true;
     }
+
+
+    bool Grammar::consume(TokenType type) {
+        if (next >= tokens.size())
+            return false;
+
+        if (tokens[next].type != type)
+            return false;
+
+        ++next;
+        return true;
+    }
+
+    bool Grammar::consume(TokenType type, std::string& out) {
+        auto const index = next;
+        if (!consume(type))
+            return false;
+
+        out = tokens[index].dataString;
+        return true;
+    }
+
+    bool Grammar::consume(TokenType type, long long& out) {
+        auto const index = next;
+        if (!consume(type))
+            return false;
+
+        out = tokens[index].dataNumber;
+        return true;
+    }
+
+    Location Grammar::pos() {
+        auto const& tokPos = next > 0 ? tokens[next - 1].pos : tokens.front().pos;
+        return Location{ filename, tokPos.line, tokPos.column };
+    }
+
+    template <typename... T>
+    bool Grammar::error(Location const& loc, std::string message, T const&... args) {
+        std::ostringstream buffer;
+        ((buffer << loc << ": " << message) << ... << args);
+        errors.push_back({ buffer.str() });
+        return false;
+    };
+
+    template <typename... T>
+    bool Grammar::fail(std::string message, T const&... args) {
+        auto const& tok = next < tokens.size() ? tokens[next] : tokens.back();
+        Location const loc{ filename, tok.pos.line, tok.pos.column };
+        return error(loc, message, args...);
+    };
+
+    bool Grammar::mustConsume(TokenType type) {
+        if (consume(type))
+            return true;
+        return mustConsumeFail(type);
+    }
+
+    template <typename T>
+    bool Grammar::mustConsume(TokenType type, T& out) {
+        if (consume(type, out))
+            return true;
+        return mustConsumeFail(type);
+    }
+
+    bool Grammar::mustConsumeFail(TokenType type) {
+        std::ostringstream buf;
+        buf << "expected " << type;
+        if (next > 0)
+            buf << " after " << tokens[next - 1];
+        if (next < tokens.size())
+            buf << ", got " << tokens[next];
+        return fail(buf.str());
+    }
+
+    bool Grammar::mustConsumeValue(Value& out) {
+        if (consumeValue(out))
+            return true;
+
+        std::ostringstream buf;
+        buf << "expected value";
+        if (next > 0)
+            buf << " after " << tokens[next - 1];
+        if (next < tokens.size())
+            buf << ", got " << tokens[next];
+        return fail(buf.str());
+    }
+
+    bool Grammar::consumeValue(Value& out) {
+        if (consume(TokenType::KeywordNull))
+            out = Value{ Value::Type::Null };
+        else if (consume(TokenType::KeywordFalse))
+            out = Value{ Value::Type::Boolean, 0 };
+        else if (consume(TokenType::KeywordTrue))
+            out = Value{ Value::Type::Boolean, 1 };
+        else if (consume(TokenType::String, out.dataString))
+            out.type = Value::Type::String;
+        else if (consume(TokenType::Number, out.dataNumber))
+            out.type = Value::Type::Number;
+        else if (consume(TokenType::Identifier, out.dataString)) {
+            if (consume(TokenType::Dot)) {
+                EXPECT(TokenType::Identifier, out.dataName);
+                out.type = Value::Type::Enum;
+            }
+            else {
+                out.type = Value::Type::TypeName;
+            }
+        }
+        else if (consume(TokenType::LeftBrace)) {
+            out.type = Value::Type::List;
+            if (!consume(TokenType::RightBrace)) {
+                for (;;) {
+                    Value val;
+                    EXPECT_VALUE(val);
+                    out.dataList.push_back(std::move(val));
+                    if (!consume(TokenType::Comma))
+                        break;
+                }
+                EXPECT(TokenType::RightBrace);
+            }
+        }
+        else
+            return false;
+        out.location = pos();
+        return true;
+    }
+
+    fs::path Grammar::resolve(fs::path target) {
+        if (target.is_absolute())
+            return filename;
+
+        if (!filename.empty()) {
+            auto tmp = filename.parent_path() / target;
+            if (fs::exists(tmp))
+                return tmp;
+        }
+
+        for (auto const& path : search) {
+            auto tmp = path / target;
+            if (fs::exists(tmp))
+                return tmp;
+        }
+
+        return {};
+    }
+
+    bool Grammar::parseAnnotations(std::vector<Annotation>& annotations) {
+        while (consume(TokenType::LeftBracket)) {
+            do {
+                Annotation annotation;
+                EXPECT(TokenType::Identifier, annotation.name);
+                annotation.location = pos();
+
+                auto const otherIt = find_if(begin(annotations), end(annotations), [&](Annotation const& other) { return other.name == annotation.name; });
+                if (otherIt != end(annotations)) {
+                    error(annotation.location, "duplicate annotation `", annotation.name, '\'');
+                    return error(otherIt->location, "previous annotation here");
+                }
+
+                if (consume(TokenType::LeftParen)) {
+                    if (!consume(TokenType::RightParen)) {
+                        for (;;) {
+                            auto& value = annotation.arguments.emplace_back();
+                            EXPECT_VALUE(value);
+                            if (!consume(TokenType::Comma))
+                                break;
+
+                        }
+                        EXPECT(TokenType::RightParen);
+                    }
+                }
+
+                annotations.push_back(std::move(annotation));
+            } while (consume(TokenType::Comma));
+            EXPECT(TokenType::RightBracket);
+        }
+        return true;
+    };
+
+    bool Grammar::parseType(TypeInfo& type) {
+        EXPECT(TokenType::Identifier, type.type);
+        if (consume(TokenType::Asterisk))
+            type.isPointer = true;
+        if (consume(TokenType::LeftBracket)) {
+            EXPECT(TokenType::RightBracket);
+            type.isArray = true;
+        }
+        return true;
+    }
+
+    bool Grammar::pushType(Type&& type) {
+        assert(type.kind != Type::Kind::Unknown);
+        assert(!type.name.empty());
+
+        if (type.module.empty())
+            type.module = module.name;
+
+        auto const index = module.types.size();
+
+        auto const it = module.typeMap.find(type.name);
+        if (it != module.typeMap.end()) {
+            auto const& other = module.types[it->second];
+
+            // duplicate type definitions from the same location/module are allowed
+            if (type.location == other.location && type.module == other.module)
+                return true;
+
+            error(type.location, "duplicate definition of type `", type.name, '\'');
+            return error(other.location, "previous definition of type `", other.name, '\'');
+        }
+
+        module.typeMap[type.name] = index;
+        module.types.push_back(std::move(type));
+        return true;
+    }
+
+    bool Grammar::pushConstant(Constant&& constant) {
+        assert(!constant.name.empty());
+
+        if (constant.module.empty())
+            constant.module = module.name;
+
+        auto const index = module.constants.size();
+
+        auto const it = module.constantMap.find(constant.name);
+        if (it != module.constantMap.end()) {
+            auto const& other = module.constants[it->second];
+
+            // duplicate type definitions from the same location/module are allowed
+            if (constant.location == other.location && constant.module == other.module)
+                return true;
+
+            error(constant.location, "duplicate definition of constant `", constant.name, '\'');
+            return error(other.location, "previous definition of constant `", other.name, '\'');
+        }
+
+        module.constantMap[constant.name] = index;
+        module.constants.push_back(std::move(constant));
+        return true;
+    };
 }

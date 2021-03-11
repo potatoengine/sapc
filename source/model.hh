@@ -18,7 +18,9 @@
 namespace sapc {
     struct TypeInfo {
         std::string type;
+        bool isPointer = false;
         bool isArray = false;
+        bool isTypeName = false;
 
         friend std::ostream& operator<<(std::ostream& os, TypeInfo const& type);
     };
@@ -30,11 +32,14 @@ namespace sapc {
             Boolean,
             Number,
             String,
-            Enum
+            Enum,
+            TypeName,
+            List,
         } type = Type::None;
         long long dataNumber;
         std::string dataName;
         std::string dataString;
+        std::vector<Value> dataList;
         Location location;
     };
 
@@ -71,6 +76,15 @@ namespace sapc {
         Location location;
     };
 
+    struct Constant {
+        std::string name;
+        std::string module;
+        TypeInfo type;
+        Value init;
+        std::vector<Annotation> annotations;
+        Location location;
+    };
+
     struct Module {
         std::string name;
         std::filesystem::path filename;
@@ -79,8 +93,10 @@ namespace sapc {
         std::set<std::string> imports;
 
         std::vector<Type> types;
+        std::vector<Constant> constants;
 
         std::unordered_map<std::string, size_t> typeMap;
+        std::unordered_map<std::string, size_t> constantMap;
 
         friend nlohmann::ordered_json to_json(Module const& module);
     };
