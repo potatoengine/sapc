@@ -17,12 +17,12 @@ namespace fs = std::filesystem;
 #if defined(EXPECT)
 #   undef EXPECT
 #endif
-#define EXPECT(type,...) if (mustConsume((type),##__VA_ARGS__)) {} else { return false; }
+#define EXPECT(type,...) do{ if (!mustConsume((type),##__VA_ARGS__)) return false; }while(0)
 
 #if defined(EXPECT_VALUE)
 #   undef EXPECT_VALUE
 #endif
-#define EXPECT_VALUE(out) if (mustConsumeValue((out))) {} else { return false; }
+#define EXPECT_VALUE(out) do{ if (!mustConsumeValue((out))) return false; }while(0)
 
 namespace sapc {
     namespace {
