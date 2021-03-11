@@ -36,7 +36,9 @@ definition <- attribute / opaque_type / struct / enum / union / constant
 
 import <- 'import' identifier ';'
 
-value <- number / string / 'true' / 'false' / 'null' / identifier ( '.' identifier )?
+value <- number / string / 'true' / 'false' / 'null' / identifier ( '.' identifier )? / list_init
+list_init <- '{' value_list? '}'
+value_list <- value ( ',' value )*
 number <- '-'? [0-9]+
 string <- '"' <[^"\n]*> '"'
 
@@ -47,7 +49,7 @@ identifier <- [a-zA-Z_][a-zA-Z0-9_]*
 type_info <- identifier '*'? ( '[' ']' )?
 
 annotations <- ( '[' annotation ( ',' annotation )* ']' )+
-annotation <- identifier ( '(' ( value ( ',' value )* )? ')' )?
+annotation <- identifier ( '(' value_list? ')' )?
 
 attribute <- 'attribute' identifier ( '{' attribute_param* '}' / ';' )
 attribute_param <- ( type_info / 'typename' ) identifier ( '=' value )? ';'

@@ -34,10 +34,12 @@ namespace sapc {
             String,
             Enum,
             TypeName,
+            List,
         } type = Type::None;
         long long dataNumber;
         std::string dataName;
         std::string dataString;
+        std::vector<Value> dataList;
         Location location;
     };
 

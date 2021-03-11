@@ -16,7 +16,7 @@ struct Vec {
     float y = 0;
 }
 
-const int zero = 0;
+const Vec zero = { 0, 0 };
 
 [name("Test")]
 struct test {
@@ -30,8 +30,8 @@ struct test {
     */
     bool skipme = false;
     intptr iptr = null;
-    string[] array;
-    bool[] bits;
+    string[] array = { "first", "second", "third" };
+    bool[] bits = {{}};
     Vec*[] vecPtrs;
 }
 

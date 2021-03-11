@@ -17,6 +17,17 @@ namespace sapc {
     }
 
     template <typename JsonT>
+    void to_json(JsonT& j, Value const& value);
+
+    template <typename JsonT>
+    void to_json(JsonT& j, std::vector<Value> const& value) {
+        j = JsonT::array();
+        for (Value const& val : value) {
+            j.push_back(val);
+        }
+    }
+
+    template <typename JsonT>
     void to_json(JsonT& j, Value const& value) {
         switch (value.type) {
         case Value::Type::String: j = value.dataString; break;
@@ -29,6 +40,7 @@ namespace sapc {
             { "name", value.dataName.c_str() },
             { "value", value.dataNumber }
         }; break;
+        case Value::Type::List: j = value.dataList; break;
         default: break;
         }
     }

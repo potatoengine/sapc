@@ -43,10 +43,12 @@ def encode(el):
         return f'{identifier(el["type"])}::{identifier(el["name"])}'
     elif isinstance(el, dict) and el['kind'] == 'typename':
         return f'typeid({identifier(el["type"])})'
+    elif isinstance(el, list):
+        return f'{{{",".join(encode(v) for v in el)}}}'
     elif el is None:
         return 'nullptr'
     else:
-        return +el
+        return str(+el)
 
 def field_cxxtype(types, type_info):
     if 'kind' in type_info:

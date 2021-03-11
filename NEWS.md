@@ -10,6 +10,7 @@ Version 0.11-beta (WIP)
  - Enum field values must be qualified with `.`, e.g. `my_enum e = my_enum.value;`
  - Attributes can have `typename` fields
  - Module scope constants with `const`
+ - List initialization of values, e.g. `int[] vals = { 1, 2, 3 };` or `Vec zero = { 0, 0 };`
 
 Version 0.10-beta
 -----------------
