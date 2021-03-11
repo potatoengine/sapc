@@ -176,6 +176,10 @@
             },
             "type": { "type": "string" }
           }
+        },
+        {
+          "type": "array",
+          "items": { "$ref": "#/definitions/value" }
         }
       ]
     },
