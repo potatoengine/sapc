@@ -32,7 +32,7 @@ cxx_type_map = {'string': 'std::string',
 
 def cxxname(el): return annotation(el, name='cxxname', argname='name', default=cxx_type_map[el['name']] if el['name'] in cxx_type_map else identifier(el['name']))
 def ignored(el): return annotation(el, name='ignore', argname='ignored', default=False)
-def namespace(el): return 'sapc_attr' if 'is_attribute' in el and el['is_attribute'] else 'sapc_type'
+def namespace(el): return 'sapc_attr' if 'is_attribute' in el and el['is_attribute'] else 'st'
 
 def encode(el):
     if isinstance(el, str):

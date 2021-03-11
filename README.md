@@ -36,7 +36,7 @@ definition <- attribute / opaque_type / struct / enum / union / constant
 
 import <- 'import' identifier ';'
 
-value <- number / string / 'true' / 'false' / 'null' / identifier ( '.' identifier )? / list_init
+value <- number / string / 'true' / 'false' / 'null' / qual_ident / list_init
 list_init <- '{' value_list? '}'
 value_list <- value ( ',' value )*
 number <- '-'? [0-9]+
@@ -46,6 +46,7 @@ comment <- linecomment / blockcomment
 linecomment <- ( '#' / '//' ) [^\n]*
 blockcomment <- '/*' .* '*/'
 identifier <- [a-zA-Z_][a-zA-Z0-9_]*
+qual_ident <- identifier ( '.' identifier )?
 type_info <- identifier '*'? ( '[' ']' )?
 
 annotations <- ( '[' annotation ( ',' annotation )* ']' )+
