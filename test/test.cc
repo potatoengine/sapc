@@ -7,10 +7,10 @@ int main(int argc, char** argv) {
 
     st::test val_test = {};
     val_test.array.push_back("a string");
-    int i = st::zero.x;
+    int i = static_cast<int>(st::zero.x);
     val_test.iptr = &i;
     val_test.vecPtrs.push_back(std::make_unique<st::Vec>());
 
-    st::ordered val_ordered = {};
+    [[maybe_unused]] st::ordered val_ordered = {};
     val_ordered.position = st::order::second;
 }
