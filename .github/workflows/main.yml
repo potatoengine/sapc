@@ -42,9 +42,9 @@ jobs:
         uses: Trass3r/setup-cpp@v1
         if: matrix.config == 'Debug'
       - name: Install Ninja
-        uses: seanmiddleditch/gha-setup-ninja@v2
+        uses: seanmiddleditch/gha-setup-ninja@v3
       - name: Setup VS Environment
-        uses: seanmiddleditch/gha-setup-vsdevenv@v2
+        uses: seanmiddleditch/gha-setup-vsdevenv@v3
       - name: Configure
         env:
           CXX: ${{ matrix.cxx }}
