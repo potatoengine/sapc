@@ -4,13 +4,9 @@
 
 #pragma once
 
-#include <vector>
-#include <string>
-#include <filesystem>
-
 namespace sapc {
-    struct Log;
-    struct Context;
+    using namespace std::literals;
 
-    bool compile(Context& ctx, Log& log);
+    template<class... T> struct overload : T... { using T::operator()...; };
+    template<class... T> overload(T...)->overload<T...>;
 }

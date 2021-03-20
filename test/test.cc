@@ -13,4 +13,11 @@ int main(int argc, char** argv) {
 
     [[maybe_unused]] st::ordered val_ordered = {};
     val_ordered.position = st::order::second;
+
+    if (st::right.x != 1 || st::right.y != 0)
+        return 1;
+    if (st::up.x != 0 || st::up.y != 1)
+        return 1;
+
+    return 0;
 }

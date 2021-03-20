@@ -3,6 +3,7 @@
 // See LICENSE.md for more details.
 
 #include "lexer.hh"
+#include "log.hh"
 
 #include <charconv>
 #include <sstream>
@@ -50,7 +51,7 @@ namespace sapc {
         return os;
     }
 
-    bool tokenize(std::string_view source, std::vector<Token>& tokens) {
+    bool tokenize(std::string_view source, std::filesystem::path const& filename, std::vector<Token>& tokens, Log& log) {
         decltype(source.size()) position = 0;
         int line = 1;
         decltype(position) lineStart = 0;
@@ -65,7 +66,7 @@ namespace sapc {
         };
 
         auto const pos = [&](decltype(position) start) {
-            return TokenPos{ line, static_cast<int>(start - lineStart) + 1 };
+            return Position{ line, static_cast<int>(start - lineStart) + 1 };
         };
 
         auto const match = [&](std::string_view input, bool only = false) {
@@ -84,7 +85,8 @@ namespace sapc {
             return true;
         };
 
-        auto const error = [&](decltype(position) start) {
+        auto const error = [&](decltype(position) start, char const* message) {
+            log.error(Location{ filename, pos(start) }, message);
             tokens.push_back({ TokenType::Unknown, pos(start) });
             return false;
         };
@@ -187,7 +189,7 @@ namespace sapc {
 
                 // only a negative sign is not a complete number
                 if (isNegative && position - start <= 1)
-                    return error(start);
+                    return error(start, "expected digits after -");
 
                 Token token;
                 token.type = TokenType::Number;
@@ -220,11 +222,11 @@ namespace sapc {
                                 buf << '\\';
                                 break;
                             default:
-                                return error(start);
+                                return error(start, "unexpected escape sequence");
                             }
                         }
                         else
-                            return error(start);
+                            return error(start, "unterminated string literal");
                     }
                     else {
                         buf << ch;
@@ -236,7 +238,7 @@ namespace sapc {
             }
 
             // unknown input
-            return error(start);
+            return error(start, "unreconized input");
         }
 
         return true;

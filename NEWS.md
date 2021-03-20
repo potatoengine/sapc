@@ -4,6 +4,7 @@ sapc
 Version 0.11-beta (WIP)
 -----------------------
 
+ - JSON schema changes
  - Removed `type` keyword
  - Added pointer support via `name*`
  - Added array-of-pointer via `name*[]`
@@ -11,6 +12,8 @@ Version 0.11-beta (WIP)
  - Attributes can have `typename` fields
  - Module scope constants with `const`
  - List initialization of values, e.g. `int[] vals = { 1, 2, 3 };` or `Vec zero = { 0, 0 };`
+ - Rewrote compiler to use an AST
+ - Minor tweaks to which entities can have annotations
 
 Version 0.10-beta
 -----------------

@@ -4,8 +4,10 @@
 
 #pragma once
 
-#include <sstream>
+#include <filesystem>
 #include <fstream>
+#include <sstream>
+#include <vector>
 
 namespace sapc {
     inline bool loadText(std::filesystem::path const& filename, std::string& out_text) {
@@ -19,5 +21,24 @@ namespace sapc {
         stream.close();
         out_text = buffer.str();
         return true;
+    }
+
+    inline std::filesystem::path resolveFile(std::filesystem::path target, std::filesystem::path const& base, std::vector<std::filesystem::path> const& search) {
+        if (target.is_absolute())
+            return target;
+
+        if (!base.empty()) {
+            auto tmp = base / target;
+            if (std::filesystem::exists(tmp))
+                return tmp;
+        }
+
+        for (auto const& path : search) {
+            auto tmp = path / target;
+            if (std::filesystem::exists(tmp))
+                return tmp;
+        }
+
+        return {};
     }
 }

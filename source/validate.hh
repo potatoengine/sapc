@@ -4,11 +4,11 @@
 
 #pragma once
 
-#include <vector>
-#include <string>
-
 namespace sapc {
-    struct Module;
+    struct Log;
+    namespace schema {
+        struct Module;
+    }
 
-    bool analyze(Module& module, std::vector<std::string>& errors);
+    bool validate(schema::Module const& mod, Log& log);
 }

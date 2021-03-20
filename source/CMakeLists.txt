@@ -1,20 +1,25 @@
 find_package(nlohmann_json 3.2.0 REQUIRED)
 
 add_executable(sapc
-    analyze.cc
-    analyze.hh
+    ast.cc
+    ast.hh
     compiler.cc
     compiler.hh
+    context.hh
     file_util.hh
+    json.cc
+    json.hh
     lexer.cc
     lexer.hh
     location.cc
     location.hh
+    log.hh
     grammar.cc
     grammar.hh
     main.cc
-    model.cc
-    model.hh
+    overload.hh
+    validate.cc
+    validate.hh
 )
 target_compile_features(sapc PRIVATE cxx_std_17)
 target_link_libraries(sapc PRIVATE nlohmann_json)

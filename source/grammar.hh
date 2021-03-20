@@ -6,12 +6,15 @@
 
 #include "lexer.hh"
 
-#include <vector>
-#include <string>
+#include <memory>
 #include <filesystem>
+#include <vector>
 
 namespace sapc {
-    struct Module;
+    struct Log;
+    namespace ast {
+        struct ModuleUnit;
+    }
 
-    bool parse(std::vector<Token> const& tokens, std::vector<std::filesystem::path> const& search, std::vector<std::string>& errors, std::vector<std::filesystem::path>& dependencies, std::filesystem::path const& filename, Module& module);
+    std::unique_ptr<ast::ModuleUnit> parse(std::filesystem::path const& filename, Log& log);
 }
