@@ -9,6 +9,8 @@ attribute forward { typename other; }
 [cxxname("std::any"), ignore]
 struct any;
 
+const bool common_flag = false;
+
 enum flags {
     none = 0,
     base = 1,

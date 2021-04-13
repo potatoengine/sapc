@@ -17,6 +17,8 @@ struct Vec {
 }
 
 const Vec zero = { 0, 0 };
+const Vec right = { 1, 0 };
+const Vec up = { 0, 1 };
 
 [name("Test")]
 struct test {

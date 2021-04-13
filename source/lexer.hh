@@ -4,11 +4,16 @@
 
 #pragma once
 
-#include <vector>
-#include <string>
+#include "location.hh"
+
+#include <filesystem>
 #include <iosfwd>
+#include <string>
+#include <vector>
 
 namespace sapc {
+    struct Log;
+
     enum class TokenType {
         Unknown,
         Identifier,
@@ -41,14 +46,9 @@ namespace sapc {
     };
     std::ostream& operator<<(std::ostream& os, TokenType type);
 
-    struct TokenPos {
-        int line = 0;
-        int column = 0;
-    };
-
     struct Token {
         TokenType type = TokenType::Unknown;
-        TokenPos pos;
+        Position pos;
         long long dataNumber = 0;
         std::string dataString;
 
@@ -56,5 +56,5 @@ namespace sapc {
         friend std::ostream& operator<<(std::ostream& os, Token const& tok) { return os << tok.type; }
     };
 
-    bool tokenize(std::string_view source, std::vector<Token>& tokens);
+    bool tokenize(std::string_view source, std::filesystem::path const& filename, std::vector<Token>& tokens, Log& log);
 }

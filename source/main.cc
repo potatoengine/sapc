@@ -3,8 +3,12 @@
 // See LICENSE.md for more details.
 
 #include "compiler.hh"
-#include "model.hh"
+#include "context.hh"
+#include "json.hh"
 #include "string_util.hh"
+#include "log.hh"
+#include "schema.hh"
+#include "validate.hh"
 
 #include <string>
 #include <string_view>
@@ -116,18 +120,26 @@ static int compile(Config& config) {
         return 1;
     }
 
-    sapc::Module module;
-    std::vector<fs::path> dependencies;
-    std::vector<std::string> errors;
+    sapc::Log log;
 
-    if (!compile(config.input, config.search, errors, dependencies, module)) {
-        std::cerr << "error: Failed to compile input\n";
-        for (auto const& error : errors)
-            std::cerr << error << '\n';
+    sapc::Context ctx;
+    ctx.targetFile = config.input;
+
+    auto const compiled = compile(ctx, log);
+    if (!compiled && log.lines.empty())
+        log.error("Failed to compile input");
+
+    auto const valid = compiled && validate(*ctx.rootModule, log);
+
+    for (auto const& line : log.lines)
+        std::cerr << line << '\n';
+
+    if (!compiled)
         return 2;
-    }
+    if (!valid)
+        return 4;
 
-    auto const doc = to_json(module);
+    auto const doc = sapc::serializeToJson(*ctx.rootModule);
     auto const json = doc.dump(4);
 
     if (!config.output.empty()) {
@@ -150,12 +162,12 @@ static int compile(Config& config) {
 
         deps_stream << fs::relative(config.output).string() << ": ";
 
-        auto const num_deps = dependencies.size();
+        auto const num_deps = ctx.dependencies.size();
         for (size_t i = 0; i != num_deps; ++i) {
             if (i != 0)
                 deps_stream << "  ";
 
-            deps_stream << fs::relative(dependencies[i]).string() << ' ';
+            deps_stream << fs::relative(ctx.dependencies[i]).string() << ' ';
 
             if (i != num_deps - 1)
                 deps_stream << '\\';
