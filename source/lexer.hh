@@ -42,6 +42,12 @@ namespace sapc {
         KeywordTrue,
         KeywordFalse,
         KeywordNull,
+        KeywordNamespace,
+        KeywordUsing,
+        KeywordClass,
+        KeywordAbstract,
+        KeywordFinal,
+        KeywordUse,
         EndOfFile
     };
     std::ostream& operator<<(std::ostream& os, TokenType type);
