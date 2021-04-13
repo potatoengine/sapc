@@ -45,6 +45,12 @@ namespace sapc {
         case TokenType::KeywordTrue: os << "`true'"; break;
         case TokenType::KeywordFalse: os << "`false'"; break;
         case TokenType::KeywordNull: os << "`null'"; break;
+        case TokenType::KeywordNamespace: os << "`namespace'"; break;
+        case TokenType::KeywordUsing: os << "`using'"; break;
+        case TokenType::KeywordClass: os << "`class'"; break;
+        case TokenType::KeywordAbstract: os << "`abstract'"; break;
+        case TokenType::KeywordFinal: os << "`final'"; break;
+        case TokenType::KeywordUse: os << "`use'"; break;
         case TokenType::EndOfFile: os << "end of file"; break;
         default: os << "[unknown-token-type]"; break;
         }
@@ -120,6 +126,12 @@ namespace sapc {
             { "true", TokenType::KeywordTrue, true },
             { "false", TokenType::KeywordFalse, true },
             { "null", TokenType::KeywordNull, true },
+            { "namespace", TokenType::KeywordNamespace, true },
+            { "using", TokenType::KeywordUsing, true },
+            { "class", TokenType::KeywordClass, true },
+            { "abstract", TokenType::KeywordAbstract, true },
+            { "final", TokenType::KeywordFinal, true },
+            { "use", TokenType::KeywordUse, true },
         };
 
         // parse until end of file
