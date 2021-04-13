@@ -52,6 +52,8 @@ namespace sapc {
 
             schema::Module const* compile(fs::path const& filename);
 
+            void build(ast::Declaration const& decl);
+            void build(ast::NamespaceDecl const& nsDecl);
             void build(ast::StructDecl const& structDecl);
             void build(ast::AttributeDecl const& attrDecl);
             void build(ast::UnionDecl const& unionDecl);
@@ -91,6 +93,33 @@ namespace sapc {
         Compiler compiler{ ctx, log };
         ctx.rootModule = compiler.compile(ctx.targetFile);
         return ctx.rootModule != nullptr && log.countErrors == 0;
+    }
+
+    void Compiler::build(ast::Declaration const& decl) {
+        if (decl.kind == ast::Declaration::Kind::Namespace)
+            build(static_cast<ast::NamespaceDecl const&>(decl));
+        else if (decl.kind == ast::Declaration::Kind::Struct)
+            build(static_cast<ast::StructDecl const&>(decl));
+        else if (decl.kind == ast::Declaration::Kind::Union)
+            build(static_cast<ast::UnionDecl const&>(decl));
+        else if (decl.kind == ast::Declaration::Kind::Attribute)
+            build(static_cast<ast::AttributeDecl const&>(decl));
+        else if (decl.kind == ast::Declaration::Kind::Enum)
+            build(static_cast<ast::EnumDecl const&>(decl));
+        else if (decl.kind == ast::Declaration::Kind::Constant)
+            build(static_cast<ast::ConstantDecl const&>(decl));
+        else if (decl.kind == ast::Declaration::Kind::Import)
+            build(static_cast<ast::ImportDecl const&>(decl));
+        else if (decl.kind == ast::Declaration::Kind::Module)
+            for (auto& anno : static_cast<ast::ModuleDecl const&>(decl).annotations)
+                state.back().mod->annotations.push_back(translate(anno));
+        else
+            assert(false && "Unknown declartion kind");
+    }
+
+    void Compiler::build(ast::NamespaceDecl const& nsDecl) {
+        for (auto const& decl : nsDecl.decls)
+            build(*decl);
     }
 
     void Compiler::build(ast::StructDecl const& structDecl) {
@@ -252,25 +281,8 @@ namespace sapc {
 
         state.push_back(State{ move(unit), mod });
 
-        for (auto const& decl : state.back().unit->decls) {
-            if (decl->kind == ast::Declaration::Kind::Struct)
-                build(*static_cast<ast::StructDecl*>(decl.get()));
-            else if (decl->kind == ast::Declaration::Kind::Union)
-                build(*static_cast<ast::UnionDecl*>(decl.get()));
-            else if (decl->kind == ast::Declaration::Kind::Attribute)
-                build(*static_cast<ast::AttributeDecl*>(decl.get()));
-            else if (decl->kind == ast::Declaration::Kind::Enum)
-                build(*static_cast<ast::EnumDecl*>(decl.get()));
-            else if (decl->kind == ast::Declaration::Kind::Constant)
-                build(*static_cast<ast::ConstantDecl*>(decl.get()));
-            else if (decl->kind == ast::Declaration::Kind::Import)
-                build(*static_cast<ast::ImportDecl*>(decl.get()));
-            else if (decl->kind == ast::Declaration::Kind::Module)
-                for (auto& anno : static_cast<ast::ModuleDecl*>(decl.get())->annotations)
-                    mod->annotations.push_back(translate(anno));
-            else
-                assert(false && "Unknown declartion kind");
-        }
+        for (auto const& decl : state.back().unit->decls)
+            build(*decl);
 
         state.pop_back();
 

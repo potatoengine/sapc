@@ -20,21 +20,23 @@ const Vec zero = { 0, 0 };
 const Vec right = { 1, 0 };
 const Vec up = { 0, 1 };
 
-[name("Test")]
-struct test {
-    [default]
-    int x = 0 # a comment
-    ;
-    string y = "y"; // C++-style comment
-    [ignore, name("fail")]
-    /*
-        C-style block comment
-    */
-    bool skipme = false;
-    intptr iptr = null;
-    string[] array = { "first", "second", "third" };
-    bool[] bits = {{}};
-    Vec*[] vecPtrs;
+namespace ns {
+    [name("Test")]
+    struct test {
+        [default]
+        int x = 0 # a comment
+        ;
+        string y = "y"; // C++-style comment
+        [ignore, name("fail")]
+        /*
+            C-style block comment
+        */
+        bool skipme = false;
+        intptr iptr = null;
+        string[] array = { "first", "second", "third" };
+        bool[] bits = {{}};
+        Vec*[] vecPtrs;
+    }
 }
 
 union number {
