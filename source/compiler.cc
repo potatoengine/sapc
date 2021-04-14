@@ -2,15 +2,16 @@
 // This is free and unencumbered software released into the public domain.
 // See LICENSE.md for more details.
 
+#include "ast.hh"
 #include "compiler.hh"
 #include "context.hh"
-#include "ast.hh"
-#include "lexer.hh"
-#include "grammar.hh"
-#include "schema.hh"
-#include "log.hh"
 #include "file_util.hh"
+#include "grammar.hh"
+#include "hash_util.hh"
+#include "lexer.hh"
+#include "log.hh"
 #include "overload.hh"
+#include "schema.hh"
 
 #include <unordered_map>
 #include <unordered_set>
@@ -40,6 +41,13 @@ namespace sapc {
 
             QualIdSpan skip(size_t count = 1) const noexcept { return { first + count, last }; }
 
+            auto hash() const noexcept {
+                size_t hash = 0;
+                for (auto* it = first; it != last; ++it)
+                    hash = hash_combine(it->id, hash);
+                return hash;
+            }
+
             ast::Identifier const* first = nullptr;
             ast::Identifier const* last = nullptr;
 
@@ -52,6 +60,27 @@ namespace sapc {
 
                 return os;
             }
+
+            friend bool operator==(QualIdSpan lhs, QualIdSpan rhs) noexcept {
+                if (lhs.size() != rhs.size())
+                    return false;
+
+                if (lhs.first == rhs.first)
+                    return true;
+
+                for (auto const* lp = lhs.first, *rp = rhs.first; lp != lhs.last; ++lp, ++rp)
+                    if (lp->id != rp->id)
+                        return false;
+
+                return true;
+            }
+        };
+
+        struct QualIdSpanHash {
+            using result_type = size_t;
+            result_type operator()(QualIdSpan qualId) const noexcept {
+                return qualId.hash();
+            }
         };
 
         struct PathHash {
@@ -61,11 +90,33 @@ namespace sapc {
             }
         };
 
+        struct Resolve {
+            enum class Kind { Empty, Type, Constant, Namespace, EnumItem };
+
+            Resolve() = default;
+            explicit Resolve(schema::Type const* type) : kind(Kind::Type) { data.type = type; }
+            explicit Resolve(schema::Constant const* constant) : kind(Kind::Constant) { data.constant = constant; }
+            explicit Resolve(schema::Namespace const* ns) : kind(Kind::Namespace) { data.ns = ns; }
+            explicit Resolve(schema::EnumItem const* enumItem) : kind(Kind::EnumItem) { data.enumItem = enumItem; }
+
+            bool empty() const noexcept { return kind == Kind::Empty; }
+            explicit operator bool() const noexcept { return kind != Kind::Empty; }
+
+            Kind kind = Kind::Empty;
+            union {
+                schema::Type const* type = nullptr;
+                schema::Constant const* constant;
+                schema::Namespace const* ns;
+                schema::EnumItem const* enumItem;
+            } data;
+        };
+
         struct State {
             std::unique_ptr<ast::ModuleUnit> unit;
             schema::Module* mod = nullptr;
             std::vector<schema::Namespace*> nsStack;
             std::unordered_set<schema::Type const*> resolvedTypes;
+            std::unordered_map<QualIdSpan, Resolve, QualIdSpanHash> resolveCache;
         };
 
         struct Compiler {
@@ -99,18 +150,20 @@ namespace sapc {
 
             void createCoreModule();
 
-            schema::Type const* findLocalType(QualIdSpan qualId, schema::Namespace const* scope);
-            schema::Type const* findType(QualIdSpan qualId, schema::Module const* scope);
-            schema::Type const* findType(QualIdSpan qualId);
             schema::Type const* findType(ast::TypeRef const& ref);
 
             schema::Type const* resolveType(schema::Type const* type);
-            schema::Type const* resolveType(QualIdSpan qualId);
             schema::Type const* resolveType(ast::TypeRef const& ref);
+
+            Resolve findLocal(QualIdSpan qualId, schema::Namespace const* scope);
+            Resolve findLocal(QualIdSpan qualId, schema::Type const* scope);
+            Resolve find(QualIdSpan qualId, schema::Module const* scope);
+            Resolve resolve(QualIdSpan qualId);
 
             schema::Type const* createArrayType(schema::Type const* of, Location const& loc);
             schema::Type const* createPointerType(schema::Type const* of, Location const& loc);
 
+            schema::Type const* requireType(QualIdSpan qualId);
             schema::Type const* requireType(ast::TypeRef const& ref);
 
             schema::EnumItem const* findEnumItem(schema::TypeEnum const* enumType, std::string_view name);
@@ -387,57 +440,15 @@ namespace sapc {
         }
     }
 
-    schema::Type const* Compiler::findLocalType(QualIdSpan qualId, schema::Namespace const* scope) {
-        assert(!qualId.empty());
-        assert(scope != nullptr);
-
-        if (qualId.size() == 1) {
-            for (auto const* type : scope->types)
-                if (type->name == qualId.front().id)
-                    return type;
-            return nullptr;
-        }
-
-        for (auto const* ns : scope->namespaces)
-            if (ns->name == qualId.front().id)
-                if (auto const* type = findLocalType(qualId.skip(1), ns); type != nullptr)
-                    return type;
-
-        return nullptr;
-    }
-
-    schema::Type const* Compiler::findType(QualIdSpan qualId, schema::Module const* scope) {
-        assert(!qualId.empty());
-        assert(scope != nullptr);
-
-        if (auto const* type = findLocalType(qualId, scope->root); type != nullptr)
-            return type;
-
-        for (auto const* imp : scope->imports)
-            if (auto const* type = findLocalType(qualId, imp->root); type != nullptr)
-                return type;
-
-        if (coreModule != nullptr)
-            if (auto* type = findLocalType(qualId, coreModule->root); type != nullptr)
-                return type;
-
-        return nullptr;
-    }
-
-    schema::Type const* Compiler::findType(QualIdSpan qualId) {
-        assert(!qualId.empty());
-
-        State& top = state.back();
-
-        return findType(qualId, top.mod);
-    }
-
     schema::Type const* Compiler::findType(ast::TypeRef const& ref) {
         switch (ref.kind) {
         case ast::TypeRef::Kind::TypeName:
             return typeIdType;
         case ast::TypeRef::Kind::Name:
-            return findType(ref.name);
+            if (auto const rs = resolve(ref.name); rs.kind == Resolve::Kind::Type)
+                return rs.data.type;
+            else
+                return nullptr;
         case ast::TypeRef::Kind::Array:
             if (auto const* type = findType(*ref.ref); type != nullptr) {
                 auto const it = arrayTypeMap.find(type);
@@ -479,12 +490,90 @@ namespace sapc {
         return type;
     }
 
-    schema::Type const* Compiler::resolveType(QualIdSpan qualId) {
-        return resolveType(findType(qualId));
-    }
-
     schema::Type const* Compiler::resolveType(ast::TypeRef const& ref) {
         return resolveType(findType(ref));
+    }
+
+    Resolve Compiler::findLocal(QualIdSpan qualId, schema::Type const* scope) {
+        assert(!qualId.empty());
+        assert(scope != nullptr);
+
+        // We don't have nested types yet
+        if (qualId.size() != 1)
+            return {};
+
+        // We only support enum items in types currently
+        if (scope->kind != schema::Type::Kind::Enum)
+            return {};
+
+        auto const& typeEnum = *static_cast<schema::TypeEnum const*>(scope);
+        for (auto const& item : typeEnum.items)
+            if (item->name == qualId.front().id)
+                return Resolve{ item.get() };
+
+        return {};
+    }
+
+    Resolve Compiler::findLocal(QualIdSpan qualId, schema::Namespace const* scope) {
+        assert(!qualId.empty());
+        assert(scope != nullptr);
+
+        if (qualId.size() == 1) {
+            for (auto const* ns : scope->namespaces)
+                if (ns->name == qualId.front().id)
+                    return Resolve{ ns };
+
+            for (auto const* type : scope->types)
+                if (type->name == qualId.front().id)
+                    return Resolve{ type };
+
+            for (auto const* constant : scope->constants)
+                if (constant->name == qualId.front().id)
+                    return Resolve{ constant };
+        }
+        else {
+            for (auto const* ns : scope->namespaces)
+                if (ns->name == qualId.front().id)
+                    if (auto const rs = findLocal(qualId.skip(1), ns))
+                        return rs;
+
+            for (auto const* scopeType : scope->types)
+                if (scopeType->name == qualId.front().id)
+                    if (auto const rs = findLocal(qualId.skip(1), scopeType))
+                        return rs;
+        }
+
+        return {};
+    }
+
+    Resolve Compiler::find(QualIdSpan qualId, schema::Module const* scope) {
+        assert(!qualId.empty());
+        assert(scope != nullptr);
+
+        if (auto const rs = findLocal(qualId, scope->root))
+            return rs;
+
+        for (auto const* imp : scope->imports)
+            if (auto const rs = findLocal(qualId, imp->root))
+                return rs;
+
+        if (coreModule != nullptr)
+            if (auto const rs = findLocal(qualId, coreModule->root))
+                return rs;
+
+        return {};
+    }
+
+    Resolve Compiler::resolve(QualIdSpan qualId) {
+        auto it = state.back().resolveCache.find(qualId);
+        if (it != state.back().resolveCache.end())
+            return it->second;
+
+        auto const rs = find(qualId, state.back().mod);
+        if (rs.kind != Resolve::Kind::Empty)
+            state.back().resolveCache.insert({ qualId, rs });
+
+        return rs;
     }
 
     schema::Type const* Compiler::createArrayType(schema::Type const* of, Location const& loc) {
@@ -521,6 +610,20 @@ namespace sapc {
         return ptr;
     }
 
+    schema::Type const* Compiler::requireType(QualIdSpan qualId) {
+        assert(!qualId.empty());
+
+        auto const rs = resolve(qualId);
+        if (!rs)
+            return nullptr;
+
+        if (rs.kind == Resolve::Kind::Type)
+            return rs.data.type;
+
+        log.error(qualId.front().loc, ": does not name a type");
+        return nullptr;
+    }
+
     schema::Type const* Compiler::requireType(ast::TypeRef const& ref) {
         if (auto type = resolveType(ref); type != nullptr)
             return type;
@@ -543,26 +646,21 @@ namespace sapc {
         std::visit([&value, &lit, this](auto const& val) {
             using T = std::remove_cv_t<std::remove_reference_t<decltype(val)>>;
             if constexpr (std::is_same_v<T, ast::QualifiedId>) {
-                schema::Type const* type = resolveType(val);
-                if (type == nullptr) {
-                    auto const typeId = QualIdSpan{ val.components.data(), val.components.data() + val.components.size() - 1 };
-                    type = resolveType(typeId);
-                    if (type == nullptr) {
-                        log.error(lit.loc, val, ": type not found");
-                    }
-                    else if (type->kind != schema::Type::Kind::Enum) {
-                        log.error(lit.loc, typeId, ": type does not name an enum");
-                    }
-                    else if (schema::EnumItem const* const item = findEnumItem(static_cast<schema::TypeEnum const*>(type), val.components.back().id); item != nullptr) {
-                        value.data = item;
-                    }
-                    else {
-                        log.error(lit.loc, val, ": enumeration value not found");
-                        log.info(type->location, type->name, ": enumeration type defined here");
-                    }
+                auto const rs = resolve(val);
+                if (rs.kind == Resolve::Kind::Empty)
+                    log.error(lit.loc, val, ": not found");
+                else if (rs.kind == Resolve::Kind::Type)
+                    value.data = rs.data.type;
+                else if (rs.kind == Resolve::Kind::EnumItem)
+                    value.data = rs.data.enumItem;
+                else if (rs.kind == Resolve::Kind::Constant)
+                    value = rs.data.constant->value;
+                else if (rs.kind == Resolve::Kind::Namespace) {
+                    log.error(lit.loc, val, ": names a namespace, must name a type, constant, or enumeration");
+                    log.info(rs.data.ns->location, rs.data.ns->name, ": namespace declared here");
                 }
                 else
-                    value.data = type;
+                    assert(false && "Unknown resolve result");
             }
             else if constexpr (std::is_same_v<T, std::vector<ast::Literal>>) {
                 auto arr = std::vector<schema::Value>();
@@ -580,7 +678,7 @@ namespace sapc {
     std::unique_ptr<schema::Annotation> Compiler::translate(ast::Annotation const& anno) {
         auto result = std::make_unique<schema::Annotation>();
 
-        result->type = findType(anno.name);
+        result->type = requireType(anno.name);
         result->location = anno.name.components.front().loc;
         result->location.merge(anno.name.components.back().loc);
 

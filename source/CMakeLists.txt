@@ -7,6 +7,7 @@ add_executable(sapc
     compiler.hh
     context.hh
     file_util.hh
+    hash_util.hh
     json.cc
     json.hh
     lexer.cc

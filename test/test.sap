@@ -37,6 +37,10 @@ namespace ns {
         bool[] bits = {{}};
         Vec*[] vecPtrs;
     }
+
+    namespace data {
+        const int one = 1;
+    }
 }
 
 union number {
@@ -45,7 +49,9 @@ union number {
 }
 
 [forward(Vec)]
-struct derived : ns.test {}
+struct derived : ns.test {
+    int init = ns.data.one;
+}
 
 enum order {
     first, second, third
