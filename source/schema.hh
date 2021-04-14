@@ -78,6 +78,7 @@ namespace sapc::schema {
         };
 
         std::string name;
+        std::string qualifiedName;
         Location location;
         Module const* owner = nullptr;
         Namespace const* scope = nullptr;
@@ -111,6 +112,7 @@ namespace sapc::schema {
 
     struct Constant : Annotated {
         std::string name;
+        std::string qualifiedName;
         Location location;
         Module const* owner = nullptr;
         Namespace const* scope = nullptr;
@@ -120,6 +122,7 @@ namespace sapc::schema {
 
     struct Namespace {
         std::string name;
+        std::string qualifiedName;
         Location location;
         Module const* owner = nullptr;
         Namespace const* scope = nullptr;

@@ -170,6 +170,8 @@ namespace sapc {
             schema::Value translate(ast::Literal const& lit);
             std::unique_ptr<schema::Annotation> translate(ast::Annotation const& anno);
             auto translate(std::vector<ast::Annotation> const& annotations)->std::vector<std::unique_ptr<schema::Annotation>>;
+
+            std::string qualify(std::string_view name) const;
         };
     }
 
@@ -205,6 +207,7 @@ namespace sapc {
         schema::Namespace* ns = ctx.namespaces.emplace_back(std::make_unique<schema::Namespace>()).get();
 
         ns->name = nsDecl.name.id;
+        ns->qualifiedName = qualify(ns->name);
         ns->location = nsDecl.name.loc;
         ns->owner = state.back().mod;
         ns->scope = state.back().nsStack.back();
@@ -228,6 +231,7 @@ namespace sapc {
 
         auto* const type = static_cast<schema::TypeStruct*>(ctx.types.emplace_back(std::make_unique<schema::TypeStruct>()).get());
         type->name = structDecl.name.id;
+        type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Kind::Struct;
         type->owner = &mod;
         type->scope = state.back().nsStack.back();
@@ -252,6 +256,7 @@ namespace sapc {
 
         auto* const type = static_cast<schema::TypeAttribute*>(ctx.types.emplace_back(std::make_unique<schema::TypeAttribute>()).get());
         type->name = attrDecl.name.id;
+        type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Kind::Attribute;
         type->owner = &mod;
         type->scope = state.back().nsStack.back();
@@ -274,6 +279,7 @@ namespace sapc {
 
         auto* const type = static_cast<schema::TypeEnum*>(ctx.types.emplace_back(std::make_unique<schema::TypeEnum>()).get());
         type->name = enumDecl.name.id;
+        type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Enum;
         type->owner = &mod;
         type->scope = state.back().nsStack.back();
@@ -296,6 +302,7 @@ namespace sapc {
 
         auto* const type = static_cast<schema::TypeUnion*>(ctx.types.emplace_back(std::make_unique<schema::TypeUnion>()).get());
         type->name = unionDecl.name.id;
+        type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Union;
         type->owner = &mod;
         type->scope = state.back().nsStack.back();
@@ -318,6 +325,7 @@ namespace sapc {
 
         auto* constant = ctx.constants.emplace_back(std::make_unique<schema::Constant>()).get();
         constant->name = constantDecl.name.id;
+        constant->qualifiedName = qualify(constant->name);
         constant->location = constantDecl.name.loc;
         constant->owner = &mod;
         constant->scope = state.back().nsStack.back();
@@ -431,6 +439,7 @@ namespace sapc {
 
             type->kind = schema::Type::Primitive;
             type->name = builtin;
+            type->qualifiedName = builtin;
             type->owner = coreModule;
             type->scope = ns;
             type->location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
@@ -444,6 +453,7 @@ namespace sapc {
 
             type->kind = schema::Type::TypeId;
             type->name = typeIdName;
+            type->qualifiedName = typeIdName;
             type->owner = coreModule;
             type->scope = ns;
             type->location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
@@ -616,6 +626,8 @@ namespace sapc {
 
         arr->name = of->name;
         arr->name += "[]";
+        arr->qualifiedName = of->qualifiedName;
+        arr->qualifiedName += "[]";
         arr->of = of;
         arr->kind = schema::Type::Array;
         arr->owner = top.mod;
@@ -634,6 +646,8 @@ namespace sapc {
 
         ptr->name = to->name;
         ptr->name += "*";
+        ptr->qualifiedName = to->qualifiedName;
+        ptr->qualifiedName += "*";
         ptr->to = to;
         ptr->kind = schema::Type::Pointer;
         ptr->owner = top.mod;
@@ -722,5 +736,21 @@ namespace sapc {
         for (auto const& anno : annotations)
             results.push_back(translate(anno));
         return results;
+    }
+
+    std::string Compiler::qualify(std::string_view name) const {
+        assert(!state.empty());
+        assert(!state.back().nsStack.empty());
+
+        schema::Namespace const* const scope = state.back().nsStack.back();
+        assert(scope != nullptr);
+
+        if (scope->name.empty())
+            return std::string{ name };
+
+        std::string qualified = scope->qualifiedName;
+        qualified += '.';
+        qualified += name;
+        return qualified;
     }
 }
