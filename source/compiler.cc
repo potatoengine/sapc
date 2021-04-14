@@ -433,6 +433,7 @@ namespace sapc {
             type->name = builtin;
             type->owner = coreModule;
             type->scope = ns;
+            type->location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
         }
 
         {
@@ -445,6 +446,7 @@ namespace sapc {
             type->name = typeIdName;
             type->owner = coreModule;
             type->scope = ns;
+            type->location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
         }
     }
 
