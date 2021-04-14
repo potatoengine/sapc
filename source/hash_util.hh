@@ -11,6 +11,6 @@ namespace sapc {
     template <typename T, typename H = std::hash<T>>
     constexpr auto hash_combine(T const& val, typename H::result_type seed) noexcept -> decltype(seed)
     {
-        return seed ^ (H{}(val)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        return seed ^ ((H{}(val)) + 0x9e3779b9 + (seed << 6) + (seed >> 2));
     }
 }

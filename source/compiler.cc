@@ -165,8 +165,6 @@ namespace sapc {
             schema::Type const* createArrayType(schema::Type const* of, Location const& loc);
             schema::Type const* createPointerType(schema::Type const* of, Location const& loc);
 
-            schema::EnumItem const* findEnumItem(schema::TypeEnum const* enumType, std::string_view name);
-
             schema::Value translate(ast::Literal const& lit);
             std::unique_ptr<schema::Annotation> translate(ast::Annotation const& anno);
             auto translate(std::vector<ast::Annotation> const& annotations)->std::vector<std::unique_ptr<schema::Annotation>>;
@@ -605,14 +603,6 @@ namespace sapc {
             return type;
 
         log.error(ref.loc, ref, ": type not found");
-        return nullptr;
-    }
-
-    schema::EnumItem const* Compiler::findEnumItem(schema::TypeEnum const* enumType, std::string_view name) {
-        assert(enumType != nullptr);
-        for (auto const& item : enumType->items)
-            if (item->name == name)
-                return item.get();
         return nullptr;
     }
 
