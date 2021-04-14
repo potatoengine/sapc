@@ -5,7 +5,7 @@ int main(int argc, char** argv) {
     [[maybe_unused]] st::number val_number = {};
     [[maybe_unused]] st::derived val_derived = {};
 
-    st::test val_test = {};
+    st::ns::test val_test = {};
     val_test.array.push_back("a string");
     int i = static_cast<int>(st::zero.x);
     val_test.iptr = &i;
