@@ -3,7 +3,7 @@
   "$schema": "http://json-schema.org/draft-05/schema#",
   "title": "sapc output schema",
   "type": "object",
-  "required": [ "module", "types", "constants", "exports" ],
+  "required": [ "module", "types", "constants", "namespaces", "exports" ],
   "properties": {
     "module": { "$ref": "#/definitions/module" },
     "types": {
@@ -13,6 +13,10 @@
     "contants": {
       "type": "object",
       "additionalProperties": { "$ref": "#/definitions/constant" }
+    },
+    "namespaces": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/definitions/namespace" }
     },
     "exports": {
       "type": "object",
@@ -44,14 +48,38 @@
     },
     "constant": {
       "type": "object",
-      "required": [ "name", "module", "type", "annotations", "value", "location" ],
+      "required": [ "name", "qualified", "module", "type", "annotations", "value", "location" ],
       "properties": {
         "name": { "type": "string" },
+        "qualified": { "type": "string" },
         "module": { "type": "string" },
+        "namespace": { "type": "string" },
         "type": { "type": "string" },
         "value": { "$ref": "#/definitions/value" },
         "annotations": { "$ref": "#/definitions/annotations" },
         "location": { "$ref": "#/definitions/location" }
+      }
+    },
+    "namespace": {
+      "type": "object",
+      "required": [ "name", "qualified", "module" ],
+      "properties": {
+        "name": { "type": "string" },
+        "qualified": { "type": "string" },
+        "namespace": { "type": "string" },
+        "module": { "type": "string" },
+        "types": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "constants": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "namespaces": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
       }
     },
     "type": {
@@ -69,9 +97,11 @@
     },
     "type_common": {
       "type": "object",
-      "required": [ "name", "kind", "module", "annotations", "location" ],
+      "required": [ "name", "qualified", "kind", "module", "annotations", "location" ],
       "properties": {
         "name": { "type": "string" },
+        "qualified": { "type": "string" },
+        "namespace": { "type": "string" },
         "kind": { "type": "string" },
         "module": { "type": "string" },
         "base": { "type": "string" },
