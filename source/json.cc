@@ -19,6 +19,10 @@ namespace sapc {
         template <typename JsonT>
         void to_json(JsonT& j, Type const& type);
         template <typename JsonT>
+        void to_json(JsonT& j, Constant const& constant);
+        template <typename JsonT>
+        void to_json(JsonT& j, Namespace const& ns);
+        template <typename JsonT>
         void to_json(JsonT& j, Annotation const& value);
         template <typename JsonT>
         void to_json(JsonT& j, std::vector<std::unique_ptr<Annotation>> const& values);
@@ -104,19 +108,17 @@ namespace sapc {
         auto constants_json = JsonT::object();
         auto constant_exports_json = JsonT::array();
         for (auto const* constant : mod.constants) {
-            auto const_json = JsonT::object();
-            const_json["name"] = constant->name;
-            const_json["module"] = constant->owner->name;
-            const_json["type"] = constant->type->name;
-            const_json["value"] = constant->value;
-            const_json["annotations"] = constant->annotations;
-            const_json["location"] = constant->location;
-            constants_json[constant->name.c_str()] = std::move(const_json);
-
             if (constant->owner == &mod)
                 constant_exports_json.push_back(constant->name);
+
+            constants_json[constant->name.c_str()] = *constant;
         }
         doc["constants"] = std::move(constants_json);
+
+        auto namespaces_json = JsonT::object();
+        for (auto const* ns : mod.namespaces)
+            namespaces_json[ns->name.c_str()] = *ns;
+        doc["namespaces"] = std::move(namespaces_json);
 
         auto exports = JsonT::object();
         exports["types"] = std::move(type_exports_json);
@@ -150,6 +152,8 @@ namespace sapc {
 
         type_json["name"] = type.name;
         type_json["module"] = type.owner->name;
+        if (!type.scope->name.empty())
+            type_json["namespace"] = type.scope->name;
         type_json["kind"] = type.kind;
         type_json["annotations"] = type.annotations;
 
@@ -237,6 +241,43 @@ namespace sapc {
         }
 
         type_json["location"] = type.location;
+    }
+
+    template <typename JsonT>
+    void schema::to_json(JsonT& const_json, Constant const& constant) {
+        const_json = JsonT::object();
+        const_json["name"] = constant.name;
+        const_json["module"] = constant.owner->name;
+        if (!constant.scope->name.empty())
+            const_json["namespace"] = constant.scope->name;
+        const_json["type"] = constant.type->name;
+        const_json["value"] = constant.value;
+        const_json["annotations"] = constant.annotations;
+        const_json["location"] = constant.location;
+    }
+
+    template <typename JsonT>
+    void schema::to_json(JsonT& ns_json, Namespace const& ns) {
+        ns_json = JsonT::object();
+        ns_json["name"] = ns.name;
+        ns_json["module"] = ns.owner->name;
+        if (!ns.scope->name.empty())
+            ns_json["namespace"] = ns.scope->name;
+
+        auto types_json = JsonT::array();
+        for (auto const* type : ns.types)
+            types_json.push_back(type->name);
+        ns_json["types"] = std::move(types_json);
+
+        auto constants_json = JsonT::array();
+        for (auto const* constant : ns.constants)
+            types_json.push_back(constant->name);
+        ns_json["constants"] = std::move(constants_json);
+
+        auto namespaces_json = JsonT::array();
+        for (auto const* subNamespace : ns.namespaces)
+            namespaces_json.push_back(subNamespace->name);
+        ns_json["namespaces"] = std::move(namespaces_json);
     }
 
     template <typename JsonT>

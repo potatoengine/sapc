@@ -115,7 +115,7 @@ namespace sapc {
             std::unique_ptr<ast::ModuleUnit> unit;
             schema::Module* mod = nullptr;
             std::vector<schema::Namespace*> nsStack;
-            std::unordered_set<schema::Type const*> resolvedTypes;
+            std::unordered_set<schema::Type const*> importedTypes;
             std::unordered_map<QualIdSpan, Resolve, QualIdSpanHash> resolveCache;
         };
 
@@ -150,21 +150,20 @@ namespace sapc {
 
             void createCoreModule();
 
-            schema::Type const* findType(ast::TypeRef const& ref);
+            schema::Type const* makeAvailable(schema::Type const* type);
 
-            schema::Type const* resolveType(schema::Type const* type);
             schema::Type const* resolveType(ast::TypeRef const& ref);
 
             Resolve findLocal(QualIdSpan qualId, schema::Namespace const* scope);
             Resolve findLocal(QualIdSpan qualId, schema::Type const* scope);
-            Resolve find(QualIdSpan qualId, schema::Module const* scope);
+            Resolve findGlobal(QualIdSpan qualId, schema::Module const* scope);
             Resolve resolve(QualIdSpan qualId);
-
-            schema::Type const* createArrayType(schema::Type const* of, Location const& loc);
-            schema::Type const* createPointerType(schema::Type const* of, Location const& loc);
 
             schema::Type const* requireType(QualIdSpan qualId);
             schema::Type const* requireType(ast::TypeRef const& ref);
+
+            schema::Type const* createArrayType(schema::Type const* of, Location const& loc);
+            schema::Type const* createPointerType(schema::Type const* of, Location const& loc);
 
             schema::EnumItem const* findEnumItem(schema::TypeEnum const* enumType, std::string_view name);
 
@@ -207,6 +206,8 @@ namespace sapc {
 
         ns->name = nsDecl.name.id;
         ns->location = nsDecl.name.loc;
+        ns->owner = state.back().mod;
+        ns->scope = state.back().nsStack.back();
 
         state.back().mod->namespaces.push_back(ns);
         state.back().nsStack.back()->namespaces.push_back(ns);
@@ -229,6 +230,7 @@ namespace sapc {
         type->name = structDecl.name.id;
         type->kind = schema::Type::Kind::Struct;
         type->owner = &mod;
+        type->scope = state.back().nsStack.back();
         type->location = structDecl.name.loc;
         if (structDecl.baseType != nullptr)
             type->baseType = requireType(*structDecl.baseType);
@@ -252,6 +254,7 @@ namespace sapc {
         type->name = attrDecl.name.id;
         type->kind = schema::Type::Kind::Attribute;
         type->owner = &mod;
+        type->scope = state.back().nsStack.back();
         type->location = attrDecl.name.loc;
         type->annotations = translate(attrDecl.annotations);
 
@@ -273,6 +276,7 @@ namespace sapc {
         type->name = enumDecl.name.id;
         type->kind = schema::Type::Enum;
         type->owner = &mod;
+        type->scope = state.back().nsStack.back();
         type->location = enumDecl.name.loc;
         type->annotations = translate(enumDecl.annotations);
 
@@ -281,24 +285,6 @@ namespace sapc {
 
         mod.types.push_back(type);
         state.back().nsStack.back()->types.push_back(type);
-    }
-
-    void Compiler::build(ast::ConstantDecl const& constantDecl) {
-        assert(!state.empty());
-        assert(!state.back().nsStack.empty());
-        assert(state.back().mod != nullptr);
-
-        auto& mod = *state.back().mod;
-
-        auto* el = ctx.constants.emplace_back(std::make_unique<schema::Constant>()).get();
-        el->name = constantDecl.name.id;
-        el->location = constantDecl.name.loc;
-        el->owner = &mod;
-        el->type = requireType(*constantDecl.type);
-        el->value = translate(constantDecl.value);
-
-        mod.constants.push_back(el);
-        state.back().nsStack.back()->constants.push_back(el);
     }
 
     void Compiler::build(ast::UnionDecl const& unionDecl) {
@@ -312,6 +298,7 @@ namespace sapc {
         type->name = unionDecl.name.id;
         type->kind = schema::Type::Union;
         type->owner = &mod;
+        type->scope = state.back().nsStack.back();
         type->location = unionDecl.name.loc;
         type->annotations = translate(unionDecl.annotations);
 
@@ -320,6 +307,25 @@ namespace sapc {
 
         mod.types.push_back(type);
         state.back().nsStack.back()->types.push_back(type);
+    }
+
+    void Compiler::build(ast::ConstantDecl const& constantDecl) {
+        assert(!state.empty());
+        assert(!state.back().nsStack.empty());
+        assert(state.back().mod != nullptr);
+
+        auto& mod = *state.back().mod;
+
+        auto* constant = ctx.constants.emplace_back(std::make_unique<schema::Constant>()).get();
+        constant->name = constantDecl.name.id;
+        constant->location = constantDecl.name.loc;
+        constant->owner = &mod;
+        constant->scope = state.back().nsStack.back();
+        constant->type = requireType(*constantDecl.type);
+        constant->value = translate(constantDecl.value);
+
+        mod.constants.push_back(constant);
+        state.back().nsStack.back()->constants.push_back(constant);
     }
 
     template <typename SchemaType>
@@ -426,6 +432,7 @@ namespace sapc {
             type->kind = schema::Type::Primitive;
             type->name = builtin;
             type->owner = coreModule;
+            type->scope = ns;
         }
 
         {
@@ -437,10 +444,20 @@ namespace sapc {
             type->kind = schema::Type::TypeId;
             type->name = typeIdName;
             type->owner = coreModule;
+            type->scope = ns;
         }
     }
 
-    schema::Type const* Compiler::findType(ast::TypeRef const& ref) {
+    schema::Type const* Compiler::makeAvailable(schema::Type const* type) {
+        if (type != nullptr && type->owner != state.back().mod) {
+            auto const rs = state.back().importedTypes.insert(type);
+            if (rs.second)
+                state.back().mod->types.push_back(type);
+        }
+        return type;
+    }
+
+    schema::Type const* Compiler::resolveType(ast::TypeRef const& ref) {
         switch (ref.kind) {
         case ast::TypeRef::Kind::TypeName:
             return typeIdType;
@@ -450,7 +467,7 @@ namespace sapc {
             else
                 return nullptr;
         case ast::TypeRef::Kind::Array:
-            if (auto const* type = findType(*ref.ref); type != nullptr) {
+            if (auto const* type = resolveType(*ref.ref); type != nullptr) {
                 auto const it = arrayTypeMap.find(type);
                 if (it != arrayTypeMap.end())
                     return it->second;
@@ -458,7 +475,7 @@ namespace sapc {
             }
             return nullptr;
         case ast::TypeRef::Kind::Pointer:
-            if (auto const* type = findType(*ref.ref); type != nullptr) {
+            if (auto const* type = resolveType(*ref.ref); type != nullptr) {
                 auto const it = pointerTypeMap.find(type);
                 if (it != pointerTypeMap.end())
                     return it->second;
@@ -468,30 +485,6 @@ namespace sapc {
         default:
             return nullptr;
         }
-    }
-
-    schema::Type const* Compiler::resolveType(schema::Type const* type) {
-        if (type == nullptr)
-            return nullptr;
-
-        assert(!state.empty());
-        assert(state.back().mod != nullptr);
-
-        State& top = state.back();
-
-        if (type->owner != top.mod) {
-            bool const resolved = top.resolvedTypes.find(type) != top.resolvedTypes.end();
-            if (!resolved) {
-                top.mod->types.push_back(type);
-                top.resolvedTypes.insert(type);
-            }
-        }
-
-        return type;
-    }
-
-    schema::Type const* Compiler::resolveType(ast::TypeRef const& ref) {
-        return resolveType(findType(ref));
     }
 
     Resolve Compiler::findLocal(QualIdSpan qualId, schema::Type const* scope) {
@@ -525,7 +518,7 @@ namespace sapc {
 
             for (auto const* type : scope->types)
                 if (type->name == qualId.front().id)
-                    return Resolve{ type };
+                    return Resolve{ makeAvailable(type) };
 
             for (auto const* constant : scope->constants)
                 if (constant->name == qualId.front().id)
@@ -539,14 +532,16 @@ namespace sapc {
 
             for (auto const* scopeType : scope->types)
                 if (scopeType->name == qualId.front().id)
-                    if (auto const rs = findLocal(qualId.skip(1), scopeType))
+                    if (auto const rs = findLocal(qualId.skip(1), scopeType)) {
+                        makeAvailable(scopeType);
                         return rs;
+                    }
         }
 
         return {};
     }
 
-    Resolve Compiler::find(QualIdSpan qualId, schema::Module const* scope) {
+    Resolve Compiler::findGlobal(QualIdSpan qualId, schema::Module const* scope) {
         assert(!qualId.empty());
         assert(scope != nullptr);
 
@@ -569,45 +564,14 @@ namespace sapc {
         if (it != state.back().resolveCache.end())
             return it->second;
 
-        auto const rs = find(qualId, state.back().mod);
+        auto const rs = findGlobal(qualId, state.back().mod);
         if (rs.kind != Resolve::Kind::Empty)
             state.back().resolveCache.insert({ qualId, rs });
 
+        if (rs.kind == Resolve::Kind::Type)
+            makeAvailable(rs.data.type);
+
         return rs;
-    }
-
-    schema::Type const* Compiler::createArrayType(schema::Type const* of, Location const& loc) {
-        assert(of != nullptr);
-
-        auto& top = state.back();
-
-        auto* arr = static_cast<schema::TypeArray*>(ctx.types.emplace_back(std::make_unique<schema::TypeArray>()).get());
-        top.mod->types.push_back(arr);
-
-        arr->name = of->name;
-        arr->name += "[]";
-        arr->of = of;
-        arr->kind = schema::Type::Array;
-        arr->owner = top.mod;
-        arr->location = loc;
-        return arr;
-    }
-
-    schema::Type const* Compiler::createPointerType(schema::Type const* to, Location const& loc) {
-        assert(to != nullptr);
-
-        auto& top = state.back();
-
-        auto* ptr = static_cast<schema::TypePointer*>(ctx.types.emplace_back(std::make_unique<schema::TypePointer>()).get());
-        top.mod->types.push_back(ptr);
-
-        ptr->name = to->name;
-        ptr->name += "*";
-        ptr->to = to;
-        ptr->kind = schema::Type::Pointer;
-        ptr->owner = top.mod;
-        ptr->location = loc;
-        return ptr;
     }
 
     schema::Type const* Compiler::requireType(QualIdSpan qualId) {
@@ -638,6 +602,42 @@ namespace sapc {
             if (item->name == name)
                 return item.get();
         return nullptr;
+    }
+
+    schema::Type const* Compiler::createArrayType(schema::Type const* of, Location const& loc) {
+        assert(of != nullptr);
+
+        auto& top = state.back();
+
+        auto* arr = static_cast<schema::TypeArray*>(ctx.types.emplace_back(std::make_unique<schema::TypeArray>()).get());
+        top.mod->types.push_back(arr);
+
+        arr->name = of->name;
+        arr->name += "[]";
+        arr->of = of;
+        arr->kind = schema::Type::Array;
+        arr->owner = top.mod;
+        arr->scope = of->scope;
+        arr->location = loc;
+        return arr;
+    }
+
+    schema::Type const* Compiler::createPointerType(schema::Type const* to, Location const& loc) {
+        assert(to != nullptr);
+
+        auto& top = state.back();
+
+        auto* ptr = static_cast<schema::TypePointer*>(ctx.types.emplace_back(std::make_unique<schema::TypePointer>()).get());
+        top.mod->types.push_back(ptr);
+
+        ptr->name = to->name;
+        ptr->name += "*";
+        ptr->to = to;
+        ptr->kind = schema::Type::Pointer;
+        ptr->owner = top.mod;
+        ptr->scope = to->scope;
+        ptr->location = loc;
+        return ptr;
     }
 
     schema::Value Compiler::translate(ast::Literal const& lit) {
