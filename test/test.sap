@@ -45,7 +45,7 @@ union number {
 }
 
 [forward(Vec)]
-struct derived : test {}
+struct derived : ns.test {}
 
 enum order {
     first, second, third
