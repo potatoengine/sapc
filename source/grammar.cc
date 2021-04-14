@@ -83,7 +83,6 @@ namespace sapc {
             return nullptr;
 
         return mod;
-
     }
 
     bool Grammar::parseFile() {

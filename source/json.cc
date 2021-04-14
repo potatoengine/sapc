@@ -94,7 +94,7 @@ namespace sapc {
         auto types_json = JsonT::object();
         auto type_exports_json = JsonT::array();
         for (auto const* type : mod.types) {
-            if (type->parent == &mod && type->kind != schema::Type::Kind::Array && type->kind != schema::Type::Kind::Pointer)
+            if (type->owner == &mod && type->kind != schema::Type::Kind::Array && type->kind != schema::Type::Kind::Pointer)
                 type_exports_json.push_back(type->name);
 
             types_json[type->name.c_str()] = *type;
@@ -106,14 +106,14 @@ namespace sapc {
         for (auto const* constant : mod.constants) {
             auto const_json = JsonT::object();
             const_json["name"] = constant->name;
-            const_json["module"] = constant->parent->name;
+            const_json["module"] = constant->owner->name;
             const_json["type"] = constant->type->name;
             const_json["value"] = constant->value;
             const_json["annotations"] = constant->annotations;
             const_json["location"] = constant->location;
             constants_json[constant->name.c_str()] = std::move(const_json);
 
-            if (constant->parent == &mod)
+            if (constant->owner == &mod)
                 constant_exports_json.push_back(constant->name);
         }
         doc["constants"] = std::move(constants_json);
@@ -144,12 +144,12 @@ namespace sapc {
 
     template <typename JsonT>
     void schema::to_json(JsonT& type_json, Type const& type) {
-        assert(type.parent != nullptr);
+        assert(type.owner != nullptr);
 
         type_json = JsonT::object();
 
         type_json["name"] = type.name;
-        type_json["module"] = type.parent->name;
+        type_json["module"] = type.owner->name;
         type_json["kind"] = type.kind;
         type_json["annotations"] = type.annotations;
 

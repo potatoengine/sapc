@@ -20,6 +20,7 @@ namespace sapc::schema {
     struct EnumItem;
     struct Annotation;
     struct Constant;
+    struct Namespace;
 
     struct Annotated {
         std::vector<std::unique_ptr<Annotation>> annotations;
@@ -78,7 +79,8 @@ namespace sapc::schema {
 
         std::string name;
         Location location;
-        Module const* parent = nullptr;
+        Module const* owner = nullptr;
+        Namespace const* scope = nullptr;
         Kind kind = Kind::Primitive;
     };
 
@@ -110,23 +112,35 @@ namespace sapc::schema {
     struct Constant : Annotated {
         std::string name;
         Location location;
-        Module const* parent = nullptr;
+        Module const* owner = nullptr;
+        Namespace const* scope = nullptr;
         Type const* type = nullptr;
         Value value;
+    };
+
+    struct Namespace {
+        std::string name;
+        Location location;
+        std::vector<Type const*> types;
+        std::vector<Constant const*> constants;
+        std::vector<Namespace const*> namespaces;
     };
 
     struct Module : Annotated {
         std::string name;
         Location location;
+        Namespace const* root = nullptr;
         std::vector<Module const*> imports;
         std::vector<Type const*> types;
         std::vector<Constant const*> constants;
+        std::vector<Namespace const*> namespaces;
     };
 
     struct Schema {
         std::vector<std::unique_ptr<Module>> modules;
         std::vector<std::unique_ptr<Type>> types;
         std::vector<std::unique_ptr<Constant>> constants;
+        std::vector<std::unique_ptr<Namespace>> namespaces;
         Module const* root = nullptr;
     };
 }

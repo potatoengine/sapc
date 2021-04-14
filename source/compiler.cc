@@ -34,6 +34,7 @@ namespace sapc {
         struct State {
             std::unique_ptr<ast::ModuleUnit> unit;
             schema::Module* mod = nullptr;
+            std::vector<schema::Namespace*> nsStack;
             std::unordered_set<schema::Type const*> resolvedTypes;
         };
 
@@ -118,12 +119,19 @@ namespace sapc {
     }
 
     void Compiler::build(ast::NamespaceDecl const& nsDecl) {
+        ctx.namespaces.push_back(std::make_unique<schema::Namespace>());
+        state.back().mod->namespaces.push_back(ctx.namespaces.back().get());
+        state.back().nsStack.push_back(ctx.namespaces.back().get());
+
         for (auto const& decl : nsDecl.decls)
             build(*decl);
+
+        state.back().nsStack.pop_back();
     }
 
     void Compiler::build(ast::StructDecl const& structDecl) {
         assert(!state.empty());
+        assert(!state.back().nsStack.empty());
         assert(state.back().mod != nullptr);
 
         auto& mod = *state.back().mod;
@@ -131,7 +139,7 @@ namespace sapc {
         auto* const type = static_cast<schema::TypeStruct*>(ctx.types.emplace_back(std::make_unique<schema::TypeStruct>()).get());
         type->name = structDecl.name.id;
         type->kind = schema::Type::Kind::Struct;
-        type->parent = &mod;
+        type->owner = &mod;
         type->location = structDecl.name.loc;
         if (structDecl.baseType != nullptr)
             type->baseType = requireType(*structDecl.baseType);
@@ -141,10 +149,12 @@ namespace sapc {
             build(*type, field);
 
         mod.types.push_back(type);
+        state.back().nsStack.back()->types.push_back(type);
     }
 
     void Compiler::build(ast::AttributeDecl const& attrDecl) {
         assert(!state.empty());
+        assert(!state.back().nsStack.empty());
         assert(state.back().mod != nullptr);
 
         auto& mod = *state.back().mod;
@@ -152,7 +162,7 @@ namespace sapc {
         auto* const type = static_cast<schema::TypeAttribute*>(ctx.types.emplace_back(std::make_unique<schema::TypeAttribute>()).get());
         type->name = attrDecl.name.id;
         type->kind = schema::Type::Kind::Attribute;
-        type->parent = &mod;
+        type->owner = &mod;
         type->location = attrDecl.name.loc;
         type->annotations = translate(attrDecl.annotations);
 
@@ -160,10 +170,12 @@ namespace sapc {
             build(*type, field);
 
         mod.types.push_back(type);
+        state.back().nsStack.back()->types.push_back(type);
     }
 
     void Compiler::build(ast::EnumDecl const& enumDecl) {
         assert(!state.empty());
+        assert(!state.back().nsStack.empty());
         assert(state.back().mod != nullptr);
 
         auto& mod = *state.back().mod;
@@ -171,7 +183,7 @@ namespace sapc {
         auto* const type = static_cast<schema::TypeEnum*>(ctx.types.emplace_back(std::make_unique<schema::TypeEnum>()).get());
         type->name = enumDecl.name.id;
         type->kind = schema::Type::Enum;
-        type->parent = &mod;
+        type->owner = &mod;
         type->location = enumDecl.name.loc;
         type->annotations = translate(enumDecl.annotations);
 
@@ -179,25 +191,30 @@ namespace sapc {
             build(*type, item);
 
         mod.types.push_back(type);
+        state.back().nsStack.back()->types.push_back(type);
     }
 
     void Compiler::build(ast::ConstantDecl const& constantDecl) {
         assert(!state.empty());
+        assert(!state.back().nsStack.empty());
         assert(state.back().mod != nullptr);
 
         auto& mod = *state.back().mod;
 
         auto* el = ctx.constants.emplace_back(std::make_unique<schema::Constant>()).get();
-        mod.constants.push_back(el);
         el->name = constantDecl.name.id;
         el->location = constantDecl.name.loc;
-        el->parent = &mod;
+        el->owner = &mod;
         el->type = requireType(*constantDecl.type);
         el->value = translate(constantDecl.value);
+
+        mod.constants.push_back(el);
+        state.back().nsStack.back()->constants.push_back(el);
     }
 
     void Compiler::build(ast::UnionDecl const& unionDecl) {
         assert(!state.empty());
+        assert(!state.back().nsStack.empty());
         assert(state.back().mod != nullptr);
 
         auto& mod = *state.back().mod;
@@ -205,7 +222,7 @@ namespace sapc {
         auto* const type = static_cast<schema::TypeUnion*>(ctx.types.emplace_back(std::make_unique<schema::TypeUnion>()).get());
         type->name = unionDecl.name.id;
         type->kind = schema::Type::Union;
-        type->parent = &mod;
+        type->owner = &mod;
         type->location = unionDecl.name.loc;
         type->annotations = translate(unionDecl.annotations);
 
@@ -213,6 +230,7 @@ namespace sapc {
             build(*type, member);
 
         mod.types.push_back(type);
+        state.back().nsStack.back()->types.push_back(type);
     }
 
     template <typename SchemaType>
@@ -275,11 +293,14 @@ namespace sapc {
         createCoreModule();
 
         ctx.modules.push_back(std::make_unique<schema::Module>());
+        ctx.namespaces.push_back(std::make_unique<schema::Namespace>());
         auto* const mod = ctx.modules.back().get();
         mod->name = unit->name.id;
         mod->location = unit->name.loc;
+        mod->root = ctx.namespaces.back().get();
 
         state.push_back(State{ move(unit), mod });
+        state.back().nsStack.push_back(ctx.namespaces.back().get());
 
         for (auto const& decl : state.back().unit->decls)
             build(*decl);
@@ -312,7 +333,7 @@ namespace sapc {
 
             type->kind = schema::Type::Primitive;
             type->name = builtin;
-            type->parent = coreModule;
+            type->owner = coreModule;
         }
 
         {
@@ -322,7 +343,7 @@ namespace sapc {
 
             type->kind = schema::Type::TypeId;
             type->name = typeIdName;
-            type->parent = coreModule;
+            type->owner = coreModule;
         }
     }
 
@@ -393,7 +414,7 @@ namespace sapc {
 
         State& top = state.back();
 
-        if (type->parent != top.mod) {
+        if (type->owner != top.mod) {
             bool const resolved = top.resolvedTypes.find(type) != top.resolvedTypes.end();
             if (!resolved) {
                 top.mod->types.push_back(type);
@@ -424,7 +445,7 @@ namespace sapc {
         arr->name += "[]";
         arr->of = of;
         arr->kind = schema::Type::Array;
-        arr->parent = top.mod;
+        arr->owner = top.mod;
         arr->location = loc;
         return arr;
     }
@@ -441,7 +462,7 @@ namespace sapc {
         ptr->name += "*";
         ptr->to = to;
         ptr->kind = schema::Type::Pointer;
-        ptr->parent = top.mod;
+        ptr->owner = top.mod;
         ptr->location = loc;
         return ptr;
     }
