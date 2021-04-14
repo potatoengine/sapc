@@ -14,6 +14,7 @@ Version 0.11-beta (WIP)
  - List initialization of values, e.g. `int[] vals = { 1, 2, 3 };` or `Vec zero = { 0, 0 };`
  - Rewrote compiler to use an AST
  - Minor tweaks to which entities can have annotations
+ - Namespaces
 
 Version 0.10-beta
 -----------------
