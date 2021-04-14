@@ -164,6 +164,8 @@ namespace sapc {
                 if (!parseScope(nsDecl.name.loc, TokenType::RightBrace, ConfigNamespace))
                     return false;
                 scopeStack.pop_back();
+
+                continue;
             }
 
             // parse module
