@@ -51,16 +51,6 @@ namespace sapc {
             ast::Identifier const* first = nullptr;
             ast::Identifier const* last = nullptr;
 
-            friend std::ostream& operator<<(std::ostream& os, QualIdSpan qualId) {
-                for (auto* it = qualId.first; it != qualId.last; ++it) {
-                    if (it != qualId.first)
-                        os << '.';
-                    os << *it;
-                }
-
-                return os;
-            }
-
             friend bool operator==(QualIdSpan lhs, QualIdSpan rhs) noexcept {
                 if (lhs.size() != rhs.size())
                     return false;

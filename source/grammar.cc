@@ -57,7 +57,7 @@ namespace sapc {
             inline bool mustConsume(std::vector<ast::Annotation>& annotations);
 
             inline bool parseFile();
-            inline bool parseScope(Location& start, TokenType terminate, unsigned config);
+            inline bool parseScope(Location const& start, TokenType terminate, unsigned config);
 
             template <typename DeclT>
             DeclT& begin();
@@ -97,7 +97,7 @@ namespace sapc {
         return true;
     }
 
-    bool Grammar::parseScope(Location& start, TokenType terminate, unsigned config) {
+    bool Grammar::parseScope(Location const& start, TokenType terminate, unsigned config) {
         std::vector<ast::Annotation> annotations;
 
         while (!consume(terminate)) {
