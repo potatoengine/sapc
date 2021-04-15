@@ -10,6 +10,8 @@
 #include "ast.hh"
 #include "log.hh"
 
+#include <cassert>
+
 namespace fs = std::filesystem;
 
 #if defined(EXPECT)
@@ -19,12 +21,23 @@ namespace fs = std::filesystem;
 
 namespace sapc {
     namespace {
+        constexpr unsigned AllowNamespaces = 1 << 0;
+        constexpr unsigned AllowTypes = 1 << 1;
+        constexpr unsigned AllowModule = 1 << 2;
+        constexpr unsigned AllowAttributes = 1 << 3;
+        constexpr unsigned AllowImport = 1 << 4;
+        constexpr unsigned AllowConstants = 1 << 5;
+
+        constexpr unsigned ConfigModule = AllowNamespaces | AllowTypes | AllowModule | AllowAttributes | AllowImport | AllowConstants;
+        constexpr unsigned ConfigNamespace = AllowNamespaces | AllowTypes | AllowConstants;
+
         struct Grammar {
             std::vector<Token> const& tokens;
             Log& log;
             fs::path const& filename;
             ast::ModuleUnit& module;
             size_t next = 0;
+            std::vector<std::vector<std::unique_ptr<ast::Declaration>>*> scopeStack;
 
             inline Location pos();
 
@@ -44,6 +57,10 @@ namespace sapc {
             inline bool mustConsume(std::vector<ast::Annotation>& annotations);
 
             inline bool parseFile();
+            inline bool parseScope(Location const& start, TokenType terminate, unsigned config);
+
+            template <typename DeclT>
+            DeclT& begin();
         };
     }
 
@@ -66,13 +83,30 @@ namespace sapc {
             return nullptr;
 
         return mod;
-
     }
 
     bool Grammar::parseFile() {
+        scopeStack.push_back(&module.decls);
+
+        if (!parseScope(Location{ module.filename, {1, 0} }, TokenType::EndOfFile, ConfigModule))
+            return false;
+
+        if (module.name.empty())
+            return fail("missing module declaration");
+
+        return true;
+    }
+
+    bool Grammar::parseScope(Location const& start, TokenType terminate, unsigned config) {
         std::vector<ast::Annotation> annotations;
 
-        while (!consume(TokenType::EndOfFile)) {
+        while (!consume(terminate)) {
+            if (consume(TokenType::EndOfFile)) {
+                log.error(pos(), "unexpected end of file");
+                log.info(start, "unclosed scope started here");
+                return false;
+            }
+
             if (consume(TokenType::Unknown)) {
                 std::ostringstream buf;
                 buf << "unexpected input";
@@ -81,8 +115,8 @@ namespace sapc {
                 return fail(buf.str());
             }
 
-            if (consume(TokenType::KeywordImport)) {
-                auto& imp = static_cast<ast::ImportDecl&>(*module.decls.emplace_back(std::make_unique<ast::ImportDecl>()));
+            if ((config & AllowImport) != 0 && consume(TokenType::KeywordImport)) {
+                auto& imp = begin<ast::ImportDecl>();
 
                 EXPECT(imp.target);
                 EXPECT(TokenType::SemiColon);
@@ -90,8 +124,8 @@ namespace sapc {
                 continue;
             }
 
-            if (consume(TokenType::KeywordAttribute)) {
-                auto& attr = static_cast<ast::AttributeDecl&>(*module.decls.emplace_back(std::make_unique<ast::AttributeDecl>()));
+            if ((config & AllowAttributes) != 0 && consume(TokenType::KeywordAttribute)) {
+                auto& attr = begin<ast::AttributeDecl>();
 
                 EXPECT(attr.name);
 
@@ -119,9 +153,24 @@ namespace sapc {
             while (match(TokenType::LeftBracket))
                 EXPECT(annotations);
 
+            // parse namespace
+            if ((config & AllowNamespaces) != 0 && consume(TokenType::KeywordNamespace)) {
+                auto& nsDecl = begin<ast::NamespaceDecl>();
+
+                EXPECT(nsDecl.name);
+                EXPECT(TokenType::LeftBrace);
+
+                scopeStack.push_back(&nsDecl.decls);
+                if (!parseScope(nsDecl.name.loc, TokenType::RightBrace, ConfigNamespace))
+                    return false;
+                scopeStack.pop_back();
+
+                continue;
+            }
+
             // parse module
-            if (consume(TokenType::KeywordModule)) {
-                auto& modDecl = static_cast<ast::ModuleDecl&>(*module.decls.emplace_back(std::make_unique<ast::ModuleDecl>()));
+            if ((config & AllowModule) != 0 && consume(TokenType::KeywordModule)) {
+                auto& modDecl = begin<ast::ModuleDecl>();
 
                 EXPECT(modDecl.name);
                 if (module.name.empty())
@@ -133,29 +182,29 @@ namespace sapc {
             }
 
             // parse constants
-            if (consume(TokenType::KeywordConst)) {
-                auto& constant = static_cast<ast::ConstantDecl&>(*module.decls.emplace_back(std::make_unique<ast::ConstantDecl>()));
-                constant.annotations = std::move(annotations);
+            if ((config & AllowConstants) != 0 && consume(TokenType::KeywordConst)) {
+                auto& constDecl = begin<ast::ConstantDecl>();
+                constDecl.annotations = std::move(annotations);
 
-                EXPECT(constant.type);
-                EXPECT(constant.name);
+                EXPECT(constDecl.type);
+                EXPECT(constDecl.name);
                 EXPECT(TokenType::Equal);
-                EXPECT(constant.value);
+                EXPECT(constDecl.value);
                 EXPECT(TokenType::SemiColon);
 
                 continue;
             }
 
             // parse unions
-            if (consume(TokenType::KeywordUnion)) {
-                auto& decl = static_cast<ast::UnionDecl&>(*module.decls.emplace_back(std::make_unique<ast::UnionDecl>()));
+            if ((config & AllowTypes) != 0 && consume(TokenType::KeywordUnion)) {
+                auto& unionDecl = begin<ast::UnionDecl>();
 
-                decl.annotations = std::move(annotations);
-                EXPECT(decl.name);
+                unionDecl.annotations = std::move(annotations);
+                EXPECT(unionDecl.name);
 
                 EXPECT(TokenType::LeftBrace);
                 while (!consume(TokenType::RightBrace)) {
-                    auto& member = decl.members.emplace_back();
+                    auto& member = unionDecl.members.emplace_back();
 
                     while (match(TokenType::LeftBracket))
                         EXPECT(member.annotations);
@@ -168,20 +217,20 @@ namespace sapc {
                 continue;
             }
 
-            // parse aggregate declarations
-            if (consume(TokenType::KeywordStruct)) {
-                auto& decl = static_cast<ast::StructDecl&>(*module.decls.emplace_back(std::make_unique<ast::StructDecl>()));
+            // parse struct declarations
+            if ((config & AllowTypes) != 0 && consume(TokenType::KeywordStruct)) {
+                auto& structDecl = begin<ast::StructDecl>();
 
-                decl.annotations = std::move(annotations);
-                EXPECT(decl.name);
+                structDecl.annotations = std::move(annotations);
+                EXPECT(structDecl.name);
 
                 if (consume(TokenType::Colon))
-                    EXPECT(decl.baseType);
+                    EXPECT(structDecl.baseType);
 
                 if (!consume(TokenType::SemiColon)) {
                     EXPECT(TokenType::LeftBrace);
                     while (!consume(TokenType::RightBrace)) {
-                        auto& field = decl.fields.emplace_back();
+                        auto& field = structDecl.fields.emplace_back();
 
                         while (match(TokenType::LeftBracket))
                             EXPECT(field.annotations);
@@ -201,19 +250,19 @@ namespace sapc {
             }
 
             // parse enumerations
-            if (consume(TokenType::KeywordEnum)) {
-                auto& decl = static_cast<ast::EnumDecl&>(*module.decls.emplace_back(std::make_unique<ast::EnumDecl>()));
+            if ((config & AllowTypes) != 0 && consume(TokenType::KeywordEnum)) {
+                auto& enumDecl = begin<ast::EnumDecl>();
 
-                decl.annotations = std::move(annotations);
-                EXPECT(decl.name);
+                enumDecl.annotations = std::move(annotations);
+                EXPECT(enumDecl.name);
 
                 if (consume(TokenType::Colon))
-                    EXPECT(decl.baseType);
+                    EXPECT(enumDecl.baseType);
 
                 EXPECT(TokenType::LeftBrace);
                 long long nextValue = 0;
                 for (;;) {
-                    auto& item = decl.items.emplace_back();
+                    auto& item = enumDecl.items.emplace_back();
                     EXPECT(item.name);
                     item.value = nextValue++;
                     if (consume(TokenType::Equal)) {
@@ -230,9 +279,6 @@ namespace sapc {
 
             return fail("unexpected ", tokens[next]);
         }
-
-        if (module.name.empty())
-            return fail("missing module declaration");
 
         return true;
     }
@@ -432,5 +478,17 @@ namespace sapc {
         EXPECT(TokenType::RightBracket);
 
         return true;
+    }
+
+    template <typename DeclT>
+    DeclT& Grammar::begin() {
+        assert(!scopeStack.empty());
+
+        auto decl = std::make_unique<DeclT>();
+        auto* const ret = decl.get();
+
+        scopeStack.back()->push_back(move(decl));
+
+        return *ret;
     }
 }

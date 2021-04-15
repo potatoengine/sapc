@@ -18,6 +18,7 @@ namespace sapc {
         std::vector<std::unique_ptr<schema::Module>> modules;
         std::vector<std::unique_ptr<schema::Type>> types;
         std::vector<std::unique_ptr<schema::Constant>> constants;
+        std::vector<std::unique_ptr<schema::Namespace>> namespaces;
 
         schema::Module const* rootModule = nullptr;
     };

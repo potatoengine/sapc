@@ -34,7 +34,21 @@ cxx_type_map = {'string': 'std::string',
 
 def cxxname(el): return annotation(el, name='cxxname', argname='name', default=cxx_type_map[el['name']] if el['name'] in cxx_type_map else identifier(el['name']))
 def ignored(el): return annotation(el, name='ignore', argname='ignored', default=False)
-def namespace(el): return 'sapc_attr' if 'is_attribute' in el and el['is_attribute'] else 'st'
+
+def namespace(el):
+    if el['name'] in cxx_type_map or annotation(el, name='cxxname', argname='name') is not None:
+        return None
+    if 'namespace' in el:
+        return 'st::' + '::'.join(identifier(c) for c in el['namespace'].split('.'))
+    elif 'is_attribute' in el and el['is_attribute']:
+        return 'sapc_attr'
+    else:
+        return 'st'
+
+def qualified(el):
+    ns = namespace(el)
+    name = cxxname(el)
+    return name if ns is None else (ns + '::' + name)
 
 def encode(el):
     if isinstance(el, str):
@@ -63,7 +77,9 @@ def field_cxxtype(types, name):
         field_type = field_cxxtype(types, field_type['to'])
         return f'std::unique_ptr<{field_type}>'
     else:
-        return cxxname(field_type)
+        ns = namespace(field_type)
+        name = cxxname(field_type)
+        return name if ns is None else (ns + '::' + name)
 
 def banner(text, out):
     print(f'// --{re.sub(".", "-", text)}--', file=out)
@@ -131,7 +147,7 @@ def main(argv):
         kind = type['kind']
 
         basetype = types[type['base']] if 'base' in type else None
-        basespec = f' : {cxxname(basetype)}' if basetype is not None else ''
+        basespec = f' : {qualified(basetype)}' if basetype is not None else ''
 
         if 'location' in type:
             loc = type['location']

@@ -19,6 +19,10 @@ namespace sapc {
         template <typename JsonT>
         void to_json(JsonT& j, Type const& type);
         template <typename JsonT>
+        void to_json(JsonT& j, Constant const& constant);
+        template <typename JsonT>
+        void to_json(JsonT& j, Namespace const& ns);
+        template <typename JsonT>
         void to_json(JsonT& j, Annotation const& value);
         template <typename JsonT>
         void to_json(JsonT& j, std::vector<std::unique_ptr<Annotation>> const& values);
@@ -94,29 +98,27 @@ namespace sapc {
         auto types_json = JsonT::object();
         auto type_exports_json = JsonT::array();
         for (auto const* type : mod.types) {
-            if (type->parent == &mod && type->kind != schema::Type::Kind::Array && type->kind != schema::Type::Kind::Pointer)
-                type_exports_json.push_back(type->name);
+            if (type->owner == &mod && type->kind != schema::Type::Kind::Array && type->kind != schema::Type::Kind::Pointer)
+                type_exports_json.push_back(type->qualifiedName);
 
-            types_json[type->name.c_str()] = *type;
+            types_json[type->qualifiedName.c_str()] = *type;
         }
         doc["types"] = std::move(types_json);
 
         auto constants_json = JsonT::object();
         auto constant_exports_json = JsonT::array();
         for (auto const* constant : mod.constants) {
-            auto const_json = JsonT::object();
-            const_json["name"] = constant->name;
-            const_json["module"] = constant->parent->name;
-            const_json["type"] = constant->type->name;
-            const_json["value"] = constant->value;
-            const_json["annotations"] = constant->annotations;
-            const_json["location"] = constant->location;
-            constants_json[constant->name.c_str()] = std::move(const_json);
+            if (constant->owner == &mod)
+                constant_exports_json.push_back(constant->qualifiedName);
 
-            if (constant->parent == &mod)
-                constant_exports_json.push_back(constant->name);
+            constants_json[constant->qualifiedName.c_str()] = *constant;
         }
         doc["constants"] = std::move(constants_json);
+
+        auto namespaces_json = JsonT::object();
+        for (auto const* ns : mod.namespaces)
+            namespaces_json[ns->qualifiedName.c_str()] = *ns;
+        doc["namespaces"] = std::move(namespaces_json);
 
         auto exports = JsonT::object();
         exports["types"] = std::move(type_exports_json);
@@ -144,12 +146,15 @@ namespace sapc {
 
     template <typename JsonT>
     void schema::to_json(JsonT& type_json, Type const& type) {
-        assert(type.parent != nullptr);
+        assert(type.owner != nullptr);
 
         type_json = JsonT::object();
 
         type_json["name"] = type.name;
-        type_json["module"] = type.parent->name;
+        type_json["qualified"] = type.qualifiedName;
+        type_json["module"] = type.owner->name;
+        if (!type.scope->name.empty())
+            type_json["namespace"] = type.scope->qualifiedName;
         type_json["kind"] = type.kind;
         type_json["annotations"] = type.annotations;
 
@@ -168,14 +173,14 @@ namespace sapc {
             auto& typeStruct = static_cast<TypeStruct const&>(type);
 
             if (typeStruct.baseType != nullptr)
-                type_json["base"] = typeStruct.baseType->name;
+                type_json["base"] = typeStruct.baseType->qualifiedName;
 
             auto fields = JsonT::object();
             auto order = JsonT::array();
             for (auto const& field : typeStruct.fields) {
                 auto field_json = JsonT::object();
                 field_json["name"] = field->name;
-                field_json["type"] = field->type->name;
+                field_json["type"] = field->type->qualifiedName;
                 if (field->defaultValue)
                     field_json["default"] = *field->defaultValue;
                 field_json["annotations"] = field->annotations;
@@ -195,7 +200,7 @@ namespace sapc {
             for (auto const& member : typeUnion.members) {
                 auto member_json = JsonT::object();
                 member_json["name"] = member->name;
-                member_json["type"] = member->type->name;
+                member_json["type"] = member->type->qualifiedName;
                 member_json["annotations"] = member->annotations;
                 member_json["location"] = member->location;
 
@@ -213,7 +218,7 @@ namespace sapc {
             for (auto const& field : typeAttr.fields) {
                 auto field_json = JsonT::object();
                 field_json["name"] = field->name;
-                field_json["type"] = field->type->name;
+                field_json["type"] = field->type->qualifiedName;
                 if (field->defaultValue)
                     field_json["default"] = *field->defaultValue;
                 field_json["annotations"] = field->annotations;
@@ -228,22 +233,61 @@ namespace sapc {
         else if (type.kind == Type::Kind::Array) {
             auto& typeArray = static_cast<TypeArray const&>(type);
 
-            type_json["of"] = typeArray.of->name;
+            type_json["of"] = typeArray.of->qualifiedName;
         }
         else if (type.kind == Type::Kind::Pointer) {
             auto& typePointer = static_cast<TypePointer const&>(type);
 
-            type_json["to"] = typePointer.to->name;
+            type_json["to"] = typePointer.to->qualifiedName;
         }
 
         type_json["location"] = type.location;
     }
 
     template <typename JsonT>
+    void schema::to_json(JsonT& const_json, Constant const& constant) {
+        const_json = JsonT::object();
+        const_json["name"] = constant.name;
+        const_json["qualified"] = constant.qualifiedName;
+        const_json["module"] = constant.owner->name;
+        if (!constant.scope->name.empty())
+            const_json["namespace"] = constant.scope->qualifiedName;
+        const_json["type"] = constant.type->name;
+        const_json["value"] = constant.value;
+        const_json["annotations"] = constant.annotations;
+        const_json["location"] = constant.location;
+    }
+
+    template <typename JsonT>
+    void schema::to_json(JsonT& ns_json, Namespace const& ns) {
+        ns_json = JsonT::object();
+        ns_json["name"] = ns.name;
+        ns_json["qualified"] = ns.qualifiedName;
+        ns_json["module"] = ns.owner->name;
+        if (!ns.scope->name.empty())
+            ns_json["namespace"] = ns.scope->qualifiedName;
+
+        auto types_json = JsonT::array();
+        for (auto const* type : ns.types)
+            types_json.push_back(type->qualifiedName);
+        ns_json["types"] = std::move(types_json);
+
+        auto constants_json = JsonT::array();
+        for (auto const* constant : ns.constants)
+            types_json.push_back(constant->qualifiedName);
+        ns_json["constants"] = std::move(constants_json);
+
+        auto namespaces_json = JsonT::array();
+        for (auto const* subNamespace : ns.namespaces)
+            namespaces_json.push_back(subNamespace->qualifiedName);
+        ns_json["namespaces"] = std::move(namespaces_json);
+    }
+
+    template <typename JsonT>
     void schema::to_json(JsonT& j, Annotation const& value) {
         j = JsonT::object();
 
-        j["type"] = value.type->name;
+        j["type"] = value.type->qualifiedName;
         j["location"] = value.location;
 
         assert(value.type->kind == Type::Kind::Attribute);

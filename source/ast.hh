@@ -33,6 +33,7 @@ namespace sapc::ast {
             Constant,
             Import,
             Module,
+            Namespace,
         };
 
         virtual ~Declaration() = default;
@@ -85,6 +86,13 @@ namespace sapc::ast {
         std::unique_ptr<TypeRef> type;
         std::vector<Annotation> annotations;
         std::optional<Literal> init;
+    };
+
+    struct NamespaceDecl : Declaration {
+        NamespaceDecl() { kind = Kind::Namespace; }
+
+        Identifier name;
+        std::vector<std::unique_ptr<Declaration>> decls;
     };
 
     struct StructDecl : Declaration {
