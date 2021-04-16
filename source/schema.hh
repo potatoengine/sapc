@@ -16,6 +16,7 @@ namespace sapc::schema {
     struct Module;
     struct Type;
     struct TypeStruct;
+    struct TypeGeneric;
     struct TypeEnum;
     struct EnumItem;
     struct Annotation;
@@ -68,6 +69,8 @@ namespace sapc::schema {
         enum Kind {
             Primitive,
             Struct,
+            Generic,
+            Specialized,
             Union,
             Attribute,
             Array,
@@ -88,6 +91,11 @@ namespace sapc::schema {
     struct TypeStruct : Type {
         Type const* baseType = nullptr;
         std::vector<std::unique_ptr<Field>> fields;
+        std::vector<TypeGeneric const*> generics;
+    };
+
+    struct TypeGeneric : Type {
+        Type const* parent = nullptr;
     };
 
     struct TypeUnion : Type {
@@ -104,6 +112,11 @@ namespace sapc::schema {
 
     struct TypePointer : Type {
         Type const* to = nullptr;
+    };
+
+    struct TypeSpecialized : Type {
+        Type const* ref = nullptr;
+        std::vector<Type const*> typeParams;
     };
 
     struct TypeEnum : Type {

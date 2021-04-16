@@ -25,6 +25,8 @@ namespace sapc {
         RightParen,
         LeftBracket,
         RightBracket,
+        LeftAngle,
+        RightAngle,
         Comma,
         Dot,
         Equal,

@@ -224,6 +224,15 @@ namespace sapc {
                 structDecl.annotations = std::move(annotations);
                 EXPECT(structDecl.name);
 
+                if (consume(TokenType::LeftAngle)) {
+                    EXPECT(structDecl.generics.emplace_back());
+
+                    while (consume(TokenType::Comma))
+                        EXPECT(structDecl.generics.emplace_back());
+
+                    EXPECT(TokenType::RightAngle);
+                }
+
                 if (consume(TokenType::Colon))
                     EXPECT(structDecl.baseType);
 
@@ -421,9 +430,8 @@ namespace sapc {
             tref->kind = ast::TypeRef::Kind::TypeName;
             tref->loc = pos();
             type = std::move(tref);
-            return true;
         }
-
+        else
         {
             auto name = std::make_unique<ast::TypeRef>();
             name->kind = ast::TypeRef::Kind::Name;
@@ -431,6 +439,19 @@ namespace sapc {
             name->loc = name->name.components.front().loc;
             name->loc.merge(name->name.components.back().loc);
             type = std::move(name);
+
+            if (consume(TokenType::LeftAngle)) {
+                auto gen = std::make_unique<ast::TypeRef>();
+                gen->kind = ast::TypeRef::Kind::Generic;
+                gen->loc = type->loc;
+                EXPECT(gen->typeParams.emplace_back());
+                while (consume(TokenType::Comma))
+                    EXPECT(gen->typeParams.emplace_back());
+                EXPECT(TokenType::RightAngle);
+                gen->loc.merge(pos());
+                gen->ref = std::move(type);
+                type = std::move(gen);
+            }
         }
 
         if (consume(TokenType::Asterisk)) {
@@ -446,10 +467,10 @@ namespace sapc {
             auto arr = std::make_unique<ast::TypeRef>();
             arr->kind = ast::TypeRef::Kind::Array;
             arr->loc = type->loc;
-            arr->loc.merge(pos());
             arr->ref = std::move(type);
-            type = std::move(arr);
             EXPECT(TokenType::RightBracket);
+            arr->loc.merge(pos());
+            type = std::move(arr);
         }
         return true;
     }

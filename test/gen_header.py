@@ -36,9 +36,13 @@ def cxxname(el): return annotation(el, name='cxxname', argname='name', default=c
 def ignored(el): return annotation(el, name='ignore', argname='ignored', default=False)
 
 def namespace(el):
-    if el['name'] in cxx_type_map or annotation(el, name='cxxname', argname='name') is not None:
+    if 'kind' in el and el['kind'] == 'generic':
         return None
-    if 'namespace' in el:
+    elif el['name'] in cxx_type_map:
+        return None
+    elif annotation(el, name='cxxname', argname='name') is not None:
+        return None
+    elif 'namespace' in el:
         return 'st::' + '::'.join(identifier(c) for c in el['namespace'].split('.'))
     elif 'is_attribute' in el and el['is_attribute']:
         return 'sapc_attr'
@@ -76,6 +80,10 @@ def field_cxxtype(types, name):
     elif field_type['kind'] == 'pointer':
         field_type = field_cxxtype(types, field_type['to'])
         return f'std::unique_ptr<{field_type}>'
+    elif field_type['kind'] == 'specialized':
+        ref_type = field_cxxtype(types, field_type['ref'])
+        param_types = [field_cxxtype(types, param) for param in field_type['typeParams']]
+        return f'{ref_type}<{", ".join(param_types)}>'
     else:
         ns = namespace(field_type)
         name = cxxname(field_type)
@@ -185,6 +193,9 @@ def main(argv):
                     else:
                         print(f'    {field_cxxtype(types, member["type"])} {cxxname(member)};', file=args.output)
         else:
+            if 'generics' in type:
+                print(f'  template <typename {", typename ".join(type["generics"])}>', file=args.output)
+
             print(f'  struct {name}{basespec} {{', file=args.output)
 
             if 'order' in type:
@@ -231,7 +242,7 @@ def main(argv):
             else:
                 print(f'  // {loc["filename"]}', file=args.output)
 
-        print(f'  constexpr {field_cxxtype(types, constant["type"])} {cxxname(constant)} = {encode(constant["value"])};\n', file=args.output)
+        print(f'  static const {field_cxxtype(types, constant["type"])} {cxxname(constant)} = {encode(constant["value"])};\n', file=args.output)
 
     if ns is not None:
         print('}\n', file=args.output)

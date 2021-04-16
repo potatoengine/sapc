@@ -98,8 +98,14 @@ namespace sapc {
         auto types_json = JsonT::object();
         auto type_exports_json = JsonT::array();
         for (auto const* type : mod.types) {
-            if (type->owner == &mod && type->kind != schema::Type::Kind::Array && type->kind != schema::Type::Kind::Pointer)
-                type_exports_json.push_back(type->qualifiedName);
+            if (type->owner == &mod) {
+                auto const isNormal = type->kind != schema::Type::Kind::Array &&
+                    type->kind != schema::Type::Kind::Pointer &&
+                    type->kind != schema::Type::Kind::Generic &&
+                    type->kind != schema::Type::Kind::Specialized;
+                if (isNormal)
+                    type_exports_json.push_back(type->qualifiedName);
+            }
 
             types_json[type->qualifiedName.c_str()] = *type;
         }
@@ -133,6 +139,8 @@ namespace sapc {
         switch (value) {
         case Type::Kind::Primitive: j = "primitive"; break;
         case Type::Kind::Attribute: j = "attribute"; break;
+        case Type::Kind::Generic: j = "generic"; break;
+        case Type::Kind::Specialized: j = "specialized"; break;
         case Type::Kind::Enum: j = "enum"; break;
         case Type::Kind::Alias: j = "alias"; break;
         case Type::Kind::Struct: j = "struct"; break;
@@ -140,7 +148,7 @@ namespace sapc {
         case Type::Kind::TypeId: j = "typename"; break;
         case Type::Kind::Array: j = "array"; break;
         case Type::Kind::Pointer: j = "pointer"; break;
-        default: j = "unknown"; break;
+        default: assert(false && "unknown type kind"); break;
         }
     };
 
@@ -174,6 +182,13 @@ namespace sapc {
 
             if (typeStruct.baseType != nullptr)
                 type_json["base"] = typeStruct.baseType->qualifiedName;
+
+            if (!typeStruct.generics.empty()) {
+                auto generics_json = JsonT::array();
+                for (auto const* gen : typeStruct.generics)
+                    generics_json.push_back(gen->name);
+                type_json["generics"] = std::move(generics_json);
+            }
 
             auto fields = JsonT::object();
             auto order = JsonT::array();
@@ -239,6 +254,16 @@ namespace sapc {
             auto& typePointer = static_cast<TypePointer const&>(type);
 
             type_json["to"] = typePointer.to->qualifiedName;
+        }
+        else if (type.kind == Type::Kind::Specialized) {
+            auto& typeSpec = static_cast<TypeSpecialized const&>(type);
+
+            type_json["ref"] = typeSpec.ref->qualifiedName;
+
+            auto types_json = JsonT::array();
+            for (auto const* param : typeSpec.typeParams)
+                types_json.push_back(param->qualifiedName);
+            type_json["typeParams"] = std::move(types_json);
         }
 
         type_json["location"] = type.location;
