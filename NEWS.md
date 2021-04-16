@@ -15,6 +15,7 @@ Version 0.11-beta (WIP)
  - Rewrote compiler to use an AST
  - Minor tweaks to which entities can have annotations
  - Namespaces
+ - Generics, e.g. `struct Map<K, V> { T[] keys; V[] values; }` and `Map<string, int> nameValues;`
 
 Version 0.10-beta
 -----------------
