@@ -265,6 +265,12 @@ namespace sapc {
                 types_json.push_back(param->qualifiedName);
             type_json["typeParams"] = std::move(types_json);
         }
+        else if (type.kind == Type::Kind::Alias) {
+            auto& typeAlias = static_cast<TypeAlias const&>(type);
+
+            if (typeAlias.ref != nullptr)
+                type_json["ref"] = typeAlias.ref->qualifiedName;
+        }
 
         type_json["location"] = type.location;
     }

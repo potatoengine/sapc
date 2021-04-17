@@ -217,6 +217,21 @@ namespace sapc {
                 continue;
             }
 
+            // parse alias declarations
+            if ((config & AllowTypes) != 0 && consume(TokenType::KeywordUsing)) {
+                auto& aliasDecl = begin<ast::AliasDecl>();
+
+                aliasDecl.annotations = std::move(annotations);
+                EXPECT(aliasDecl.name);
+
+                if (consume(TokenType::Equal))
+                    EXPECT(aliasDecl.targetType);
+
+                EXPECT(TokenType::SemiColon);
+
+                continue;
+            }
+
             // parse struct declarations
             if ((config & AllowTypes) != 0 && consume(TokenType::KeywordStruct)) {
                 auto& structDecl = begin<ast::StructDecl>();

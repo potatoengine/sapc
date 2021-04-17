@@ -26,6 +26,7 @@ namespace sapc::ast {
 
     struct Declaration {
         enum class Kind {
+            Alias,
             Struct,
             Union,
             Attribute,
@@ -95,6 +96,14 @@ namespace sapc::ast {
 
         Identifier name;
         std::vector<std::unique_ptr<Declaration>> decls;
+    };
+
+    struct AliasDecl : Declaration {
+        AliasDecl() { kind = Kind::Alias; }
+
+        Identifier name;
+        std::unique_ptr<TypeRef> targetType; // optional
+        std::vector<Annotation> annotations;
     };
 
     struct StructDecl : Declaration {

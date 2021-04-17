@@ -93,7 +93,7 @@
         { "$ref": "#/definitions/type_generic" },
         { "$ref": "#/definitions/type_specialized" },
         { "$ref": "#/definitions/type_primitive" },
-        { "$ref": "#/definitions/type_opaque" },
+        { "$ref": "#/definitions/type_alias" },
         { "$ref": "#/definitions/type_typename" }
       ]
     },
@@ -208,7 +208,7 @@
         }
       ]
     },
-    "type_opaque": {
+    "type_alias": {
       "allOf": [
         { "$ref": "#/definitions/type_common" },
         {
@@ -217,7 +217,10 @@
           "properties": {
             "kind": {
               "type": "string",
-              "enum": [ "opaque" ]
+              "enum": [ "alias" ]
+            },
+            "ref": {
+              "type": "string"
             }
           }
         }

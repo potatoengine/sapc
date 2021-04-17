@@ -94,7 +94,6 @@ def banner(text, out):
     print(f'//  {text}', file=out)
     print(f'// --{re.sub(".", "-", text)}--\n', file=out)
 
-
 def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', type=argparse.FileType(mode='r', encoding='utf8'), required=True)
@@ -139,24 +138,17 @@ def main(argv):
 
     banner('Types', args.output)
 
-    ns = None
-    for typename in exports['types']:
-        type = types[typename]
-        if ignored(type): continue
+    state = {'current_ns': None}
 
-        type_ns = namespace(type)
-        if ns != type_ns:
-            if ns is not None:
-                print('}\n\n', file=args.output)
-            ns = type_ns
-            print(f'namespace {type_ns} {{', file=args.output)
+    def enter_namespace(ns):
+        if state['current_ns'] != ns:
+            if state['current_ns'] is not None:
+                print(f'}} // namespace {ns}\n\n', file=args.output)
+            state['current_ns'] = ns
+            if state['current_ns'] is not None:
+                print(f'namespace {ns} {{', file=args.output)
 
-        name = cxxname(type)
-        kind = type['kind']
-
-        basetype = types[type['base']] if 'base' in type else None
-        basespec = f' : {qualified(basetype)}' if basetype is not None else ''
-
+    def type_banner(type):
         if 'location' in type:
             loc = type['location']
             if 'line' in loc and 'column' in loc:
@@ -166,17 +158,42 @@ def main(argv):
             else:
                 print(f'  // {loc["filename"]}', file=args.output)
 
-            for annotation in type['annotations']:
-                annotation_args = annotation['args']
-                print(f'  // annotation: {annotation["type"]}({",".join([k+":"+encode(v) for k,v in annotation_args.items()])})', file=args.output)
+        for annotation in type['annotations']:
+            annotation_args = annotation['args']
+            print(f'  // annotation: {annotation["type"]}({",".join([k+":"+encode(v) for k,v in annotation_args.items()])})', file=args.output)
+
+    for typename in exports['types']:
+        type = types[typename]
+        if ignored(type): continue
+
+        type_ns = namespace(type)
+        name = cxxname(type)
+        kind = type['kind']
+
+        basetype = types[type['base']] if 'base' in type else None
+        basespec = f' : {qualified(basetype)}' if basetype is not None else ''
 
         if kind == 'enum':
+            enter_namespace(namespace(type))
+            type_banner(type)
+
             print(f'  enum class {name}{basespec} {{', file=args.output)
 
             for ename in type['names']:
                 value = type['values'][ename]
                 print(f'    {identifier(ename)} = {value},', file=args.output)
+
+            print(f'  }};\n', file=args.output)
+        elif kind == 'alias':
+            if 'ref' in type:
+                enter_namespace(namespace(type))
+                type_banner(type)
+
+                print(f'  using {name} = {field_cxxtype(types, type["ref"])};\n', file=args.output)
         elif kind == 'union':
+            enter_namespace(namespace(type))
+            type_banner(type)
+
             print(f'  union {name}{basespec} {{', file=args.output)
 
             if 'order' in type:
@@ -192,7 +209,12 @@ def main(argv):
                         print(f'    {field_cxxtype(types, member["type"])} {cxxname(member)} = {encode(member["default"])};', file=args.output)
                     else:
                         print(f'    {field_cxxtype(types, member["type"])} {cxxname(member)};', file=args.output)
+
+            print(f'  }};\n', file=args.output)
         else:
+            enter_namespace(namespace(type))
+            type_banner(type)
+
             if 'generics' in type:
                 print(f'  template <typename {", typename ".join(type["generics"])}>', file=args.output)
 
@@ -212,11 +234,9 @@ def main(argv):
                     else:
                         print(f'    {field_cxxtype(types, field["type"])} {cxxname(field)};', file=args.output)
 
-        print(f'  }};\n', file=args.output)
+            print(f'  }};\n', file=args.output)
     
-    if ns is not None:
-        print('}\n', file=args.output)
-        ns = None
+    enter_namespace(None)
 
     banner('Constants', args.output)
         
@@ -224,12 +244,7 @@ def main(argv):
         constant = doc['constants'][constname]
         if ignored(constant): continue;
 
-        const_ns = namespace(constant)
-        if ns != const_ns:
-            if ns is not None:
-                print('}\n\n', file=args.output)
-            ns = const_ns
-            print(f'namespace {const_ns} {{', file=args.output)
+        enter_namespace(namespace(constant))
 
         name = cxxname(constant)
 
@@ -244,8 +259,7 @@ def main(argv):
 
         print(f'  static const {field_cxxtype(types, constant["type"])} {cxxname(constant)} = {encode(constant["value"])};\n', file=args.output)
 
-    if ns is not None:
-        print('}\n', file=args.output)
+    enter_namespace(None)
 
     print('#endif', file=args.output)
 

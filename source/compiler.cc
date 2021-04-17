@@ -128,6 +128,7 @@ namespace sapc {
             void build(ast::Declaration const& decl);
             void build(ast::NamespaceDecl const& nsDecl);
             void build(ast::StructDecl const& structDecl);
+            void build(ast::AliasDecl const& aliasDecl);
             void build(ast::AttributeDecl const& attrDecl);
             void build(ast::UnionDecl const& unionDecl);
             void build(ast::EnumDecl const& enumDecl);
@@ -179,6 +180,8 @@ namespace sapc {
             return build(static_cast<ast::NamespaceDecl const&>(decl));
         case ast::Declaration::Kind::Struct:
             return build(static_cast<ast::StructDecl const&>(decl));
+        case ast::Declaration::Kind::Alias:
+            return build(static_cast<ast::AliasDecl const&>(decl));
         case ast::Declaration::Kind::Union:
             return build(static_cast<ast::UnionDecl const&>(decl));
         case ast::Declaration::Kind::Attribute:
@@ -193,6 +196,8 @@ namespace sapc {
             for (auto& anno : static_cast<ast::ModuleDecl const&>(decl).annotations)
                 state.back().mod->annotations.push_back(translate(anno));
             break;
+        default:
+            assert(false && "Unsupported declaration");
         }
     }
 
@@ -251,6 +256,29 @@ namespace sapc {
         type->fields.reserve(structDecl.fields.size());
         for (ast::Field const& field : structDecl.fields)
             build(*type, field);
+
+        mod.types.push_back(type);
+        state.back().nsStack.back()->types.push_back(type);
+    }
+
+    void Compiler::build(ast::AliasDecl const& aliasDecl) {
+        assert(!state.empty());
+        assert(!state.back().nsStack.empty());
+        assert(state.back().mod != nullptr);
+
+        auto& mod = *state.back().mod;
+
+        auto* const type = static_cast<schema::TypeAlias*>(ctx.types.emplace_back(std::make_unique<schema::TypeAlias>()).get());
+        type->name = aliasDecl.name.id;
+        type->qualifiedName = qualify(type->name);
+        type->kind = schema::Type::Kind::Alias;
+        type->owner = &mod;
+        type->scope = state.back().nsStack.back();
+        type->location = aliasDecl.name.loc;
+        type->annotations = translate(aliasDecl.annotations);
+
+        if (aliasDecl.targetType != nullptr)
+            type->ref = requireType(*aliasDecl.targetType, type);
 
         mod.types.push_back(type);
         state.back().nsStack.back()->types.push_back(type);
