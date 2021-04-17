@@ -90,6 +90,8 @@
         { "$ref": "#/definitions/type_enum" },
         { "$ref": "#/definitions/type_array" },
         { "$ref": "#/definitions/type_pointer" },
+        { "$ref": "#/definitions/type_generic" },
+        { "$ref": "#/definitions/type_specialized" },
         { "$ref": "#/definitions/type_primitive" },
         { "$ref": "#/definitions/type_opaque" },
         { "$ref": "#/definitions/type_typename" }
@@ -137,6 +139,41 @@
               "enum": [ "pointer" ]
             },
             "of": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "type_generic": {
+      "allOf": [
+        { "$ref": "#/definitions/type_common" },
+        {
+          "type": "object",
+          "required": [ "kind" ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [ "generic" ]
+            }
+          }
+        }
+      ]
+    },
+    "type_specialized": {
+      "allOf": [
+        { "$ref": "#/definitions/type_common" },
+        {
+          "type": "object",
+          "required": [ "kind", "to" ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [ "specialized" ]
+            },
+            "ref": { "type": "string" },
+            "typeParams": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
           }
         }
       ]

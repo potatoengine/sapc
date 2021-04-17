@@ -70,6 +70,7 @@ namespace sapc::ast {
             Pointer,
             Array,
             Name,
+            Generic,
             TypeName,
         };
 
@@ -77,6 +78,7 @@ namespace sapc::ast {
         Location loc;
         QualifiedId name;
         std::unique_ptr<TypeRef> ref;
+        std::vector<std::unique_ptr<TypeRef>> typeParams;
 
         friend std::ostream& operator<<(std::ostream& os, TypeRef const& ref);
     };
@@ -101,6 +103,7 @@ namespace sapc::ast {
         Identifier name;
         std::unique_ptr<TypeRef> baseType;
         std::vector<Field> fields;
+        std::vector<Identifier> generics;
         std::vector<Annotation> annotations;
     };
 

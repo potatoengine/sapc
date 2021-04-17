@@ -16,6 +16,11 @@ struct Vec {
     float y = 0;
 }
 
+struct List<T> {
+    T[] items;
+    int count = 0;
+}
+
 const Vec zero = { 0, 0 };
 const Vec right = { 1, 0 };
 const Vec up = { 0, 1 };
@@ -40,6 +45,8 @@ namespace ns {
 
     namespace data {
         const int one = 1;
+        const List<int> numbers = {{1,2,3}, 3};
+        const List<string> names = {{"Anne", "Bob", "Ayo"}, 3};
     }
 }
 

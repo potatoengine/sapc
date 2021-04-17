@@ -19,5 +19,8 @@ int main(int argc, char** argv) {
     if (st::up.x != 0 || st::up.y != 1)
         return 1;
 
+    st::List<int> l;
+    l.items.push_back(1);
+
     return 0;
 }
