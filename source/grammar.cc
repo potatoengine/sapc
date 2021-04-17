@@ -251,23 +251,21 @@ namespace sapc {
                 if (consume(TokenType::Colon))
                     EXPECT(structDecl.baseType);
 
-                if (!consume(TokenType::SemiColon)) {
-                    EXPECT(TokenType::LeftBrace);
-                    while (!consume(TokenType::RightBrace)) {
-                        auto& field = structDecl.fields.emplace_back();
+                EXPECT(TokenType::LeftBrace);
+                while (!consume(TokenType::RightBrace)) {
+                    auto& field = structDecl.fields.emplace_back();
 
-                        while (match(TokenType::LeftBracket))
-                            EXPECT(field.annotations);
+                    while (match(TokenType::LeftBracket))
+                        EXPECT(field.annotations);
 
-                        EXPECT(field.type);
-                        EXPECT(field.name);
-                        if (consume(TokenType::Equal)) {
-                            ast::Literal lit;
-                            EXPECT(lit);
-                            field.init = std::move(lit);
-                        }
-                        EXPECT(TokenType::SemiColon);
+                    EXPECT(field.type);
+                    EXPECT(field.name);
+                    if (consume(TokenType::Equal)) {
+                        ast::Literal lit;
+                        EXPECT(lit);
+                        field.init = std::move(lit);
                     }
+                    EXPECT(TokenType::SemiColon);
                 }
 
                 continue;

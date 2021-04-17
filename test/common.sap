@@ -7,7 +7,7 @@ attribute tag { string tag; }
 attribute forward { typename other; }
 
 [cxxname("std::any"), ignore]
-struct any;
+using any;
 
 const bool common_flag = false;
 
