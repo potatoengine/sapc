@@ -217,6 +217,21 @@ namespace sapc {
                 continue;
             }
 
+            // parse alias declarations
+            if ((config & AllowTypes) != 0 && consume(TokenType::KeywordUsing)) {
+                auto& aliasDecl = begin<ast::AliasDecl>();
+
+                aliasDecl.annotations = std::move(annotations);
+                EXPECT(aliasDecl.name);
+
+                if (consume(TokenType::Equal))
+                    EXPECT(aliasDecl.targetType);
+
+                EXPECT(TokenType::SemiColon);
+
+                continue;
+            }
+
             // parse struct declarations
             if ((config & AllowTypes) != 0 && consume(TokenType::KeywordStruct)) {
                 auto& structDecl = begin<ast::StructDecl>();
@@ -236,23 +251,21 @@ namespace sapc {
                 if (consume(TokenType::Colon))
                     EXPECT(structDecl.baseType);
 
-                if (!consume(TokenType::SemiColon)) {
-                    EXPECT(TokenType::LeftBrace);
-                    while (!consume(TokenType::RightBrace)) {
-                        auto& field = structDecl.fields.emplace_back();
+                EXPECT(TokenType::LeftBrace);
+                while (!consume(TokenType::RightBrace)) {
+                    auto& field = structDecl.fields.emplace_back();
 
-                        while (match(TokenType::LeftBracket))
-                            EXPECT(field.annotations);
+                    while (match(TokenType::LeftBracket))
+                        EXPECT(field.annotations);
 
-                        EXPECT(field.type);
-                        EXPECT(field.name);
-                        if (consume(TokenType::Equal)) {
-                            ast::Literal lit;
-                            EXPECT(lit);
-                            field.init = std::move(lit);
-                        }
-                        EXPECT(TokenType::SemiColon);
+                    EXPECT(field.type);
+                    EXPECT(field.name);
+                    if (consume(TokenType::Equal)) {
+                        ast::Literal lit;
+                        EXPECT(lit);
+                        field.init = std::move(lit);
                     }
+                    EXPECT(TokenType::SemiColon);
                 }
 
                 continue;

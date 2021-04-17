@@ -8,13 +8,15 @@ module test;
 
 attribute default { any value = 0; } /* default attribute */
 
-[cxxname("int*"), ignore]
-struct intptr;
+[cxxname("int*")]
+using intptr;
 
 struct Vec {
     float x = 0;
     float y = 0;
 }
+
+using Vec2 = Vec;
 
 struct List<T> {
     T[] items;
@@ -40,8 +42,10 @@ namespace ns {
         intptr iptr = null;
         string[] array = { "first", "second", "third" };
         bool[] bits = {{}};
-        Vec*[] vecPtrs;
+        Vec2*[] vecPtrs;
     }
+
+    using alias = test;
 
     namespace data {
         const int one = 1;

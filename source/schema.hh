@@ -123,6 +123,10 @@ namespace sapc::schema {
         std::vector<std::unique_ptr<EnumItem>> items;
     };
 
+    struct TypeAlias : Type {
+        Type const* ref = nullptr;
+    };
+
     struct Constant : Annotated {
         std::string name;
         std::string qualifiedName;
