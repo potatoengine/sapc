@@ -27,59 +27,13 @@ sapc [-o <input>] [-I<path>]... [-d <depfile>] [-h] [--] <input>
 Input Schema
 ------------
 
-Simplified PEG grammar.
-
-```
-file <- statement*
-statement <- module / import / definition
-definition <- attribute / alias / struct / enum / union / constant / namespace
-
-import <- 'import' identifier ';'
-
-value <- number / string / 'true' / 'false' / 'null' / qual_ident / list_init
-list_init <- '{' value_list? '}'
-value_list <- value ( ',' value )*
-number <- '-'? [0-9]+
-string <- '"' <[^"\n]*> '"'
-
-comment <- linecomment / blockcomment
-linecomment <- ( '#' / '//' ) [^\n]*
-blockcomment <- '/*' .* '*/'
-identifier <- [a-zA-Z_][a-zA-Z0-9_]*
-qual_ident <- identifier ( '.' identifier )?
-type_info <- identifier '*'? ( '[' ']' )?
-
-annotations <- ( '[' annotation ( ',' annotation )* ']' )+
-annotation <- identifier ( '(' value_list? ')' )?
-
-attribute <- 'attribute' identifier ( '{' attribute_param* '}' / ';' )
-attribute_param <- ( type_info / 'typename' ) identifier ( '=' value )? ';'
-
-module <- annotations? 'module' identifier ';'
-
-namespace <- 'namespace' identifier '{' definition* '}'
-
-constant <- annotations? 'const' type_info identifier '=' value ';'
-
-alias <- annotations? 'using' identifier ( '=' type_info ) ';'
-
-struct <- annotations? 'struct' identifier ( ':' identifier )? '{' struct_field* '}'
-struct_field <- annotations? type_info identifier ( '=' value )? ';'
-
-union <- annotations? 'union' identifier '{' union_element+ '}'
-union_element <- type_info identifier ';'
-
-enum <- annotations? 'enum' ( ':' identifier )? '{' enum_value ( ',' enum_value )* '}'
-enum_value <- identifier ( '=' number )?
-```
-
 Example:
 
 ```
 module example;
 
-struct string;
-struct int;
+using string;
+using int;
 
 attribute cdecl { string name; }
 
