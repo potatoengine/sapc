@@ -56,6 +56,8 @@ jobs:
       - name: Build
         run: cmake --build build --parallel -- -k 0 -v
       - name: Test
-        run: ctest --build build
+        run: |
+          cd build
+          ctest
       - name: Install
         run: cmake --install build
