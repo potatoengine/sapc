@@ -124,6 +124,7 @@ static int compile(Config& config) {
 
     sapc::Context ctx;
     ctx.targetFile = config.input;
+    ctx.searchPaths = config.search;
 
     auto const compiled = compile(ctx, log);
     if (!compiled && log.lines.empty())
