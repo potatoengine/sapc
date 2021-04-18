@@ -55,5 +55,7 @@ jobs:
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE:STRING=${{ matrix.config }} -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install
       - name: Build
         run: cmake --build build --parallel -- -k 0 -v
+      - name: Test
+        run: ctest --build build
       - name: Install
         run: cmake --install build
