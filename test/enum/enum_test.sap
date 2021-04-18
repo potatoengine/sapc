@@ -1,0 +1,7 @@
+module enum_test;
+
+enum Color {
+    Red,
+    Green,
+    Blue
+}
