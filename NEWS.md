@@ -16,6 +16,7 @@ Version 0.11-beta (WIP)
  - Minor tweaks to which entities can have annotations
  - Namespaces
  - Generics, e.g. `struct Map<K, V> { T[] keys; V[] values; }` and `Map<string, int> nameValues;`
+ - Custom tags for structs and enums, e.g. `use message : struct` and `message ack { int time; }`
 
 Version 0.10-beta
 -----------------

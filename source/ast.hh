@@ -35,6 +35,7 @@ namespace sapc::ast {
             Import,
             Module,
             Namespace,
+            CustomTag,
         };
 
         virtual ~Declaration() = default;
@@ -91,6 +92,14 @@ namespace sapc::ast {
         std::optional<Literal> init;
     };
 
+    struct CustomTagDecl : Declaration {
+        CustomTagDecl() { kind = Kind::CustomTag; }
+
+        Identifier name;
+        Declaration::Kind tagKind; // Must be a declaration type
+        std::vector<Annotation> annotations;
+    };
+
     struct NamespaceDecl : Declaration {
         NamespaceDecl() { kind = Kind::Namespace; }
 
@@ -110,6 +119,7 @@ namespace sapc::ast {
         StructDecl() { kind = Kind::Struct; }
 
         Identifier name;
+        std::string customTag;
         std::unique_ptr<TypeRef> baseType;
         std::vector<Field> fields;
         std::vector<Identifier> generics;
@@ -148,6 +158,7 @@ namespace sapc::ast {
         EnumDecl() { kind = Kind::Enum; }
 
         Identifier name;
+        std::string customTag;
         std::unique_ptr<TypeRef> baseType;
         std::vector<EnumItem> items;
         std::vector<Annotation> annotations;
