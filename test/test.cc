@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
     st::List<int> l;
     l.items.push_back(1);
 
-    st_msg::ack msg{ 1 };
+    [[maybe_unused]] st_msg::ack msg{ 1 };
 
     return 0;
 }
