@@ -163,7 +163,7 @@
         { "$ref": "#/definitions/type_common" },
         {
           "type": "object",
-          "required": [ "kind", "to" ],
+          "required": [ "kind", "ref", "typeParams" ],
           "properties": {
             "kind": {
               "type": "string",

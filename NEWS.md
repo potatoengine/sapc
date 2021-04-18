@@ -1,8 +1,8 @@
 sapc
 ====
 
-Version 0.11-beta (WIP)
------------------------
+Version 0.11-beta
+-----------------
 
  - JSON schema changes
  - Removed `type` keyword
