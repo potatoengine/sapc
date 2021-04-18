@@ -1,0 +1,6 @@
+module basic;
+
+struct sample {
+    int x;
+    string s;
+}

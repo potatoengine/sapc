@@ -1,6 +1,12 @@
 sapc
 ====
 
+Version 0.12-beta
+-----------------
+
+ - Fix include path searching with `-I` option
+ - Expanded tests; internal change only
+
 Version 0.11-beta
 -----------------
 

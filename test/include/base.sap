@@ -1,0 +1,5 @@
+module base;
+
+struct Test {
+    int x;
+}

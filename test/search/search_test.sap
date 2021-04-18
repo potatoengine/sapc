@@ -1,0 +1,7 @@
+module enum_test;
+
+import base;
+
+struct Derived : Test {
+    int y;
+}
