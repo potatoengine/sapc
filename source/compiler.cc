@@ -251,10 +251,10 @@ namespace sapc {
 
             auto& tagAnno = *type->annotations.emplace_back(std::make_unique<schema::Annotation>());
             tagAnno.type = customTagAttr;
-            tagAnno.location = { __FILE__, __LINE__ };
+            tagAnno.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
             auto& tagValue = tagAnno.args.emplace_back();
             tagValue.data = structDecl.customTag;
-            tagValue.location = { __FILE__, __LINE__ };
+            tagValue.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
         }
 
         // Build generics before fields, as fields might refer to a generic
