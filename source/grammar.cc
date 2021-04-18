@@ -10,7 +10,10 @@
 #include "ast.hh"
 #include "log.hh"
 
+#include <algorithm>
 #include <cassert>
+#include <utility>
+#include <unordered_set>
 
 namespace fs = std::filesystem;
 
@@ -27,8 +30,9 @@ namespace sapc {
         constexpr unsigned AllowAttributes = 1 << 3;
         constexpr unsigned AllowImport = 1 << 4;
         constexpr unsigned AllowConstants = 1 << 5;
+        constexpr unsigned AllowCustom = 1 << 6;
 
-        constexpr unsigned ConfigModule = AllowNamespaces | AllowTypes | AllowModule | AllowAttributes | AllowImport | AllowConstants;
+        constexpr unsigned ConfigModule = AllowNamespaces | AllowTypes | AllowModule | AllowAttributes | AllowImport | AllowConstants | AllowCustom;
         constexpr unsigned ConfigNamespace = AllowNamespaces | AllowTypes | AllowConstants;
 
         struct Grammar {
@@ -38,6 +42,9 @@ namespace sapc {
             ast::ModuleUnit& module;
             size_t next = 0;
             std::vector<std::vector<std::unique_ptr<ast::Declaration>>*> scopeStack;
+            std::unordered_set<std::string_view> customStructTags;
+            std::unordered_set<std::string_view> customEnumTags;
+            std::vector<ast::Annotation> annotations;
 
             inline Location pos();
 
@@ -47,8 +54,10 @@ namespace sapc {
             inline bool match(TokenType type);
 
             inline bool consume(TokenType type);
+            inline bool consume(std::initializer_list<TokenType> select);
 
             inline bool mustConsume(TokenType type);
+            inline bool mustConsume(std::initializer_list<TokenType> select);
             inline bool mustConsume(long long& out);
             inline bool mustConsume(ast::Identifier& out);
             inline bool mustConsume(ast::QualifiedId& out);
@@ -58,6 +67,9 @@ namespace sapc {
 
             inline bool parseFile();
             inline bool parseScope(Location const& start, TokenType terminate, unsigned config);
+            inline bool parseStruct(std::string_view customTag = {});
+            inline bool parseEnum(std::string_view customTag = {});
+            inline bool parseCustom(std::string_view tag);
 
             template <typename DeclT>
             DeclT& begin();
@@ -98,8 +110,6 @@ namespace sapc {
     }
 
     bool Grammar::parseScope(Location const& start, TokenType terminate, unsigned config) {
-        std::vector<ast::Annotation> annotations;
-
         while (!consume(terminate)) {
             if (consume(TokenType::EndOfFile)) {
                 log.error(pos(), "unexpected end of file");
@@ -152,6 +162,30 @@ namespace sapc {
             annotations.clear();
             while (match(TokenType::LeftBracket))
                 EXPECT(annotations);
+
+            // parse custom tags
+            if ((config & AllowCustom) != 0 && consume(TokenType::KeywordUse)) {
+                auto& customTagDecl = begin<ast::CustomTagDecl>();
+                customTagDecl.annotations = std::move(annotations);
+
+                EXPECT(customTagDecl.name);
+                EXPECT(TokenType::Colon);
+
+                EXPECT((std::initializer_list<TokenType>{ TokenType::KeywordStruct, TokenType::KeywordEnum }));
+
+                if (tokens[next - 1].type == TokenType::KeywordStruct) {
+                    customTagDecl.tagKind = ast::Declaration::Kind::Struct;
+                    customStructTags.insert(customTagDecl.name.id);
+                }
+                else {
+                    customTagDecl.tagKind = ast::Declaration::Kind::Enum;
+                    customEnumTags.insert(customTagDecl.name.id);
+                }
+
+                EXPECT(TokenType::SemiColon);
+
+                continue;
+            }
 
             // parse namespace
             if ((config & AllowNamespaces) != 0 && consume(TokenType::KeywordNamespace)) {
@@ -234,67 +268,23 @@ namespace sapc {
 
             // parse struct declarations
             if ((config & AllowTypes) != 0 && consume(TokenType::KeywordStruct)) {
-                auto& structDecl = begin<ast::StructDecl>();
-
-                structDecl.annotations = std::move(annotations);
-                EXPECT(structDecl.name);
-
-                if (consume(TokenType::LeftAngle)) {
-                    EXPECT(structDecl.generics.emplace_back());
-
-                    while (consume(TokenType::Comma))
-                        EXPECT(structDecl.generics.emplace_back());
-
-                    EXPECT(TokenType::RightAngle);
-                }
-
-                if (consume(TokenType::Colon))
-                    EXPECT(structDecl.baseType);
-
-                EXPECT(TokenType::LeftBrace);
-                while (!consume(TokenType::RightBrace)) {
-                    auto& field = structDecl.fields.emplace_back();
-
-                    while (match(TokenType::LeftBracket))
-                        EXPECT(field.annotations);
-
-                    EXPECT(field.type);
-                    EXPECT(field.name);
-                    if (consume(TokenType::Equal)) {
-                        ast::Literal lit;
-                        EXPECT(lit);
-                        field.init = std::move(lit);
-                    }
-                    EXPECT(TokenType::SemiColon);
-                }
-
+                if (!parseStruct())
+                    return false;
                 continue;
             }
 
             // parse enumerations
             if ((config & AllowTypes) != 0 && consume(TokenType::KeywordEnum)) {
-                auto& enumDecl = begin<ast::EnumDecl>();
+                if (!parseEnum())
+                    return false;
+                continue;
+            }
 
-                enumDecl.annotations = std::move(annotations);
-                EXPECT(enumDecl.name);
-
-                if (consume(TokenType::Colon))
-                    EXPECT(enumDecl.baseType);
-
-                EXPECT(TokenType::LeftBrace);
-                long long nextValue = 0;
-                for (;;) {
-                    auto& item = enumDecl.items.emplace_back();
-                    EXPECT(item.name);
-                    item.value = nextValue++;
-                    if (consume(TokenType::Equal)) {
-                        EXPECT(item.value);
-                        nextValue = item.value + 1;
-                    }
-                    if (!consume(TokenType::Comma))
-                        break;
-                }
-                EXPECT(TokenType::RightBrace);
+            // parse custom tags
+            if (consume(TokenType::Identifier)) {
+                auto const tag = tokens[next - 1].dataString;
+                if (!parseCustom(tag))
+                    return false;
 
                 continue;
             }
@@ -303,6 +293,91 @@ namespace sapc {
         }
 
         return true;
+    }
+
+    bool Grammar::parseStruct(std::string_view customTag) {
+        auto& structDecl = begin<ast::StructDecl>();
+        structDecl.customTag = customTag;
+
+        structDecl.annotations = std::move(annotations);
+        EXPECT(structDecl.name);
+
+        if (consume(TokenType::LeftAngle)) {
+            EXPECT(structDecl.generics.emplace_back());
+
+            while (consume(TokenType::Comma))
+                EXPECT(structDecl.generics.emplace_back());
+
+            EXPECT(TokenType::RightAngle);
+        }
+
+        if (consume(TokenType::Colon))
+            EXPECT(structDecl.baseType);
+
+        EXPECT(TokenType::LeftBrace);
+        while (!consume(TokenType::RightBrace)) {
+            auto& field = structDecl.fields.emplace_back();
+
+            while (match(TokenType::LeftBracket))
+                EXPECT(field.annotations);
+
+            EXPECT(field.type);
+            EXPECT(field.name);
+            if (consume(TokenType::Equal)) {
+                ast::Literal lit;
+                EXPECT(lit);
+                field.init = std::move(lit);
+            }
+            EXPECT(TokenType::SemiColon);
+        }
+
+        return true;
+    }
+
+    bool Grammar::parseEnum(std::string_view customTag) {
+        auto& enumDecl = begin<ast::EnumDecl>();
+        enumDecl.customTag = customTag;
+
+        enumDecl.annotations = std::move(annotations);
+        EXPECT(enumDecl.name);
+
+        if (consume(TokenType::Colon))
+            EXPECT(enumDecl.baseType);
+
+        EXPECT(TokenType::LeftBrace);
+        long long nextValue = 0;
+        for (;;) {
+            auto& item = enumDecl.items.emplace_back();
+            EXPECT(item.name);
+            item.value = nextValue++;
+            if (consume(TokenType::Equal)) {
+                EXPECT(item.value);
+                nextValue = item.value + 1;
+            }
+            if (!consume(TokenType::Comma))
+                break;
+        }
+        EXPECT(TokenType::RightBrace);
+
+        return true;
+    }
+
+    bool Grammar::parseCustom(std::string_view tag) {
+        // custom struct
+        if (customStructTags.find(tag) != customStructTags.end()) {
+            if (!parseStruct(tag))
+                return false;
+            return true;
+        }
+
+        // custom enum
+        if (customEnumTags.find(tag) != customEnumTags.end()) {
+            if (!parseEnum(tag))
+                return false;
+            return true;
+        }
+
+        return fail("unexpected identifier `", tag, '`');
     }
 
     bool Grammar::match(TokenType type) {
@@ -323,6 +398,13 @@ namespace sapc {
         return true;
     }
 
+    bool Grammar::consume(std::initializer_list<TokenType> select) {
+        for (auto const tok : select)
+            if (consume(tok))
+                return true;
+        return false;
+    }
+
     Location Grammar::pos() {
         auto const& tokPos = next > 0 ? tokens[next - 1].pos : tokens.front().pos;
         return Location{ filename, { tokPos.line, tokPos.column } };
@@ -341,6 +423,23 @@ namespace sapc {
 
         std::ostringstream buf;
         buf << "expected " << type;
+        if (next > 0)
+            buf << " after " << tokens[next - 1];
+        if (next < tokens.size())
+            buf << ", got " << tokens[next];
+        return fail(buf.str());
+    }
+
+    bool Grammar::mustConsume(std::initializer_list<TokenType> select) {
+        if (consume(select))
+            return true;
+
+        std::ostringstream buf;
+        buf << "expected ";
+        if (select.size() > 1)
+            buf << "one of ";
+        for (auto const tok : select)
+            buf << tok << ' ';
         if (next > 0)
             buf << " after " << tokens[next - 1];
         if (next < tokens.size())
@@ -418,8 +517,16 @@ namespace sapc {
 
     bool Grammar::mustConsume(ast::Identifier& out) {
         auto const index = next;
-        if (!consume(TokenType::Identifier))
+        if (!consume(TokenType::Identifier)) {
+            std::ostringstream buf;
+            buf << "expected identifier";
+            if (next > 0)
+                buf << " after " << tokens[next - 1];
+            if (next < tokens.size())
+                buf << ", got " << tokens[next];
+            return fail(buf.str());
             return false;
+        }
 
         out.id = tokens[index].dataString;
         out.loc = pos();

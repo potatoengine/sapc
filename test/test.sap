@@ -1,5 +1,7 @@
 # file header comment
 
+use message : struct;
+
 // test import
 import common;
 
@@ -57,6 +59,11 @@ namespace ns {
 union number {
     int i;
     float f;
+}
+
+[cxxnamespace("st_msg")]
+message ack {
+    int time;
 }
 
 [forward(Vec)]

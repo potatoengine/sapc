@@ -36,7 +36,10 @@ def cxxname(el): return annotation(el, name='cxxname', argname='name', default=c
 def ignored(el): return annotation(el, name='ignore', argname='ignored', default=False)
 
 def namespace(el):
-    if 'kind' in el and el['kind'] == 'generic':
+    cxxns = annotation(el, name='cxxnamespace', argname='ns', default=None)
+    if cxxns is not None:
+        return cxxns
+    elif 'kind' in el and el['kind'] == 'generic':
         return None
     elif el['name'] in cxx_type_map:
         return None

@@ -23,6 +23,7 @@ namespace sapc {
     using namespace std::literals;
 
     static constexpr auto typeIdName = "$sapc.typeid"sv;
+    static constexpr auto customTagName = "$sapc.customtag"sv;
 
     namespace {
         // std::span isn't in C++17
@@ -116,12 +117,14 @@ namespace sapc {
             std::vector<State> state;
 
             schema::Type const* typeIdType = nullptr;
+            schema::TypeAttribute const* customTagAttr = nullptr;
             schema::Module const* coreModule = nullptr;
 
             std::unordered_map<schema::Type const*, schema::Type const*> arrayTypeMap;
             std::unordered_map<schema::Type const*, schema::Type const*> pointerTypeMap;
             std::unordered_map<size_t, schema::Type const*> specializedTypeMap;
             std::unordered_map<fs::path, schema::Module const*, PathHash> moduleMap;
+            std::unordered_map<std::string_view, ast::CustomTagDecl const*> customTagMap;
 
             schema::Module const* compile(fs::path const& filename);
 
@@ -162,7 +165,7 @@ namespace sapc {
 
             schema::Value translate(ast::Literal const& lit);
             std::unique_ptr<schema::Annotation> translate(ast::Annotation const& anno);
-            auto translate(std::vector<ast::Annotation> const& annotations)->std::vector<std::unique_ptr<schema::Annotation>>;
+            void translate(std::vector<std::unique_ptr<schema::Annotation>>& target, std::vector<ast::Annotation> const& annotations);
 
             std::string qualify(std::string_view name) const;
         };
@@ -195,6 +198,9 @@ namespace sapc {
         case ast::Declaration::Kind::Module:
             for (auto& anno : static_cast<ast::ModuleDecl const&>(decl).annotations)
                 state.back().mod->annotations.push_back(translate(anno));
+            break;
+        case ast::Declaration::Kind::CustomTag:
+            customTagMap.insert({ static_cast<ast::CustomTagDecl const&>(decl).name.id, static_cast<ast::CustomTagDecl const*>(&decl) });
             break;
         default:
             assert(false && "Unsupported declaration");
@@ -236,7 +242,20 @@ namespace sapc {
         type->location = structDecl.name.loc;
         if (structDecl.baseType != nullptr)
             type->baseType = requireType(*structDecl.baseType);
-        type->annotations = translate(structDecl.annotations);
+        translate(type->annotations, structDecl.annotations);
+
+        if (!structDecl.customTag.empty()) {
+            auto it = customTagMap.find(structDecl.customTag);
+            assert(it != customTagMap.end());
+            translate(type->annotations, it->second->annotations);
+
+            auto& tagAnno = *type->annotations.emplace_back(std::make_unique<schema::Annotation>());
+            tagAnno.type = customTagAttr;
+            tagAnno.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
+            auto& tagValue = tagAnno.args.emplace_back();
+            tagValue.data = structDecl.customTag;
+            tagValue.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
+        }
 
         // Build generics before fields, as fields might refer to a generic
         type->generics.reserve(structDecl.generics.size());
@@ -275,7 +294,7 @@ namespace sapc {
         type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = aliasDecl.name.loc;
-        type->annotations = translate(aliasDecl.annotations);
+        translate(type->annotations, aliasDecl.annotations);
 
         if (aliasDecl.targetType != nullptr)
             type->ref = requireType(*aliasDecl.targetType, type);
@@ -298,7 +317,7 @@ namespace sapc {
         type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = attrDecl.name.loc;
-        type->annotations = translate(attrDecl.annotations);
+        translate(type->annotations, attrDecl.annotations);
 
         type->fields.reserve(attrDecl.fields.size());
         for (ast::Field const& field : attrDecl.fields)
@@ -322,7 +341,7 @@ namespace sapc {
         type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = enumDecl.name.loc;
-        type->annotations = translate(enumDecl.annotations);
+        translate(type->annotations, enumDecl.annotations);
 
         type->items.reserve(enumDecl.items.size());
         for (ast::EnumItem const& item : enumDecl.items)
@@ -346,7 +365,7 @@ namespace sapc {
         type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = unionDecl.name.loc;
-        type->annotations = translate(unionDecl.annotations);
+        translate(type->annotations, unionDecl.annotations);
 
         type->members.reserve(unionDecl.members.size());
         for (ast::Member const& member : unionDecl.members)
@@ -382,7 +401,7 @@ namespace sapc {
         field->name = fieldDecl.name.id;
         field->location = fieldDecl.name.loc;
         field->type = requireType(*fieldDecl.type, &type);
-        field->annotations = translate(fieldDecl.annotations);
+        translate(field->annotations, fieldDecl.annotations);
         if (fieldDecl.init)
             field->defaultValue = translate(*fieldDecl.init);
     }
@@ -392,7 +411,7 @@ namespace sapc {
         member->name = memberDecl.name.id;
         member->location = memberDecl.name.loc;
         member->type = requireType(*memberDecl.type, &type);
-        member->annotations = translate(memberDecl.annotations);
+        translate(member->annotations, memberDecl.annotations);
     }
 
     void Compiler::build(schema::TypeEnum& type, ast::EnumItem const& itemDecl) {
@@ -401,7 +420,7 @@ namespace sapc {
         item->location = itemDecl.name.loc;
         item->parent = &type;
         item->value = itemDecl.value;
-        item->annotations = translate(itemDecl.annotations);
+        translate(item->annotations, itemDecl.annotations);
     }
 
     void Compiler::build(ast::ImportDecl const& impDecl) {
@@ -461,7 +480,7 @@ namespace sapc {
 
         // add built-in types
         static constexpr std::string_view builtins[] = {
-            "string"sv,
+            "string"sv, // the first type must be string
             "bool"sv,
             "byte"sv,
             "int"sv,
@@ -475,7 +494,7 @@ namespace sapc {
         mod->name = "$sapc";
 
         for (auto const& builtin : builtins) {
-            auto* type = ctx.types.emplace_back(std::make_unique<schema::Type>()).get();
+            auto* const type = ctx.types.emplace_back(std::make_unique<schema::Type>()).get();
             mod->types.push_back(type);
             ns->types.push_back(type);
 
@@ -488,7 +507,7 @@ namespace sapc {
         }
 
         {
-            auto* type = ctx.types.emplace_back(std::make_unique<schema::Type>()).get();
+            auto* const type = ctx.types.emplace_back(std::make_unique<schema::Type>()).get();
             mod->types.push_back(type);
             ns->types.push_back(type);
             typeIdType = type;
@@ -499,6 +518,25 @@ namespace sapc {
             type->owner = coreModule;
             type->scope = ns;
             type->location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
+        }
+
+        {
+            auto* const type = static_cast<schema::TypeAttribute*>(ctx.types.emplace_back(std::make_unique<schema::TypeAttribute>()).get());
+            mod->types.push_back(type);
+            ns->types.push_back(type);
+            customTagAttr = type;
+
+            type->kind = schema::Type::Attribute;
+            type->name = customTagName;
+            type->qualifiedName = customTagName;
+            type->owner = coreModule;
+            type->scope = ns;
+            type->location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
+
+            auto* const field = type->fields.emplace_back(std::make_unique<schema::Field>()).get();
+            field->name = "tag";
+            field->type = ns->types.front(); // the first type is always string
+            field->location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
         }
     }
 
@@ -859,11 +897,9 @@ namespace sapc {
         return result;
     }
 
-    auto Compiler::translate(std::vector<ast::Annotation> const& annotations) -> std::vector<std::unique_ptr<schema::Annotation>> {
-        std::vector<std::unique_ptr<schema::Annotation>> results;
+    void Compiler::translate(std::vector<std::unique_ptr<schema::Annotation>>& target, std::vector<ast::Annotation> const& annotations) {
         for (auto const& anno : annotations)
-            results.push_back(translate(anno));
-        return results;
+            target.push_back(translate(anno));
     }
 
     std::string Compiler::qualify(std::string_view name) const {
