@@ -4,3 +4,4 @@ sapc_test(
     SCHEMAS other/base.sap search_test.sap
     INCLUDE other
 )
+add_test(NAME sapc_test_search COMMAND sapc_test_search)
