@@ -6,6 +6,6 @@ int main() {
     st_attr::name name_attr;
     name_attr.description = "Test";
 
-    auto const& attr = st::test::get_annotation<0>();
+    [[maybe_unused]] auto const& attr = st::test::get_annotation<0>();
     assert(attr.description == "TestStruct");
 }
