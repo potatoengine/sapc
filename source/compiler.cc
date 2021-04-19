@@ -147,6 +147,13 @@ namespace sapc {
 
             schema::Type const* makeAvailable(schema::Type const* type);
 
+            void makeAvailableRecurse(schema::Type const& type);
+            void makeAvailableRecurse(schema::Constant const& constant);
+            void makeAvailableRecurse(schema::Field const& field);
+            void makeAvailableRecurse(schema::Member const& member);
+            void makeAvailableRecurse(schema::Annotation const& annotation);
+            void makeAvailableRecurse(schema::Value const& value);
+
             schema::Type const* resolveType(ast::TypeRef const& ref, schema::Type const* scope = nullptr);
 
             Resolve findLocal(QualIdSpan qualId, schema::Namespace const* scope);
@@ -541,12 +548,92 @@ namespace sapc {
     }
 
     schema::Type const* Compiler::makeAvailable(schema::Type const* type) {
-        if (type != nullptr && type->owner != state.back().mod) {
-            auto const rs = state.back().importedTypes.insert(type);
-            if (rs.second)
-                state.back().mod->types.push_back(type);
-        }
+        if (type != nullptr)
+            makeAvailableRecurse(*type);
         return type;
+    }
+
+    void Compiler::makeAvailableRecurse(schema::Type const& type) {
+        schema::Module* const mod = state.back().mod;
+
+        if (type.owner == mod)
+            return;
+
+        auto const rs = state.back().importedTypes.insert(&type);
+        if (!rs.second)
+            return;
+
+        // add the type to the module
+        mod->types.push_back(&type);
+
+        for (auto const& anno : type.annotations)
+            makeAvailableRecurse(*anno);
+
+        if (type.kind == schema::Type::Kind::Struct) {
+            auto const& typeStruct = static_cast<schema::TypeStruct const&>(type);
+            makeAvailable(typeStruct.baseType);
+            for (auto const& field : typeStruct.fields)
+                makeAvailableRecurse(*field);
+        }
+        else if (type.kind == schema::Type::Kind::Attribute) {
+            auto const& typeAttr = static_cast<schema::TypeAttribute const&>(type);
+            for (auto const& field : typeAttr.fields)
+                makeAvailableRecurse(*field);
+        }
+        else if (type.kind == schema::Type::Kind::Union) {
+            auto const& typeUnion = static_cast<schema::TypeUnion const&>(type);
+            for (auto const& member : typeUnion.members)
+                makeAvailableRecurse(*member);
+        }
+        else if (type.kind == schema::Type::Kind::Alias) {
+            auto const& typeAlias = static_cast<schema::TypeAlias const&>(type);
+            makeAvailable(typeAlias.ref);
+        }
+        else if (type.kind == schema::Type::Kind::Pointer) {
+            auto const& typePointer = static_cast<schema::TypePointer const&>(type);
+            makeAvailable(typePointer.to);
+        }
+        else if (type.kind == schema::Type::Kind::Array) {
+            auto const& typeArray = static_cast<schema::TypeArray const&>(type);
+            makeAvailable(typeArray.of);
+        }
+        else if (type.kind == schema::Type::Kind::Specialized) {
+            auto const& typeSpec = static_cast<schema::TypeSpecialized const&>(type);
+            makeAvailable(typeSpec.ref);
+            for (auto const* typeParam : typeSpec.typeParams)
+                makeAvailableRecurse(*typeParam);
+        }
+    }
+
+    void Compiler::makeAvailableRecurse(schema::Constant const& constant) {
+        makeAvailableRecurse(constant.value);
+    }
+
+    void Compiler::makeAvailableRecurse(schema::Field const& field) {
+        makeAvailableRecurse(*field.type);
+        if (field.defaultValue)
+            makeAvailableRecurse(*field.defaultValue);
+        for (auto const& anno : field.annotations)
+            makeAvailableRecurse(*anno);
+    }
+
+    void Compiler::makeAvailableRecurse(schema::Member const& member) {
+        makeAvailableRecurse(*member.type);
+        for (auto const& anno : member.annotations)
+            makeAvailableRecurse(*anno);
+    }
+
+    void Compiler::makeAvailableRecurse(schema::Annotation const& annotation) {
+        makeAvailableRecurse(*annotation.type);
+        for (auto const& arg : annotation.args)
+            makeAvailableRecurse(arg);
+    }
+
+    void Compiler::makeAvailableRecurse(schema::Value const& value) {
+        std::visit([this](auto const& value) {
+            if constexpr (std::is_same_v<schema::Type const*, std::remove_cv_t<decltype(value)>>)
+                makeAvailable(value);
+            }, value.data);
     }
 
     schema::Type const* Compiler::resolveType(ast::TypeRef const& ref, schema::Type const* scope) {
@@ -633,10 +720,8 @@ namespace sapc {
 
             for (auto const* scopeType : scope->types)
                 if (scopeType->name == qualId.front().id)
-                    if (auto const rs = findLocal(qualId.skip(1), scopeType)) {
-                        makeAvailable(scopeType);
-                        return rs;
-                    }
+                    if (auto const rs = findLocal(qualId.skip(1), scopeType))
+                        return makeAvailable(scopeType), rs;
         }
 
         return {};
@@ -701,7 +786,7 @@ namespace sapc {
             state.back().resolveCache.insert({ qualId, rs });
 
         if (rs.kind == Resolve::Kind::Type)
-            makeAvailable(rs.data.type);
+            return Resolve{ makeAvailable(rs.data.type) };
 
         return rs;
     }
