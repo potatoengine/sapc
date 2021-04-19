@@ -15,7 +15,7 @@
 namespace sapc::schema {
     struct Module;
     struct Type;
-    struct TypeStruct;
+    struct TypeAggregate;
     struct TypeGeneric;
     struct TypeEnum;
     struct EnumItem;
@@ -52,12 +52,6 @@ namespace sapc::schema {
         std::optional<Value> defaultValue;
     };
 
-    struct Member : Annotated {
-        std::string name;
-        Location location;
-        Type const* type = nullptr;
-    };
-
     struct EnumItem : Annotated {
         std::string name;
         Location location;
@@ -67,8 +61,8 @@ namespace sapc::schema {
 
     struct Type : Annotated {
         enum Kind {
-            Primitive,
-            Struct,
+            Simple,
+            Aggregate,
             Generic,
             Specialized,
             Union,
@@ -85,10 +79,10 @@ namespace sapc::schema {
         Location location;
         Module const* owner = nullptr;
         Namespace const* scope = nullptr;
-        Kind kind = Kind::Primitive;
+        Kind kind = Kind::Simple;
     };
 
-    struct TypeStruct : Type {
+    struct TypeAggregate : Type {
         Type const* baseType = nullptr;
         std::vector<std::unique_ptr<Field>> fields;
         std::vector<TypeGeneric const*> generics;
@@ -99,7 +93,7 @@ namespace sapc::schema {
     };
 
     struct TypeUnion : Type {
-        std::vector<std::unique_ptr<Member>> members;
+        std::vector<std::unique_ptr<Field>> fields;
     };
 
     struct TypeAttribute : Type {

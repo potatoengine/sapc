@@ -140,7 +140,6 @@ namespace sapc {
 
             template <typename SchemaType>
             void build(SchemaType& type, ast::Field const& field);
-            void build(schema::TypeUnion& type, ast::Member const& member);
             void build(schema::TypeEnum& type, ast::EnumItem const& item);
 
             void createCoreModule();
@@ -149,7 +148,6 @@ namespace sapc {
 
             void makeAvailableRecurse(schema::Type const& type);
             void makeAvailableRecurse(schema::Field const& field);
-            void makeAvailableRecurse(schema::Member const& member);
             void makeAvailableRecurse(schema::Annotation const& annotation);
             void makeAvailableRecurse(schema::Value const& value);
 
@@ -239,10 +237,10 @@ namespace sapc {
 
         auto& mod = *state.back().mod;
 
-        auto* const type = static_cast<schema::TypeStruct*>(ctx.types.emplace_back(std::make_unique<schema::TypeStruct>()).get());
+        auto* const type = static_cast<schema::TypeAggregate*>(ctx.types.emplace_back(std::make_unique<schema::TypeAggregate>()).get());
         type->name = structDecl.name.id;
         type->qualifiedName = qualify(type->name);
-        type->kind = schema::Type::Kind::Struct;
+        type->kind = schema::Type::Kind::Aggregate;
         type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = structDecl.name.loc;
@@ -373,9 +371,9 @@ namespace sapc {
         type->location = unionDecl.name.loc;
         translate(type->annotations, unionDecl.annotations);
 
-        type->members.reserve(unionDecl.members.size());
-        for (ast::Member const& member : unionDecl.members)
-            build(*type, member);
+        type->fields.reserve(unionDecl.fields.size());
+        for (ast::Field const& field : unionDecl.fields)
+            build(*type, field);
 
         mod.types.push_back(type);
         state.back().nsStack.back()->types.push_back(type);
@@ -410,14 +408,6 @@ namespace sapc {
         translate(field->annotations, fieldDecl.annotations);
         if (fieldDecl.init)
             field->defaultValue = translate(*fieldDecl.init);
-    }
-
-    void Compiler::build(schema::TypeUnion& type, ast::Member const& memberDecl) {
-        auto& member = type.members.emplace_back(std::make_unique<schema::Member>());
-        member->name = memberDecl.name.id;
-        member->location = memberDecl.name.loc;
-        member->type = requireType(*memberDecl.type, &type);
-        translate(member->annotations, memberDecl.annotations);
     }
 
     void Compiler::build(schema::TypeEnum& type, ast::EnumItem const& itemDecl) {
@@ -504,7 +494,7 @@ namespace sapc {
             mod->types.push_back(type);
             ns->types.push_back(type);
 
-            type->kind = schema::Type::Primitive;
+            type->kind = schema::Type::Simple;
             type->name = builtin;
             type->qualifiedName = builtin;
             type->owner = coreModule;
@@ -568,10 +558,10 @@ namespace sapc {
         for (auto const& anno : type.annotations)
             makeAvailableRecurse(*anno);
 
-        if (type.kind == schema::Type::Kind::Struct) {
-            auto const& typeStruct = static_cast<schema::TypeStruct const&>(type);
-            makeAvailable(typeStruct.baseType);
-            for (auto const& field : typeStruct.fields)
+        if (type.kind == schema::Type::Kind::Aggregate) {
+            auto const& typeAggr = static_cast<schema::TypeAggregate const&>(type);
+            makeAvailable(typeAggr.baseType);
+            for (auto const& field : typeAggr.fields)
                 makeAvailableRecurse(*field);
         }
         else if (type.kind == schema::Type::Kind::Attribute) {
@@ -581,8 +571,8 @@ namespace sapc {
         }
         else if (type.kind == schema::Type::Kind::Union) {
             auto const& typeUnion = static_cast<schema::TypeUnion const&>(type);
-            for (auto const& member : typeUnion.members)
-                makeAvailableRecurse(*member);
+            for (auto const& field : typeUnion.fields)
+                makeAvailableRecurse(*field);
         }
         else if (type.kind == schema::Type::Kind::Alias) {
             auto const& typeAlias = static_cast<schema::TypeAlias const&>(type);
@@ -609,12 +599,6 @@ namespace sapc {
         if (field.defaultValue)
             makeAvailableRecurse(*field.defaultValue);
         for (auto const& anno : field.annotations)
-            makeAvailableRecurse(*anno);
-    }
-
-    void Compiler::makeAvailableRecurse(schema::Member const& member) {
-        makeAvailableRecurse(*member.type);
-        for (auto const& anno : member.annotations)
             makeAvailableRecurse(*anno);
     }
 
@@ -680,9 +664,9 @@ namespace sapc {
                 if (item->name == qualId.front().id)
                     return Resolve{ item.get() };
         }
-        else if (scope->kind == schema::Type::Kind::Struct) {
-            auto const& typeStruct = *static_cast<schema::TypeStruct const*>(scope);
-            for (auto const* gen : typeStruct.generics)
+        else if (scope->kind == schema::Type::Kind::Aggregate) {
+            auto const& typeAggr = *static_cast<schema::TypeAggregate const*>(scope);
+            for (auto const* gen : typeAggr.generics)
                 if (gen->name == qualId.front().id)
                     return Resolve{ gen };
         }

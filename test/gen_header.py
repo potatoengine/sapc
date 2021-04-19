@@ -221,11 +221,11 @@ def main(argv):
             print(f'  union {name}{basespec} {{', file=args.output)
 
             if 'order' in type:
-                for membername in type['order']:
-                    member = type['members'][membername]
-                    if ignored(member): continue
+                for fieldname in type['order']:
+                    field = type['fields'][fieldname]
+                    if ignored(field): continue
 
-                    print_annotations('    ', member['annotations'])
+                    print_annotations('    ', field['annotations'])
 
             print(f'  }};\n', file=args.output)
         else:

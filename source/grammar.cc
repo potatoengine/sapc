@@ -238,13 +238,13 @@ namespace sapc {
 
                 EXPECT(TokenType::LeftBrace);
                 while (!consume(TokenType::RightBrace)) {
-                    auto& member = unionDecl.members.emplace_back();
+                    auto& field = unionDecl.fields.emplace_back();
 
                     while (match(TokenType::LeftBracket))
-                        EXPECT(member.annotations);
+                        EXPECT(field.annotations);
 
-                    EXPECT(member.type);
-                    EXPECT(member.name);
+                    EXPECT(field.type);
+                    EXPECT(field.name);
                     EXPECT(TokenType::SemiColon);
                 }
 

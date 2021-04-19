@@ -137,13 +137,13 @@ namespace sapc {
     template <typename JsonT>
     void schema::to_json(JsonT& j, Type::Kind value) {
         switch (value) {
-        case Type::Kind::Primitive: j = "primitive"; break;
+        case Type::Kind::Simple: j = "simple"; break;
         case Type::Kind::Attribute: j = "attribute"; break;
         case Type::Kind::Generic: j = "generic"; break;
         case Type::Kind::Specialized: j = "specialized"; break;
         case Type::Kind::Enum: j = "enum"; break;
         case Type::Kind::Alias: j = "alias"; break;
-        case Type::Kind::Struct: j = "struct"; break;
+        case Type::Kind::Aggregate: j = "aggregate"; break;
         case Type::Kind::Union: j = "union"; break;
         case Type::Kind::TypeId: j = "typename"; break;
         case Type::Kind::Array: j = "array"; break;
@@ -177,22 +177,22 @@ namespace sapc {
             type_json["names"] = std::move(names);
             type_json["values"] = std::move(values);
         }
-        else if (type.kind == Type::Kind::Struct) {
-            auto& typeStruct = static_cast<TypeStruct const&>(type);
+        else if (type.kind == Type::Kind::Aggregate) {
+            auto& typeAggr = static_cast<TypeAggregate const&>(type);
 
-            if (typeStruct.baseType != nullptr)
-                type_json["base"] = typeStruct.baseType->qualifiedName;
+            if (typeAggr.baseType != nullptr)
+                type_json["base"] = typeAggr.baseType->qualifiedName;
 
-            if (!typeStruct.generics.empty()) {
+            if (!typeAggr.generics.empty()) {
                 auto generics_json = JsonT::array();
-                for (auto const* gen : typeStruct.generics)
+                for (auto const* gen : typeAggr.generics)
                     generics_json.push_back(gen->name);
                 type_json["generics"] = std::move(generics_json);
             }
 
             auto fields = JsonT::object();
             auto order = JsonT::array();
-            for (auto const& field : typeStruct.fields) {
+            for (auto const& field : typeAggr.fields) {
                 auto field_json = JsonT::object();
                 field_json["name"] = field->name;
                 field_json["type"] = field->type->qualifiedName;
@@ -210,20 +210,20 @@ namespace sapc {
         else if (type.kind == Type::Kind::Union) {
             auto& typeUnion = static_cast<TypeUnion const&>(type);
 
-            auto members = JsonT::object();
+            auto fields = JsonT::object();
             auto order = JsonT::array();
-            for (auto const& member : typeUnion.members) {
-                auto member_json = JsonT::object();
-                member_json["name"] = member->name;
-                member_json["type"] = member->type->qualifiedName;
-                member_json["annotations"] = member->annotations;
-                member_json["location"] = member->location;
+            for (auto const& field : typeUnion.fields) {
+                auto field_json = JsonT::object();
+                field_json["name"] = field->name;
+                field_json["type"] = field->type->qualifiedName;
+                field_json["annotations"] = field->annotations;
+                field_json["location"] = field->location;
 
-                order.push_back(member->name);
-                members[member->name.c_str()] = std::move(member_json);
+                order.push_back(field->name);
+                fields[field->name.c_str()] = std::move(field_json);
             }
             type_json["order"] = std::move(order);
-            type_json["members"] = std::move(members);
+            type_json["fields"] = std::move(fields);
         }
         else if (type.kind == Type::Kind::Attribute) {
             auto& typeAttr = static_cast<TypeAttribute const&>(type);
