@@ -78,13 +78,13 @@ def field_cxxtype(types, name):
     if field_type['kind'] == 'typename':
         return 'std::type_index'
     if field_type['kind'] == 'array':
-        field_type = field_cxxtype(types, field_type['of'])
+        field_type = field_cxxtype(types, field_type['refType'])
         return f'std::vector<{field_type}>'
     elif field_type['kind'] == 'pointer':
-        field_type = field_cxxtype(types, field_type['to'])
+        field_type = field_cxxtype(types, field_type['refType'])
         return f'std::unique_ptr<{field_type}>'
     elif field_type['kind'] == 'specialized':
-        ref_type = field_cxxtype(types, field_type['ref'])
+        ref_type = field_cxxtype(types, field_type['refType'])
         param_types = [field_cxxtype(types, param) for param in field_type['typeParams']]
         return f'{ref_type}<{", ".join(param_types)}>'
     else:
@@ -209,11 +209,11 @@ def main(argv):
 
             print(f'  }};\n', file=args.output)
         elif kind == 'alias':
-            if 'ref' in type:
+            if 'refType' in type:
                 enter_namespace(namespace(type))
                 type_banner(type)
 
-                print(f'  using {name} = {field_cxxtype(types, type["ref"])};\n', file=args.output)
+                print(f'  using {name} = {field_cxxtype(types, type["refType"])};\n', file=args.output)
         elif kind == 'union':
             enter_namespace(namespace(type))
             type_banner(type)

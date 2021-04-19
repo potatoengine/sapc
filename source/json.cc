@@ -177,7 +177,7 @@ namespace sapc {
             type_json["names"] = std::move(names);
             type_json["values"] = std::move(values);
         }
-        else if (type.kind == Type::Kind::Struct) {
+        else if (type.kind == Type::Kind::Struct || type.kind == Type::Kind::Union || type.kind == Type::Kind::Attribute) {
             auto& typeAggr = static_cast<TypeAggregate const&>(type);
 
             if (typeAggr.refType != nullptr)
@@ -207,69 +207,19 @@ namespace sapc {
             type_json["order"] = std::move(order);
             type_json["fields"] = std::move(fields);
         }
-        else if (type.kind == Type::Kind::Union) {
-            auto& typeUnion = static_cast<TypeAggregate const&>(type);
-
-            auto fields = JsonT::object();
-            auto order = JsonT::array();
-            for (auto const& field : typeUnion.fields) {
-                auto field_json = JsonT::object();
-                field_json["name"] = field->name;
-                field_json["type"] = field->type->qualifiedName;
-                field_json["annotations"] = field->annotations;
-                field_json["location"] = field->location;
-
-                order.push_back(field->name);
-                fields[field->name.c_str()] = std::move(field_json);
-            }
-            type_json["order"] = std::move(order);
-            type_json["fields"] = std::move(fields);
-        }
-        else if (type.kind == Type::Kind::Attribute) {
-            auto& typeAttr = static_cast<TypeAggregate const&>(type);
-
-            auto fields = JsonT::object();
-            auto order = JsonT::array();
-            for (auto const& field : typeAttr.fields) {
-                auto field_json = JsonT::object();
-                field_json["name"] = field->name;
-                field_json["type"] = field->type->qualifiedName;
-                if (field->defaultValue)
-                    field_json["default"] = *field->defaultValue;
-                field_json["annotations"] = field->annotations;
-                field_json["location"] = field->location;
-
-                order.push_back(field->name);
-                fields[field->name.c_str()] = std::move(field_json);
-            }
-            type_json["order"] = std::move(order);
-            type_json["fields"] = std::move(fields);
-        }
-        else if (type.kind == Type::Kind::Array) {
-            auto& typeArray = static_cast<Type const&>(type);
-
-            type_json["of"] = typeArray.refType->qualifiedName;
-        }
-        else if (type.kind == Type::Kind::Pointer) {
-            auto& typePointer = static_cast<Type const&>(type);
-
-            type_json["to"] = typePointer.refType->qualifiedName;
+        else if (type.kind == Type::Kind::Array || type.kind == Type::Kind::Pointer || type.kind == Type::Kind::Alias) {
+            if (type.refType != nullptr)
+                type_json["refType"] = type.refType->qualifiedName;
         }
         else if (type.kind == Type::Kind::Specialized) {
             auto& typeSpec = static_cast<TypeSpecialized const&>(type);
 
-            type_json["ref"] = typeSpec.refType->qualifiedName;
+            type_json["refType"] = typeSpec.refType->qualifiedName;
 
             auto types_json = JsonT::array();
             for (auto const* param : typeSpec.typeParams)
                 types_json.push_back(param->qualifiedName);
             type_json["typeParams"] = std::move(types_json);
-        }
-        else if (type.kind == Type::Kind::Alias) {
-            auto& typeAlias = static_cast<Type const&>(type);
-
-            if (typeAlias.refType != nullptr)
-                type_json["ref"] = typeAlias.refType->qualifiedName;
         }
 
         type_json["location"] = type.location;
