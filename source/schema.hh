@@ -105,7 +105,7 @@ namespace sapc::schema {
         std::string qualifiedName;
         Location location;
         Module const* owner = nullptr;
-        Namespace const* scope = nullptr;
+        Namespace const* parent = nullptr;
         std::vector<Type const*> types;
         std::vector<Constant const*> constants;
         std::vector<Namespace const*> namespaces;

@@ -244,8 +244,8 @@ namespace sapc {
         ns_json["name"] = ns.name;
         ns_json["qualified"] = ns.qualifiedName;
         ns_json["module"] = ns.owner->name;
-        if (!ns.scope->name.empty())
-            ns_json["namespace"] = ns.scope->qualifiedName;
+        if (!ns.parent->name.empty())
+            ns_json["namespace"] = ns.parent->qualifiedName;
 
         auto types_json = JsonT::array();
         for (auto const* type : ns.types)

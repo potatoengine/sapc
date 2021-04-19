@@ -218,7 +218,7 @@ namespace sapc {
         ns->qualifiedName = qualify(ns->name);
         ns->location = nsDecl.name.loc;
         ns->owner = state.back().mod;
-        ns->scope = state.back().nsStack.back();
+        ns->parent = state.back().nsStack.back();
 
         state.back().mod->namespaces.push_back(ns);
         state.back().nsStack.back()->namespaces.push_back(ns);
@@ -683,8 +683,8 @@ namespace sapc {
         if (auto const rs = findLocal(qualId, scope))
             return rs;
 
-        if (scope->scope != nullptr)
-            return findGlobal(qualId, scope->scope);
+        if (scope->parent != nullptr)
+            return findGlobal(qualId, scope->parent);
         else
             return findGlobal(qualId, scope->owner);
     }
