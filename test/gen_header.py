@@ -47,8 +47,8 @@ def namespace(el):
         return None
     elif 'namespace' in el:
         return 'st::' + '::'.join(identifier(c) for c in el['namespace'].split('.'))
-    elif 'is_attribute' in el and el['is_attribute']:
-        return 'sapc_attr'
+    elif 'kind' in el and el['kind'] == 'attribute':
+        return 'st_attr'
     else:
         return 'st'
 
@@ -76,7 +76,7 @@ def encode(el):
 def field_cxxtype(types, name):
     field_type = types[name]
     if field_type['kind'] == 'typename':
-        return 'std::type_info'
+        return 'std::type_index'
     if field_type['kind'] == 'array':
         field_type = field_cxxtype(types, field_type['of'])
         return f'std::vector<{field_type}>'
@@ -92,11 +92,6 @@ def field_cxxtype(types, name):
         name = cxxname(field_type)
         return name if ns is None else (ns + '::' + name)
 
-def banner(text, out):
-    print(f'// --{re.sub(".", "-", text)}--', file=out)
-    print(f'//  {text}', file=out)
-    print(f'// --{re.sub(".", "-", text)}--\n', file=out)
-
 def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', type=argparse.FileType(mode='r', encoding='utf8'), required=True)
@@ -109,7 +104,13 @@ def main(argv):
     if not args.output:
         args.output = sys.stdout
 
-    banner('Generated file ** DO NOT EDIT **', args.output)
+        
+    def banner(text):
+        print(f'// --{re.sub(".", "-", text)}--', file=args.output)
+        print(f'//  {text}', file=args.output)
+        print(f'// --{re.sub(".", "-", text)}--\n', file=args.output)
+
+    banner('Generated file ** DO NOT EDIT **')
 
     print(f'// from: {path.basename(args.input.name)}', file=args.output)
     print(f'// with: {path.basename(argv[0])}', file=args.output)
@@ -119,27 +120,28 @@ def main(argv):
     print(f'\n#if !defined(INCLUDE_GUARD_SAPC_{identifier(doc["module"]["name"]).upper()})', file=args.output)
     print(f'#define INCLUDE_GUARD_SAPC_{identifier(doc["module"]["name"]).upper()} 1', file=args.output)
     print('#pragma once', file=args.output)
-    print('#include <string>', file=args.output)
-    print('#include <memory>', file=args.output)
-    print('#include <vector>', file=args.output)
     print('#include <any>', file=args.output)
+    print('#include <memory>', file=args.output)
+    print('#include <string>', file=args.output)
+    print('#include <typeindex>', file=args.output)
+    print('#include <vector>', file=args.output)
     print('', file=args.output)
 
     types = doc['types']
     exports = doc['exports']
 
-    banner(f"Module - {doc['module']['name']}", args.output)
+    banner(f"Module - {doc['module']['name']}")
     for annotation in doc['module']['annotations']:
         annotation_args = annotation['args']
         print(f'// module annotation: {annotation["type"]}({",".join([k+":"+encode(v) for k,v in annotation_args.items()])})', file=args.output)
     print('', file=args.output)
     
-    banner('Imports', args.output)
+    banner('Imports')
     for module in doc['module']['imports']:
         print(f'#include "{module}.h"', file=args.output)
     print('', file=args.output)
 
-    banner('Types', args.output)
+    banner('Types')
 
     state = {'current_ns': None}
 
@@ -151,6 +153,10 @@ def main(argv):
             if state['current_ns'] is not None:
                 print(f'namespace {ns} {{', file=args.output)
 
+    def print_annotations(prefix, annotations):
+        for annotation in annotations:
+            print(f'{prefix}// annotation: {annotation["type"]}({",".join([k+":"+encode(v) for k,v in annotation["args"].items()])})', file=args.output)
+
     def type_banner(type):
         if 'location' in type:
             loc = type['location']
@@ -161,9 +167,24 @@ def main(argv):
             else:
                 print(f'  // {loc["filename"]}', file=args.output)
 
-        for annotation in type['annotations']:
-            annotation_args = annotation['args']
-            print(f'  // annotation: {annotation["type"]}({",".join([k+":"+encode(v) for k,v in annotation_args.items()])})', file=args.output)
+        print_annotations('  ', type['annotations'])
+
+    def annotation_getter(type):
+        print('    template <int N>', file=args.output)
+        print('    static decltype(auto) get_annotation() {', file=args.output)
+        for index,anno in enumerate(type['annotations']):
+            anno_type = types[anno['type']]
+            if anno_type['name'] == '$sapc.customtag': continue
+
+            print(f'      if constexpr(N == {index}) {{', file=args.output)
+            print(f'        static auto const anno = {qualified(anno_type)}{{', file=args.output)
+            for key,value in anno['args'].items():
+                arg_type = anno_type['fields'][key]
+                print(f'          {encode(value)}, // {arg_type["name"]}', file=args.output)
+            print('          };', file=args.output)
+            print('          return anno;', file=args.output)
+            print('      }', file=args.output)
+        print('    }', file=args.output)
 
     for typename in exports['types']:
         type = types[typename]
@@ -204,14 +225,7 @@ def main(argv):
                     member = type['members'][membername]
                     if ignored(member): continue
 
-                    for annotation in member['annotations']:
-                        annotation_args = annotation['args']
-                        print(f'    // annotation: {annotation["type"]}({",".join([k+":"+encode(v) for k,v in annotation_args.items()])})', file=args.output)
-
-                    if 'default' in member:
-                        print(f'    {field_cxxtype(types, member["type"])} {cxxname(member)} = {encode(member["default"])};', file=args.output)
-                    else:
-                        print(f'    {field_cxxtype(types, member["type"])} {cxxname(member)};', file=args.output)
+                    print_annotations('    ', member['annotations'])
 
             print(f'  }};\n', file=args.output)
         else:
@@ -223,14 +237,14 @@ def main(argv):
 
             print(f'  struct {name}{basespec} {{', file=args.output)
 
+            annotation_getter(type)
+
             if 'order' in type:
                 for fieldname in type['order']:
                     field = type['fields'][fieldname]
                     if ignored(field): continue
 
-                    for annotation in field['annotations']:
-                        annotation_args = annotation['args']
-                        print(f'    // annotation: {annotation["type"]}({",".join([k+":"+encode(v) for k,v in annotation_args.items()])})', file=args.output)
+                    print_annotations('    ', field['annotations'])
 
                     if 'default' in field:
                         print(f'    {field_cxxtype(types, field["type"])} {cxxname(field)} = {encode(field["default"])};', file=args.output)
@@ -241,7 +255,7 @@ def main(argv):
     
     enter_namespace(None)
 
-    banner('Constants', args.output)
+    banner('Constants')
         
     for constname in exports['constants']:
         constant = doc['constants'][constname]

@@ -250,7 +250,7 @@ namespace sapc {
             translate(type->annotations, it->second->annotations);
 
             auto& tagAnno = *type->annotations.emplace_back(std::make_unique<schema::Annotation>());
-            tagAnno.type = customTagAttr;
+            tagAnno.type = makeAvailable(customTagAttr);
             tagAnno.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
             auto& tagValue = tagAnno.args.emplace_back();
             tagValue.data = structDecl.customTag;
@@ -552,7 +552,7 @@ namespace sapc {
     schema::Type const* Compiler::resolveType(ast::TypeRef const& ref, schema::Type const* scope) {
         switch (ref.kind) {
         case ast::TypeRef::Kind::TypeName:
-            return typeIdType;
+            return makeAvailable(typeIdType);
         case ast::TypeRef::Kind::Name:
             if (auto const rs = resolve(ref.name, scope); rs.kind == Resolve::Kind::Type)
                 return rs.data.type;
