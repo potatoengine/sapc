@@ -1,6 +1,12 @@
 sapc
 ====
 
+Version 0.13-beta
+-----------------
+
+ - Fix attributes in JSON schema output
+ - Use qualified name for typename references in JSON output
+
 Version 0.12-beta
 -----------------
 
