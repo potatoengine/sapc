@@ -92,14 +92,6 @@ namespace sapc::schema {
         Type const* parent = nullptr;
     };
 
-    struct TypeUnion : Type {
-        std::vector<std::unique_ptr<Field>> fields;
-    };
-
-    struct TypeAttribute : Type {
-        std::vector<std::unique_ptr<Field>> fields;
-    };
-
     struct TypeArray : Type {
         Type const* of = nullptr;
     };

@@ -208,7 +208,7 @@ namespace sapc {
             type_json["fields"] = std::move(fields);
         }
         else if (type.kind == Type::Kind::Union) {
-            auto& typeUnion = static_cast<TypeUnion const&>(type);
+            auto& typeUnion = static_cast<TypeAggregate const&>(type);
 
             auto fields = JsonT::object();
             auto order = JsonT::array();
@@ -226,7 +226,7 @@ namespace sapc {
             type_json["fields"] = std::move(fields);
         }
         else if (type.kind == Type::Kind::Attribute) {
-            auto& typeAttr = static_cast<TypeAttribute const&>(type);
+            auto& typeAttr = static_cast<TypeAggregate const&>(type);
 
             auto fields = JsonT::object();
             auto order = JsonT::array();
@@ -323,7 +323,7 @@ namespace sapc {
 
         assert(value.type->kind == Type::Kind::Attribute);
 
-        auto const& attr = static_cast<TypeAttribute const&>(*value.type);
+        auto const& attr = static_cast<TypeAggregate const&>(*value.type);
         assert(attr.fields.size() == value.args.size());
 
         auto args_json = JsonT::object();

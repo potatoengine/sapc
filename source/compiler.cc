@@ -117,7 +117,7 @@ namespace sapc {
             std::vector<State> state;
 
             schema::Type const* typeIdType = nullptr;
-            schema::TypeAttribute const* customTagAttr = nullptr;
+            schema::TypeAggregate const* customTagAttr = nullptr;
             schema::Module const* coreModule = nullptr;
 
             std::unordered_map<schema::Type const*, schema::Type const*> arrayTypeMap;
@@ -314,7 +314,7 @@ namespace sapc {
 
         auto& mod = *state.back().mod;
 
-        auto* const type = static_cast<schema::TypeAttribute*>(ctx.types.emplace_back(std::make_unique<schema::TypeAttribute>()).get());
+        auto* const type = static_cast<schema::TypeAggregate*>(ctx.types.emplace_back(std::make_unique<schema::TypeAggregate>()).get());
         type->name = attrDecl.name.id;
         type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Kind::Attribute;
@@ -362,7 +362,7 @@ namespace sapc {
 
         auto& mod = *state.back().mod;
 
-        auto* const type = static_cast<schema::TypeUnion*>(ctx.types.emplace_back(std::make_unique<schema::TypeUnion>()).get());
+        auto* const type = static_cast<schema::TypeAggregate*>(ctx.types.emplace_back(std::make_unique<schema::TypeAggregate>()).get());
         type->name = unionDecl.name.id;
         type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Union;
@@ -517,7 +517,7 @@ namespace sapc {
         }
 
         {
-            auto* const type = static_cast<schema::TypeAttribute*>(ctx.types.emplace_back(std::make_unique<schema::TypeAttribute>()).get());
+            auto* const type = static_cast<schema::TypeAggregate*>(ctx.types.emplace_back(std::make_unique<schema::TypeAggregate>()).get());
             mod->types.push_back(type);
             ns->types.push_back(type);
             customTagAttr = type;
@@ -565,12 +565,12 @@ namespace sapc {
                 makeAvailableRecurse(*field);
         }
         else if (type.kind == schema::Type::Kind::Attribute) {
-            auto const& typeAttr = static_cast<schema::TypeAttribute const&>(type);
+            auto const& typeAttr = static_cast<schema::TypeAggregate const&>(type);
             for (auto const& field : typeAttr.fields)
                 makeAvailableRecurse(*field);
         }
         else if (type.kind == schema::Type::Kind::Union) {
-            auto const& typeUnion = static_cast<schema::TypeUnion const&>(type);
+            auto const& typeUnion = static_cast<schema::TypeAggregate const&>(type);
             for (auto const& field : typeUnion.fields)
                 makeAvailableRecurse(*field);
         }
@@ -938,7 +938,7 @@ namespace sapc {
             return result;
         }
 
-        auto const& attrType = static_cast<schema::TypeAttribute const&>(*result->type);
+        auto const& attrType = static_cast<schema::TypeAggregate const&>(*result->type);
 
         if (anno.args.size() > attrType.fields.size()) {
             log.error(result->location, "too many arguments for attribute ", attrType.name, "; got ", anno.args.size(), ", expected ", attrType.fields.size());
