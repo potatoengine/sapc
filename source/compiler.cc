@@ -148,7 +148,6 @@ namespace sapc {
             schema::Type const* makeAvailable(schema::Type const* type);
 
             void makeAvailableRecurse(schema::Type const& type);
-            void makeAvailableRecurse(schema::Constant const& constant);
             void makeAvailableRecurse(schema::Field const& field);
             void makeAvailableRecurse(schema::Member const& member);
             void makeAvailableRecurse(schema::Annotation const& annotation);
@@ -603,10 +602,6 @@ namespace sapc {
             for (auto const* typeParam : typeSpec.typeParams)
                 makeAvailableRecurse(*typeParam);
         }
-    }
-
-    void Compiler::makeAvailableRecurse(schema::Constant const& constant) {
-        makeAvailableRecurse(constant.value);
     }
 
     void Compiler::makeAvailableRecurse(schema::Field const& field) {
