@@ -1,0 +1,11 @@
+module basic;
+
+attribute name {
+    string description;
+}
+
+[name("TestStruct")]
+struct test {
+    [name("TestInt")]
+    int x;
+}

@@ -1,7 +1,7 @@
 #include "test.h"
 
 int main(int argc, char** argv) {
-    [[maybe_unused]] st::default_ val_default_ = {};
+    [[maybe_unused]] st_attr::default_ val_default_ = {};
     [[maybe_unused]] st::number val_number = {};
     [[maybe_unused]] st::derived val_derived = {};
 
