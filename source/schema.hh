@@ -78,7 +78,6 @@ namespace sapc::schema {
         std::string name;
         std::string qualifiedName;
         Location location;
-        Module const* owner = nullptr;
         Namespace const* scope = nullptr;
         Type const* refType = nullptr; // arrays, pointers, aliases, specialized
         std::vector<Type const*> generics; // placeholders for generic types; type params for specialized types
@@ -96,7 +95,6 @@ namespace sapc::schema {
         std::string name;
         std::string qualifiedName;
         Location location;
-        Module const* owner = nullptr;
         Namespace const* scope = nullptr;
         Type const* type = nullptr;
         Value value;

@@ -98,7 +98,7 @@ namespace sapc {
         auto types_json = JsonT::object();
         auto type_exports_json = JsonT::array();
         for (auto const* type : mod.types) {
-            if (type->owner == &mod) {
+            if (type->scope->owner == &mod) {
                 auto const isNormal = type->kind != schema::Type::Kind::Array &&
                     type->kind != schema::Type::Kind::Pointer &&
                     type->kind != schema::Type::Kind::Generic &&
@@ -114,7 +114,7 @@ namespace sapc {
         auto constants_json = JsonT::object();
         auto constant_exports_json = JsonT::array();
         for (auto const* constant : mod.constants) {
-            if (constant->owner == &mod)
+            if (constant->scope->owner == &mod)
                 constant_exports_json.push_back(constant->qualifiedName);
 
             constants_json[constant->qualifiedName.c_str()] = *constant;
@@ -154,13 +154,14 @@ namespace sapc {
 
     template <typename JsonT>
     void schema::to_json(JsonT& type_json, Type const& type) {
-        assert(type.owner != nullptr);
+        assert(type.scope != nullptr);
+        assert(type.scope->owner != nullptr);
 
         type_json = JsonT::object();
 
         type_json["name"] = type.name;
         type_json["qualified"] = type.qualifiedName;
-        type_json["module"] = type.owner->name;
+        type_json["module"] = type.scope->owner->name;
         if (!type.scope->name.empty())
             type_json["namespace"] = type.scope->qualifiedName;
         type_json["kind"] = type.kind;
@@ -228,7 +229,7 @@ namespace sapc {
         const_json = JsonT::object();
         const_json["name"] = constant.name;
         const_json["qualified"] = constant.qualifiedName;
-        const_json["module"] = constant.owner->name;
+        const_json["module"] = constant.scope->owner->name;
         if (!constant.scope->name.empty())
             const_json["namespace"] = constant.scope->qualifiedName;
         const_json["type"] = constant.type->name;

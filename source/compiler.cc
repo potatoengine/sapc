@@ -241,7 +241,6 @@ namespace sapc {
         type->name = structDecl.name.id;
         type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Kind::Struct;
-        type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = structDecl.name.loc;
         if (structDecl.baseType != nullptr)
@@ -268,7 +267,6 @@ namespace sapc {
             sub->name = gen.id;
             sub->qualifiedName = type->qualifiedName + "." + gen.id;
             sub->kind = schema::Type::Kind::Generic;
-            sub->owner = &mod;
             sub->scope = type->scope;
             type->generics.push_back(sub);
 
@@ -294,7 +292,6 @@ namespace sapc {
         type->name = aliasDecl.name.id;
         type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Kind::Alias;
-        type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = aliasDecl.name.loc;
         translate(type->annotations, aliasDecl.annotations);
@@ -317,7 +314,6 @@ namespace sapc {
         type->name = attrDecl.name.id;
         type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Kind::Attribute;
-        type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = attrDecl.name.loc;
         translate(type->annotations, attrDecl.annotations);
@@ -341,7 +337,6 @@ namespace sapc {
         type->name = enumDecl.name.id;
         type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Enum;
-        type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = enumDecl.name.loc;
         translate(type->annotations, enumDecl.annotations);
@@ -365,7 +360,6 @@ namespace sapc {
         type->name = unionDecl.name.id;
         type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Union;
-        type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = unionDecl.name.loc;
         translate(type->annotations, unionDecl.annotations);
@@ -389,7 +383,6 @@ namespace sapc {
         constant->name = constantDecl.name.id;
         constant->qualifiedName = qualify(constant->name);
         constant->location = constantDecl.name.loc;
-        constant->owner = &mod;
         constant->scope = state.back().nsStack.back();
         constant->type = requireType(*constantDecl.type);
         constant->value = translate(constantDecl.value);
@@ -487,6 +480,7 @@ namespace sapc {
         mod->root = ns;
         coreModule = mod;
         mod->name = "$sapc";
+        ns->owner = mod;
 
         for (auto const& builtin : builtins) {
             auto* const type = ctx.types.emplace_back(std::make_unique<schema::Type>()).get();
@@ -496,7 +490,6 @@ namespace sapc {
             type->kind = schema::Type::Simple;
             type->name = builtin;
             type->qualifiedName = builtin;
-            type->owner = coreModule;
             type->scope = ns;
             type->location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
         }
@@ -510,7 +503,6 @@ namespace sapc {
             type->kind = schema::Type::TypeId;
             type->name = typeIdName;
             type->qualifiedName = typeIdName;
-            type->owner = coreModule;
             type->scope = ns;
             type->location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
         }
@@ -524,7 +516,6 @@ namespace sapc {
             type->kind = schema::Type::Attribute;
             type->name = customTagName;
             type->qualifiedName = customTagName;
-            type->owner = coreModule;
             type->scope = ns;
             type->location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
 
@@ -544,7 +535,7 @@ namespace sapc {
     void Compiler::makeAvailableRecurse(schema::Type const& type) {
         schema::Module* const mod = state.back().mod;
 
-        if (type.owner == mod)
+        if (type.scope->owner == mod)
             return;
 
         auto const rs = state.back().importedTypes.insert(&type);
@@ -708,7 +699,7 @@ namespace sapc {
         if (scope->scope != nullptr)
             return findGlobal(qualId, scope->scope);
         else
-            return findGlobal(qualId, scope->owner);
+            return findGlobal(qualId, scope->scope->owner);
     }
 
     Resolve Compiler::findGlobal(QualIdSpan qualId, schema::Module const* scope) {
@@ -791,7 +782,6 @@ namespace sapc {
         arr->qualifiedName += "[]";
         arr->refType = of;
         arr->kind = schema::Type::Array;
-        arr->owner = top.mod;
         arr->scope = of->scope;
         arr->location = loc;
 
@@ -818,7 +808,6 @@ namespace sapc {
         ptr->qualifiedName += "*";
         ptr->refType = to;
         ptr->kind = schema::Type::Pointer;
-        ptr->owner = top.mod;
         ptr->scope = to->scope;
         ptr->location = loc;
 
@@ -854,7 +843,6 @@ namespace sapc {
         spec->qualifiedName += genName;
         spec->refType = gen;
         spec->kind = schema::Type::Specialized;
-        spec->owner = top.mod;
         spec->scope = gen->scope;
         spec->location = loc;
 
