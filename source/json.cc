@@ -226,7 +226,7 @@ namespace sapc {
             type_json["members"] = std::move(members);
         }
         else if (type.kind == Type::Kind::Attribute) {
-            auto& typeAttr = static_cast<TypeStruct const&>(type);
+            auto& typeAttr = static_cast<TypeAttribute const&>(type);
 
             auto fields = JsonT::object();
             auto order = JsonT::array();
