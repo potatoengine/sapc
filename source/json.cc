@@ -143,7 +143,7 @@ namespace sapc {
         case Type::Kind::Specialized: j = "specialized"; break;
         case Type::Kind::Enum: j = "enum"; break;
         case Type::Kind::Alias: j = "alias"; break;
-        case Type::Kind::Aggregate: j = "aggregate"; break;
+        case Type::Kind::Struct: j = "struct"; break;
         case Type::Kind::Union: j = "union"; break;
         case Type::Kind::TypeId: j = "typename"; break;
         case Type::Kind::Array: j = "array"; break;
@@ -177,7 +177,7 @@ namespace sapc {
             type_json["names"] = std::move(names);
             type_json["values"] = std::move(values);
         }
-        else if (type.kind == Type::Kind::Aggregate) {
+        else if (type.kind == Type::Kind::Struct) {
             auto& typeAggr = static_cast<TypeAggregate const&>(type);
 
             if (typeAggr.baseType != nullptr)

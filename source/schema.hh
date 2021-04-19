@@ -62,7 +62,7 @@ namespace sapc::schema {
     struct Type : Annotated {
         enum Kind {
             Simple,
-            Aggregate,
+            Struct,
             Generic,
             Specialized,
             Union,

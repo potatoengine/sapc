@@ -240,7 +240,7 @@ namespace sapc {
         auto* const type = static_cast<schema::TypeAggregate*>(ctx.types.emplace_back(std::make_unique<schema::TypeAggregate>()).get());
         type->name = structDecl.name.id;
         type->qualifiedName = qualify(type->name);
-        type->kind = schema::Type::Kind::Aggregate;
+        type->kind = schema::Type::Kind::Struct;
         type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = structDecl.name.loc;
@@ -557,7 +557,7 @@ namespace sapc {
         for (auto const& anno : type.annotations)
             makeAvailableRecurse(*anno);
 
-        if (type.kind == schema::Type::Kind::Aggregate) {
+        if (type.kind == schema::Type::Kind::Struct) {
             auto const& typeAggr = static_cast<schema::TypeAggregate const&>(type);
             makeAvailable(typeAggr.baseType);
             for (auto const& field : typeAggr.fields)
@@ -654,7 +654,7 @@ namespace sapc {
                 if (item->name == qualId.front().id)
                     return Resolve{ item.get() };
         }
-        else if (scope->kind == schema::Type::Kind::Aggregate) {
+        else if (scope->kind == schema::Type::Kind::Struct) {
             auto const& typeAggr = *static_cast<schema::TypeAggregate const*>(scope);
             for (auto const* gen : typeAggr.generics)
                 if (gen->name == qualId.front().id)
