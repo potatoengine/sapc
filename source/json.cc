@@ -180,8 +180,8 @@ namespace sapc {
         else if (type.kind == Type::Kind::Struct) {
             auto& typeAggr = static_cast<TypeAggregate const&>(type);
 
-            if (typeAggr.baseType != nullptr)
-                type_json["base"] = typeAggr.baseType->qualifiedName;
+            if (typeAggr.refType != nullptr)
+                type_json["base"] = typeAggr.refType->qualifiedName;
 
             if (!typeAggr.generics.empty()) {
                 auto generics_json = JsonT::array();

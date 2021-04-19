@@ -84,7 +84,6 @@ namespace sapc::schema {
     };
 
     struct TypeAggregate : Type {
-        Type const* baseType = nullptr;
         std::vector<std::unique_ptr<Field>> fields;
         std::vector<Type const*> generics;
     };

@@ -245,7 +245,7 @@ namespace sapc {
         type->scope = state.back().nsStack.back();
         type->location = structDecl.name.loc;
         if (structDecl.baseType != nullptr)
-            type->baseType = requireType(*structDecl.baseType);
+            type->refType = requireType(*structDecl.baseType);
         translate(type->annotations, structDecl.annotations);
 
         if (!structDecl.customTag.empty()) {
@@ -559,7 +559,7 @@ namespace sapc {
 
         if (type.kind == schema::Type::Kind::Struct) {
             auto const& typeAggr = static_cast<schema::TypeAggregate const&>(type);
-            makeAvailable(typeAggr.baseType);
+            makeAvailable(typeAggr.refType);
             for (auto const& field : typeAggr.fields)
                 makeAvailableRecurse(*field);
         }
@@ -656,6 +656,9 @@ namespace sapc {
         }
         else if (scope->kind == schema::Type::Kind::Struct) {
             auto const& typeAggr = *static_cast<schema::TypeAggregate const*>(scope);
+            if (scope->refType != nullptr)
+                if (auto const rs = findLocal(qualId, scope->refType); rs.kind != Resolve::Kind::Empty)
+                    return rs;
             for (auto const* gen : typeAggr.generics)
                 if (gen->name == qualId.front().id)
                     return Resolve{ gen };
