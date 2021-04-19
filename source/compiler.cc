@@ -557,20 +557,16 @@ namespace sapc {
         for (auto const& anno : type.annotations)
             makeAvailableRecurse(*anno);
 
-        if (type.kind == schema::Type::Kind::Struct || type.kind == schema::Type::Kind::Attribute || type.kind == schema::Type::Kind::Union) {
+        if (type.kind == schema::Type::Kind::Struct || type.kind == schema::Type::Kind::Attribute || type.kind == schema::Type::Kind::Union || type.kind == schema::Type::Kind::Specialized) {
             auto const& typeAggr = static_cast<schema::TypeAggregate const&>(type);
             makeAvailable(typeAggr.refType);
             for (auto const& field : typeAggr.fields)
                 makeAvailableRecurse(*field);
+            for (auto const* generic : typeAggr.generics)
+                makeAvailableRecurse(*generic);
         }
         else if (type.kind == schema::Type::Kind::Alias || type.kind == schema::Type::Kind::Pointer || type.kind == schema::Type::Kind::Array) {
             makeAvailable(type.refType);
-        }
-        else if (type.kind == schema::Type::Kind::Specialized) {
-            auto const& typeSpec = static_cast<schema::TypeSpecialized const&>(type);
-            makeAvailable(typeSpec.refType);
-            for (auto const* typeParam : typeSpec.typeParams)
-                makeAvailableRecurse(*typeParam);
         }
     }
 
@@ -844,7 +840,7 @@ namespace sapc {
 
         auto& top = state.back();
 
-        auto* spec = static_cast<schema::TypeSpecialized*>(ctx.types.emplace_back(std::make_unique<schema::TypeSpecialized>()).get());
+        auto* spec = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
         top.mod->types.push_back(spec);
 
         std::string genName = "<";
@@ -862,9 +858,9 @@ namespace sapc {
         spec->scope = gen->scope;
         spec->location = loc;
 
-        spec->typeParams.reserve(typeParams.size());
+        spec->generics.reserve(typeParams.size());
         for (auto const* param : typeParams)
-            spec->typeParams.push_back(param);
+            spec->generics.push_back(param);
 
         return specializedTypeMap.emplace(specHash, spec).first->second;
     }

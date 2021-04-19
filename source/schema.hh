@@ -74,22 +74,18 @@ namespace sapc::schema {
             TypeId,
         };
 
+        Kind kind = Kind::Simple;
         std::string name;
         std::string qualifiedName;
         Location location;
         Module const* owner = nullptr;
         Namespace const* scope = nullptr;
         Type const* refType = nullptr; // arrays, pointers, aliases, specialized
-        Kind kind = Kind::Simple;
+        std::vector<Type const*> generics; // placeholders for generic types; type params for specialized types
     };
 
     struct TypeAggregate : Type {
         std::vector<std::unique_ptr<Field>> fields;
-        std::vector<Type const*> generics;
-    };
-
-    struct TypeSpecialized : Type {
-        std::vector<Type const*> typeParams;
     };
 
     struct TypeEnum : Type {

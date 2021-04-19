@@ -212,12 +212,10 @@ namespace sapc {
                 type_json["refType"] = type.refType->qualifiedName;
         }
         else if (type.kind == Type::Kind::Specialized) {
-            auto& typeSpec = static_cast<TypeSpecialized const&>(type);
-
-            type_json["refType"] = typeSpec.refType->qualifiedName;
+            type_json["refType"] = type.refType->qualifiedName;
 
             auto types_json = JsonT::array();
-            for (auto const* param : typeSpec.typeParams)
+            for (auto const* param : type.generics)
                 types_json.push_back(param->qualifiedName);
             type_json["typeParams"] = std::move(types_json);
         }
