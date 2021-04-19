@@ -290,7 +290,7 @@ namespace sapc {
 
         auto& mod = *state.back().mod;
 
-        auto* const type = static_cast<schema::TypeAlias*>(ctx.types.emplace_back(std::make_unique<schema::TypeAlias>()).get());
+        auto* const type = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
         type->name = aliasDecl.name.id;
         type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Kind::Alias;
@@ -300,7 +300,7 @@ namespace sapc {
         translate(type->annotations, aliasDecl.annotations);
 
         if (aliasDecl.targetType != nullptr)
-            type->ref = requireType(*aliasDecl.targetType, type);
+            type->refType = requireType(*aliasDecl.targetType, type);
 
         mod.types.push_back(type);
         state.back().nsStack.back()->types.push_back(type);
@@ -573,21 +573,12 @@ namespace sapc {
             for (auto const& field : typeUnion.fields)
                 makeAvailableRecurse(*field);
         }
-        else if (type.kind == schema::Type::Kind::Alias) {
-            auto const& typeAlias = static_cast<schema::TypeAlias const&>(type);
-            makeAvailable(typeAlias.ref);
-        }
-        else if (type.kind == schema::Type::Kind::Pointer) {
-            auto const& typePointer = static_cast<schema::TypePointer const&>(type);
-            makeAvailable(typePointer.to);
-        }
-        else if (type.kind == schema::Type::Kind::Array) {
-            auto const& typeArray = static_cast<schema::TypeArray const&>(type);
-            makeAvailable(typeArray.of);
+        else if (type.kind == schema::Type::Kind::Alias || type.kind == schema::Type::Kind::Pointer || type.kind == schema::Type::Kind::Array) {
+            makeAvailable(type.refType);
         }
         else if (type.kind == schema::Type::Kind::Specialized) {
             auto const& typeSpec = static_cast<schema::TypeSpecialized const&>(type);
-            makeAvailable(typeSpec.ref);
+            makeAvailable(typeSpec.refType);
             for (auto const* typeParam : typeSpec.typeParams)
                 makeAvailableRecurse(*typeParam);
         }
@@ -802,14 +793,14 @@ namespace sapc {
 
         auto& top = state.back();
 
-        auto* arr = static_cast<schema::TypeArray*>(ctx.types.emplace_back(std::make_unique<schema::TypeArray>()).get());
+        auto* arr = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
         top.mod->types.push_back(arr);
 
         arr->name = of->name;
         arr->name += "[]";
         arr->qualifiedName = of->qualifiedName;
         arr->qualifiedName += "[]";
-        arr->of = of;
+        arr->refType = of;
         arr->kind = schema::Type::Array;
         arr->owner = top.mod;
         arr->scope = of->scope;
@@ -829,14 +820,14 @@ namespace sapc {
 
         auto& top = state.back();
 
-        auto* ptr = static_cast<schema::TypePointer*>(ctx.types.emplace_back(std::make_unique<schema::TypePointer>()).get());
+        auto* ptr = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
         top.mod->types.push_back(ptr);
 
         ptr->name = to->name;
         ptr->name += "*";
         ptr->qualifiedName = to->qualifiedName;
         ptr->qualifiedName += "*";
-        ptr->to = to;
+        ptr->refType = to;
         ptr->kind = schema::Type::Pointer;
         ptr->owner = top.mod;
         ptr->scope = to->scope;
@@ -872,7 +863,7 @@ namespace sapc {
         spec->name += genName;
         spec->qualifiedName = gen->qualifiedName;
         spec->qualifiedName += genName;
-        spec->ref = gen;
+        spec->refType = gen;
         spec->kind = schema::Type::Specialized;
         spec->owner = top.mod;
         spec->scope = gen->scope;

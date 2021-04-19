@@ -246,19 +246,19 @@ namespace sapc {
             type_json["fields"] = std::move(fields);
         }
         else if (type.kind == Type::Kind::Array) {
-            auto& typeArray = static_cast<TypeArray const&>(type);
+            auto& typeArray = static_cast<Type const&>(type);
 
-            type_json["of"] = typeArray.of->qualifiedName;
+            type_json["of"] = typeArray.refType->qualifiedName;
         }
         else if (type.kind == Type::Kind::Pointer) {
-            auto& typePointer = static_cast<TypePointer const&>(type);
+            auto& typePointer = static_cast<Type const&>(type);
 
-            type_json["to"] = typePointer.to->qualifiedName;
+            type_json["to"] = typePointer.refType->qualifiedName;
         }
         else if (type.kind == Type::Kind::Specialized) {
             auto& typeSpec = static_cast<TypeSpecialized const&>(type);
 
-            type_json["ref"] = typeSpec.ref->qualifiedName;
+            type_json["ref"] = typeSpec.refType->qualifiedName;
 
             auto types_json = JsonT::array();
             for (auto const* param : typeSpec.typeParams)
@@ -266,10 +266,10 @@ namespace sapc {
             type_json["typeParams"] = std::move(types_json);
         }
         else if (type.kind == Type::Kind::Alias) {
-            auto& typeAlias = static_cast<TypeAlias const&>(type);
+            auto& typeAlias = static_cast<Type const&>(type);
 
-            if (typeAlias.ref != nullptr)
-                type_json["ref"] = typeAlias.ref->qualifiedName;
+            if (typeAlias.refType != nullptr)
+                type_json["ref"] = typeAlias.refType->qualifiedName;
         }
 
         type_json["location"] = type.location;

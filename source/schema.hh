@@ -79,6 +79,7 @@ namespace sapc::schema {
         Location location;
         Module const* owner = nullptr;
         Namespace const* scope = nullptr;
+        Type const* refType = nullptr; // arrays, pointers, aliases, specialized
         Kind kind = Kind::Simple;
     };
 
@@ -88,25 +89,12 @@ namespace sapc::schema {
         std::vector<Type const*> generics;
     };
 
-    struct TypeArray : Type {
-        Type const* of = nullptr;
-    };
-
-    struct TypePointer : Type {
-        Type const* to = nullptr;
-    };
-
     struct TypeSpecialized : Type {
-        Type const* ref = nullptr;
         std::vector<Type const*> typeParams;
     };
 
     struct TypeEnum : Type {
         std::vector<std::unique_ptr<EnumItem>> items;
-    };
-
-    struct TypeAlias : Type {
-        Type const* ref = nullptr;
     };
 
     struct Constant : Annotated {
