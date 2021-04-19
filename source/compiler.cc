@@ -555,7 +555,7 @@ namespace sapc {
             return makeAvailable(typeIdType);
         case ast::TypeRef::Kind::Name:
             if (auto const rs = resolve(ref.name, scope); rs.kind == Resolve::Kind::Type)
-                return rs.data.type;
+                return makeAvailable(rs.data.type);
             else
                 return nullptr;
         case ast::TypeRef::Kind::Array:
