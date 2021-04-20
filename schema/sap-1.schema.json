@@ -3,34 +3,20 @@
   "$schema": "http://json-schema.org/draft-05/schema#",
   "title": "sapc output schema",
   "type": "object",
-  "required": [ "module", "types", "constants", "namespaces", "exports" ],
+  "required": [ "module", "types", "constants", "namespaces" ],
   "properties": {
     "module": { "$ref": "#/definitions/module" },
     "types": {
-      "type": "object",
-      "additionalProperties": { "$ref": "#/definitions/type" }
+      "type": "array",
+      "items": { "$ref": "#/definitions/type" }
     },
     "contants": {
-      "type": "object",
-      "additionalProperties": { "$ref": "#/definitions/constant" }
+      "type": "array",
+      "items": { "$ref": "#/definitions/constant" }
     },
     "namespaces": {
-      "type": "object",
-      "additionalProperties": { "$ref": "#/definitions/namespace" }
-    },
-    "exports": {
-      "type": "object",
-      "requires": [ "types", "constants" ],
-      "properties": {
-        "types": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "constants": {
-          "type": "array",
-          "items": { "type": "string" }
-        }
-      }
+      "type": "array",
+      "items": { "$ref": "#/definitions/namespace" }
     }
   },
   "definitions": {
@@ -42,7 +28,7 @@
         "annotations": { "$ref": "#/definitions/annotations" },
         "imports": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "$ref": "#/definitions/import" }
         }
       }
     },
@@ -84,247 +70,99 @@
     },
     "type": {
       "oneOf": [
-        { "$ref": "#/definitions/type_struct" },
-        { "$ref": "#/definitions/type_union" },
-        { "$ref": "#/definitions/type_attribute" },
+        { "$ref": "#/definitions/type_basic" },
+        { "$ref": "#/definitions/type_aggregate" },
         { "$ref": "#/definitions/type_enum" },
-        { "$ref": "#/definitions/type_array" },
-        { "$ref": "#/definitions/type_pointer" },
-        { "$ref": "#/definitions/type_generic" },
-        { "$ref": "#/definitions/type_specialized" },
-        { "$ref": "#/definitions/type_primitive" },
-        { "$ref": "#/definitions/type_alias" },
-        { "$ref": "#/definitions/type_typename" }
+        { "$ref": "#/definitions/type_specialized" }
       ]
     },
-    "type_common": {
+    "type_basic": {
       "type": "object",
       "required": [ "name", "qualified", "kind", "module", "annotations", "location" ],
       "properties": {
         "name": { "type": "string" },
         "qualified": { "type": "string" },
         "namespace": { "type": "string" },
-        "kind": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": [ "simple", "array", "pointer", "alias", "generic", "typename" ]
+        },
         "module": { "type": "string" },
-        "base": { "type": "string" },
+        "refType": { "type": "string" },
         "annotations": { "$ref": "#/definitions/annotations" },
         "location": { "$ref": "#/definitions/location" }
       }
     },
-    "type_array": {
-      "allOf": [
-        { "$ref": "#/definitions/type_common" },
-        {
-          "type": "object",
-          "required": [ "kind", "of" ],
-          "properties": {
-            "kind": {
-              "type": "string",
-              "enum": [ "array" ]
-            },
-            "of": { "type": "string" }
+    "type_aggregate": {
+      "type": "object",
+      "required": [ "name", "qualified", "kind", "module", "annotations", "location", "fields" ],
+      "properties": {
+        "name": { "type": "string" },
+        "qualified": { "type": "string" },
+        "namespace": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": [ "struct", "union", "attribute", "specialized" ]
+        },
+        "module": { "type": "string" },
+        "refType": { "type": "string" },
+        "annotations": { "$ref": "#/definitions/annotations" },
+        "location": { "$ref": "#/definitions/location" },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/field"
           }
+        },
+        "generics": {
+          "type": "array",
+          "items": { "type": "string" }
         }
-      ]
-    },
-    "type_pointer": {
-      "allOf": [
-        { "$ref": "#/definitions/type_common" },
-        {
-          "type": "object",
-          "required": [ "kind", "to" ],
-          "properties": {
-            "kind": {
-              "type": "string",
-              "enum": [ "pointer" ]
-            },
-            "of": { "type": "string" }
-          }
-        }
-      ]
-    },
-    "type_generic": {
-      "allOf": [
-        { "$ref": "#/definitions/type_common" },
-        {
-          "type": "object",
-          "required": [ "kind" ],
-          "properties": {
-            "kind": {
-              "type": "string",
-              "enum": [ "generic" ]
-            }
-          }
-        }
-      ]
-    },
-    "type_specialized": {
-      "allOf": [
-        { "$ref": "#/definitions/type_common" },
-        {
-          "type": "object",
-          "required": [ "kind", "ref", "typeParams" ],
-          "properties": {
-            "kind": {
-              "type": "string",
-              "enum": [ "specialized" ]
-            },
-            "ref": { "type": "string" },
-            "typeParams": {
-              "type": "array",
-              "items": { "type": "string" }
-            }
-          }
-        }
-      ]
-    },
-    "type_primitive": {
-      "allOf": [
-        { "$ref": "#/definitions/type_common" },
-        {
-          "type": "object",
-          "required": [ "kind" ],
-          "properties": {
-            "kind": {
-              "type": "string",
-              "enum": [ "primitive" ]
-            }
-          }
-        }
-      ]
-    },
-    "type_typename": {
-      "allOf": [
-        { "$ref": "#/definitions/type_common" },
-        {
-          "type": "object",
-          "required": [ "kind" ],
-          "properties": {
-            "kind": {
-              "type": "string",
-              "enum": [ "typename" ]
-            }
-          }
-        }
-      ]
-    },
-    "type_alias": {
-      "allOf": [
-        { "$ref": "#/definitions/type_common" },
-        {
-          "type": "object",
-          "required": [ "kind" ],
-          "properties": {
-            "kind": {
-              "type": "string",
-              "enum": [ "alias" ]
-            },
-            "ref": {
-              "type": "string"
-            }
-          }
-        }
-      ]
-    },
-    "type_struct": {
-      "allOf": [
-        { "$ref": "#/definitions/type_common" },
-        {
-          "type": "object",
-          "required": [ "kind", "order", "fields" ],
-          "properties": {
-            "kind": {
-              "type": "string",
-              "enum": [ "struct" ]
-            },
-            "base": { "type": "string" },
-            "order": {
-              "type": "array",
-              "items": { "type": "string" }
-            },
-            "fields": {
-              "type": "object",
-              "additionalProperties": {
-                "$ref": "#/definitions/field"
-              }
-            }
-          }
-        }
-      ]
-    },
-    "type_union": {
-      "allOf": [
-        { "$ref": "#/definitions/type_common" },
-        {
-          "type": "object",
-          "required": [ "kind", "order", "members" ],
-          "properties": {
-            "kind": {
-              "type": "string",
-              "enum": [ "union" ]
-            },
-            "base": { "type": "string" },
-            "order": {
-              "type": "array",
-              "items": { "type": "string" }
-            },
-            "members": {
-              "type": "object",
-              "additionalProperties": {
-                "$ref": "#/definitions/member"
-              }
-            }
-          }
-        }
-      ]
-    },
-    "type_attribute": {
-      "allOf": [
-        { "$ref": "#/definitions/type_common" },
-        {
-          "type": "object",
-          "required": [ "kind", "order", "fields" ],
-          "properties": {
-            "kind": {
-              "type": "string",
-              "enum": [ "attribute" ]
-            },
-            "order": {
-              "type": "array",
-              "items": { "type": "string" }
-            },
-            "fields": {
-              "type": "object",
-              "additionalProperties": {
-                "$ref": "#/definitions/field"
-              }
-            }
-          }
-        }
-      ]
+      }
     },
     "type_enum": {
-      "allOf": [
-        { "$ref": "#/definitions/type_common" },
-        {
-          "type": "object",
-          "required": [ "kind", "values" ],
-          "properties": {
-            "kind": {
-              "type": "string",
-              "enum": [ "enum" ]
-            },
-            "names": {
-              "types": "array",
-              "items": { "type": "string" }
-            },
-            "values": {
-              "type": "object",
-              "additionalProperties": { "type": "number" }
-            }
+      "type": "object",
+      "required": [ "name", "qualified", "kind", "module", "annotations", "location", "items" ],
+      "properties": {
+        "name": { "type": "string" },
+        "qualified": { "type": "string" },
+        "namespace": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": [ "enum" ]
+        },
+        "module": { "type": "string" },
+        "refType": { "type": "string" },
+        "annotations": { "$ref": "#/definitions/annotations" },
+        "location": { "$ref": "#/definitions/location" },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/enum_value"
           }
         }
-      ]
+      }
+    },
+    "type_specialized": {
+      "type": "object",
+      "required": [ "name", "qualified", "kind", "module", "annotations", "location", "refType", "typeParams" ],
+      "properties": {
+        "name": { "type": "string" },
+        "qualified": { "type": "string" },
+        "namespace": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": [ "specialized" ]
+        },
+        "module": { "type": "string" },
+        "refType": { "type": "string" },
+        "annotations": { "$ref": "#/definitions/annotations" },
+        "location": { "$ref": "#/definitions/location" },
+        "typeParams": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
     },
     "enum_value": {
       "type": "object",
@@ -344,8 +182,8 @@
         "type": { "type": "string" },
         "location": { "$ref": "#/definitions/location" },
         "args": {
-          "type": "object",
-          "additionalProperties": { "$ref": "#/definitions/value" }
+          "type": "array",
+          "items": { "$ref": "#/definitions/value" }
         }
       }
     },
@@ -396,12 +234,12 @@
         "location": { "$ref": "#/definitions/location" }
       }
     },
-    "member": {
+    "import": {
       "type": "object",
-      "required": [ "name", "type", "annotations", "location" ],
+      "required": [ "name", "annotations" ],
       "properties": {
         "name": { "type": "string" },
-        "type": { "type": "string" },
+        "filename": { "type": "string" },
         "annotations": { "$ref": "#/definitions/annotations" },
         "location": { "$ref": "#/definitions/location" }
       }

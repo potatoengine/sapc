@@ -134,17 +134,11 @@ namespace sapc::ast {
         std::vector<Annotation> annotations;
     };
 
-    struct Member {
-        Identifier name;
-        std::unique_ptr<TypeRef> type;
-        std::vector<Annotation> annotations;
-    };
-
     struct UnionDecl : Declaration {
         UnionDecl() { kind = Kind::Union; }
 
         Identifier name;
-        std::vector<Member> members;
+        std::vector<Field> fields;
         std::vector<Annotation> annotations;
     };
 

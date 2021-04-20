@@ -117,7 +117,7 @@ namespace sapc {
             std::vector<State> state;
 
             schema::Type const* typeIdType = nullptr;
-            schema::TypeAttribute const* customTagAttr = nullptr;
+            schema::TypeAggregate const* customTagAttr = nullptr;
             schema::Module const* coreModule = nullptr;
 
             std::unordered_map<schema::Type const*, schema::Type const*> arrayTypeMap;
@@ -140,7 +140,6 @@ namespace sapc {
 
             template <typename SchemaType>
             void build(SchemaType& type, ast::Field const& field);
-            void build(schema::TypeUnion& type, ast::Member const& member);
             void build(schema::TypeEnum& type, ast::EnumItem const& item);
 
             void createCoreModule();
@@ -149,7 +148,6 @@ namespace sapc {
 
             void makeAvailableRecurse(schema::Type const& type);
             void makeAvailableRecurse(schema::Field const& field);
-            void makeAvailableRecurse(schema::Member const& member);
             void makeAvailableRecurse(schema::Annotation const& annotation);
             void makeAvailableRecurse(schema::Value const& value);
 
@@ -220,7 +218,7 @@ namespace sapc {
         ns->qualifiedName = qualify(ns->name);
         ns->location = nsDecl.name.loc;
         ns->owner = state.back().mod;
-        ns->scope = state.back().nsStack.back();
+        ns->parent = state.back().nsStack.back();
 
         state.back().mod->namespaces.push_back(ns);
         state.back().nsStack.back()->namespaces.push_back(ns);
@@ -239,15 +237,14 @@ namespace sapc {
 
         auto& mod = *state.back().mod;
 
-        auto* const type = static_cast<schema::TypeStruct*>(ctx.types.emplace_back(std::make_unique<schema::TypeStruct>()).get());
+        auto* const type = static_cast<schema::TypeAggregate*>(ctx.types.emplace_back(std::make_unique<schema::TypeAggregate>()).get());
         type->name = structDecl.name.id;
         type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Kind::Struct;
-        type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = structDecl.name.loc;
         if (structDecl.baseType != nullptr)
-            type->baseType = requireType(*structDecl.baseType);
+            type->refType = requireType(*structDecl.baseType);
         translate(type->annotations, structDecl.annotations);
 
         if (!structDecl.customTag.empty()) {
@@ -266,13 +263,11 @@ namespace sapc {
         // Build generics before fields, as fields might refer to a generic
         type->generics.reserve(structDecl.generics.size());
         for (ast::Identifier const& gen : structDecl.generics) {
-            auto* const sub = static_cast<schema::TypeGeneric*>(ctx.types.emplace_back(std::make_unique<schema::TypeGeneric>()).get());
+            auto* const sub = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
             sub->name = gen.id;
             sub->qualifiedName = type->qualifiedName + "." + gen.id;
             sub->kind = schema::Type::Kind::Generic;
-            sub->owner = &mod;
             sub->scope = type->scope;
-            sub->parent = type;
             type->generics.push_back(sub);
 
             mod.types.push_back(sub);
@@ -293,17 +288,16 @@ namespace sapc {
 
         auto& mod = *state.back().mod;
 
-        auto* const type = static_cast<schema::TypeAlias*>(ctx.types.emplace_back(std::make_unique<schema::TypeAlias>()).get());
+        auto* const type = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
         type->name = aliasDecl.name.id;
         type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Kind::Alias;
-        type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = aliasDecl.name.loc;
         translate(type->annotations, aliasDecl.annotations);
 
         if (aliasDecl.targetType != nullptr)
-            type->ref = requireType(*aliasDecl.targetType, type);
+            type->refType = requireType(*aliasDecl.targetType, type);
 
         mod.types.push_back(type);
         state.back().nsStack.back()->types.push_back(type);
@@ -316,11 +310,10 @@ namespace sapc {
 
         auto& mod = *state.back().mod;
 
-        auto* const type = static_cast<schema::TypeAttribute*>(ctx.types.emplace_back(std::make_unique<schema::TypeAttribute>()).get());
+        auto* const type = static_cast<schema::TypeAggregate*>(ctx.types.emplace_back(std::make_unique<schema::TypeAggregate>()).get());
         type->name = attrDecl.name.id;
         type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Kind::Attribute;
-        type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = attrDecl.name.loc;
         translate(type->annotations, attrDecl.annotations);
@@ -344,7 +337,6 @@ namespace sapc {
         type->name = enumDecl.name.id;
         type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Enum;
-        type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = enumDecl.name.loc;
         translate(type->annotations, enumDecl.annotations);
@@ -364,18 +356,17 @@ namespace sapc {
 
         auto& mod = *state.back().mod;
 
-        auto* const type = static_cast<schema::TypeUnion*>(ctx.types.emplace_back(std::make_unique<schema::TypeUnion>()).get());
+        auto* const type = static_cast<schema::TypeAggregate*>(ctx.types.emplace_back(std::make_unique<schema::TypeAggregate>()).get());
         type->name = unionDecl.name.id;
         type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Union;
-        type->owner = &mod;
         type->scope = state.back().nsStack.back();
         type->location = unionDecl.name.loc;
         translate(type->annotations, unionDecl.annotations);
 
-        type->members.reserve(unionDecl.members.size());
-        for (ast::Member const& member : unionDecl.members)
-            build(*type, member);
+        type->fields.reserve(unionDecl.fields.size());
+        for (ast::Field const& field : unionDecl.fields)
+            build(*type, field);
 
         mod.types.push_back(type);
         state.back().nsStack.back()->types.push_back(type);
@@ -392,7 +383,6 @@ namespace sapc {
         constant->name = constantDecl.name.id;
         constant->qualifiedName = qualify(constant->name);
         constant->location = constantDecl.name.loc;
-        constant->owner = &mod;
         constant->scope = state.back().nsStack.back();
         constant->type = requireType(*constantDecl.type);
         constant->value = translate(constantDecl.value);
@@ -410,14 +400,6 @@ namespace sapc {
         translate(field->annotations, fieldDecl.annotations);
         if (fieldDecl.init)
             field->defaultValue = translate(*fieldDecl.init);
-    }
-
-    void Compiler::build(schema::TypeUnion& type, ast::Member const& memberDecl) {
-        auto& member = type.members.emplace_back(std::make_unique<schema::Member>());
-        member->name = memberDecl.name.id;
-        member->location = memberDecl.name.loc;
-        member->type = requireType(*memberDecl.type, &type);
-        translate(member->annotations, memberDecl.annotations);
     }
 
     void Compiler::build(schema::TypeEnum& type, ast::EnumItem const& itemDecl) {
@@ -448,7 +430,7 @@ namespace sapc {
             return;
 
         if (auto const* imp = compile(filename); imp != nullptr)
-            mod.imports.push_back(imp);
+            mod.imports.push_back({ imp, impDecl.target.loc });
     }
 
     schema::Module const* Compiler::compile(fs::path const& filename) {
@@ -498,16 +480,16 @@ namespace sapc {
         mod->root = ns;
         coreModule = mod;
         mod->name = "$sapc";
+        ns->owner = mod;
 
         for (auto const& builtin : builtins) {
             auto* const type = ctx.types.emplace_back(std::make_unique<schema::Type>()).get();
             mod->types.push_back(type);
             ns->types.push_back(type);
 
-            type->kind = schema::Type::Primitive;
+            type->kind = schema::Type::Simple;
             type->name = builtin;
             type->qualifiedName = builtin;
-            type->owner = coreModule;
             type->scope = ns;
             type->location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
         }
@@ -521,13 +503,12 @@ namespace sapc {
             type->kind = schema::Type::TypeId;
             type->name = typeIdName;
             type->qualifiedName = typeIdName;
-            type->owner = coreModule;
             type->scope = ns;
             type->location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
         }
 
         {
-            auto* const type = static_cast<schema::TypeAttribute*>(ctx.types.emplace_back(std::make_unique<schema::TypeAttribute>()).get());
+            auto* const type = static_cast<schema::TypeAggregate*>(ctx.types.emplace_back(std::make_unique<schema::TypeAggregate>()).get());
             mod->types.push_back(type);
             ns->types.push_back(type);
             customTagAttr = type;
@@ -535,7 +516,6 @@ namespace sapc {
             type->kind = schema::Type::Attribute;
             type->name = customTagName;
             type->qualifiedName = customTagName;
-            type->owner = coreModule;
             type->scope = ns;
             type->location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
 
@@ -555,7 +535,7 @@ namespace sapc {
     void Compiler::makeAvailableRecurse(schema::Type const& type) {
         schema::Module* const mod = state.back().mod;
 
-        if (type.owner == mod)
+        if (type.scope->owner == mod)
             return;
 
         auto const rs = state.back().importedTypes.insert(&type);
@@ -568,39 +548,16 @@ namespace sapc {
         for (auto const& anno : type.annotations)
             makeAvailableRecurse(*anno);
 
-        if (type.kind == schema::Type::Kind::Struct) {
-            auto const& typeStruct = static_cast<schema::TypeStruct const&>(type);
-            makeAvailable(typeStruct.baseType);
-            for (auto const& field : typeStruct.fields)
+        if (type.kind == schema::Type::Kind::Struct || type.kind == schema::Type::Kind::Attribute || type.kind == schema::Type::Kind::Union || type.kind == schema::Type::Kind::Specialized) {
+            auto const& typeAggr = static_cast<schema::TypeAggregate const&>(type);
+            makeAvailable(typeAggr.refType);
+            for (auto const& field : typeAggr.fields)
                 makeAvailableRecurse(*field);
+            for (auto const* generic : typeAggr.generics)
+                makeAvailableRecurse(*generic);
         }
-        else if (type.kind == schema::Type::Kind::Attribute) {
-            auto const& typeAttr = static_cast<schema::TypeAttribute const&>(type);
-            for (auto const& field : typeAttr.fields)
-                makeAvailableRecurse(*field);
-        }
-        else if (type.kind == schema::Type::Kind::Union) {
-            auto const& typeUnion = static_cast<schema::TypeUnion const&>(type);
-            for (auto const& member : typeUnion.members)
-                makeAvailableRecurse(*member);
-        }
-        else if (type.kind == schema::Type::Kind::Alias) {
-            auto const& typeAlias = static_cast<schema::TypeAlias const&>(type);
-            makeAvailable(typeAlias.ref);
-        }
-        else if (type.kind == schema::Type::Kind::Pointer) {
-            auto const& typePointer = static_cast<schema::TypePointer const&>(type);
-            makeAvailable(typePointer.to);
-        }
-        else if (type.kind == schema::Type::Kind::Array) {
-            auto const& typeArray = static_cast<schema::TypeArray const&>(type);
-            makeAvailable(typeArray.of);
-        }
-        else if (type.kind == schema::Type::Kind::Specialized) {
-            auto const& typeSpec = static_cast<schema::TypeSpecialized const&>(type);
-            makeAvailable(typeSpec.ref);
-            for (auto const* typeParam : typeSpec.typeParams)
-                makeAvailableRecurse(*typeParam);
+        else if (type.kind == schema::Type::Kind::Alias || type.kind == schema::Type::Kind::Pointer || type.kind == schema::Type::Kind::Array) {
+            makeAvailable(type.refType);
         }
     }
 
@@ -609,12 +566,6 @@ namespace sapc {
         if (field.defaultValue)
             makeAvailableRecurse(*field.defaultValue);
         for (auto const& anno : field.annotations)
-            makeAvailableRecurse(*anno);
-    }
-
-    void Compiler::makeAvailableRecurse(schema::Member const& member) {
-        makeAvailableRecurse(*member.type);
-        for (auto const& anno : member.annotations)
             makeAvailableRecurse(*anno);
     }
 
@@ -681,8 +632,11 @@ namespace sapc {
                     return Resolve{ item.get() };
         }
         else if (scope->kind == schema::Type::Kind::Struct) {
-            auto const& typeStruct = *static_cast<schema::TypeStruct const*>(scope);
-            for (auto const* gen : typeStruct.generics)
+            auto const& typeAggr = *static_cast<schema::TypeAggregate const*>(scope);
+            if (scope->refType != nullptr)
+                if (auto const rs = findLocal(qualId, scope->refType); rs.kind != Resolve::Kind::Empty)
+                    return rs;
+            for (auto const* gen : typeAggr.generics)
                 if (gen->name == qualId.front().id)
                     return Resolve{ gen };
         }
@@ -729,8 +683,8 @@ namespace sapc {
         if (auto const rs = findLocal(qualId, scope))
             return rs;
 
-        if (scope->scope != nullptr)
-            return findGlobal(qualId, scope->scope);
+        if (scope->parent != nullptr)
+            return findGlobal(qualId, scope->parent);
         else
             return findGlobal(qualId, scope->owner);
     }
@@ -745,7 +699,7 @@ namespace sapc {
         if (scope->scope != nullptr)
             return findGlobal(qualId, scope->scope);
         else
-            return findGlobal(qualId, scope->owner);
+            return findGlobal(qualId, scope->scope->owner);
     }
 
     Resolve Compiler::findGlobal(QualIdSpan qualId, schema::Module const* scope) {
@@ -755,8 +709,8 @@ namespace sapc {
         if (auto const rs = findLocal(qualId, scope->root))
             return rs;
 
-        for (auto const* imp : scope->imports)
-            if (auto const rs = findLocal(qualId, imp->root))
+        for (auto const& imp : scope->imports)
+            if (auto const rs = findLocal(qualId, imp.mod->root))
                 return rs;
 
         if (coreModule != nullptr)
@@ -819,16 +773,15 @@ namespace sapc {
 
         auto& top = state.back();
 
-        auto* arr = static_cast<schema::TypeArray*>(ctx.types.emplace_back(std::make_unique<schema::TypeArray>()).get());
+        auto* arr = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
         top.mod->types.push_back(arr);
 
         arr->name = of->name;
         arr->name += "[]";
         arr->qualifiedName = of->qualifiedName;
         arr->qualifiedName += "[]";
-        arr->of = of;
+        arr->refType = of;
         arr->kind = schema::Type::Array;
-        arr->owner = top.mod;
         arr->scope = of->scope;
         arr->location = loc;
 
@@ -846,16 +799,15 @@ namespace sapc {
 
         auto& top = state.back();
 
-        auto* ptr = static_cast<schema::TypePointer*>(ctx.types.emplace_back(std::make_unique<schema::TypePointer>()).get());
+        auto* ptr = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
         top.mod->types.push_back(ptr);
 
         ptr->name = to->name;
         ptr->name += "*";
         ptr->qualifiedName = to->qualifiedName;
         ptr->qualifiedName += "*";
-        ptr->to = to;
+        ptr->refType = to;
         ptr->kind = schema::Type::Pointer;
-        ptr->owner = top.mod;
         ptr->scope = to->scope;
         ptr->location = loc;
 
@@ -877,7 +829,7 @@ namespace sapc {
 
         auto& top = state.back();
 
-        auto* spec = static_cast<schema::TypeSpecialized*>(ctx.types.emplace_back(std::make_unique<schema::TypeSpecialized>()).get());
+        auto* spec = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
         top.mod->types.push_back(spec);
 
         std::string genName = "<";
@@ -889,15 +841,14 @@ namespace sapc {
         spec->name += genName;
         spec->qualifiedName = gen->qualifiedName;
         spec->qualifiedName += genName;
-        spec->ref = gen;
+        spec->refType = gen;
         spec->kind = schema::Type::Specialized;
-        spec->owner = top.mod;
         spec->scope = gen->scope;
         spec->location = loc;
 
-        spec->typeParams.reserve(typeParams.size());
+        spec->generics.reserve(typeParams.size());
         for (auto const* param : typeParams)
-            spec->typeParams.push_back(param);
+            spec->generics.push_back(param);
 
         return specializedTypeMap.emplace(specHash, spec).first->second;
     }
@@ -954,7 +905,7 @@ namespace sapc {
             return result;
         }
 
-        auto const& attrType = static_cast<schema::TypeAttribute const&>(*result->type);
+        auto const& attrType = static_cast<schema::TypeAggregate const&>(*result->type);
 
         if (anno.args.size() > attrType.fields.size()) {
             log.error(result->location, "too many arguments for attribute ", attrType.name, "; got ", anno.args.size(), ", expected ", attrType.fields.size());

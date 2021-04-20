@@ -15,7 +15,7 @@
 namespace sapc::schema {
     struct Module;
     struct Type;
-    struct TypeStruct;
+    struct TypeAggregate;
     struct TypeGeneric;
     struct TypeEnum;
     struct EnumItem;
@@ -52,12 +52,6 @@ namespace sapc::schema {
         std::optional<Value> defaultValue;
     };
 
-    struct Member : Annotated {
-        std::string name;
-        Location location;
-        Type const* type = nullptr;
-    };
-
     struct EnumItem : Annotated {
         std::string name;
         Location location;
@@ -67,7 +61,7 @@ namespace sapc::schema {
 
     struct Type : Annotated {
         enum Kind {
-            Primitive,
+            Simple,
             Struct,
             Generic,
             Specialized,
@@ -80,58 +74,27 @@ namespace sapc::schema {
             TypeId,
         };
 
+        Kind kind = Kind::Simple;
         std::string name;
         std::string qualifiedName;
         Location location;
-        Module const* owner = nullptr;
         Namespace const* scope = nullptr;
-        Kind kind = Kind::Primitive;
+        Type const* refType = nullptr; // arrays, pointers, aliases, specialized
+        std::vector<Type const*> generics; // placeholders for generic types; type params for specialized types
     };
 
-    struct TypeStruct : Type {
-        Type const* baseType = nullptr;
+    struct TypeAggregate : Type {
         std::vector<std::unique_ptr<Field>> fields;
-        std::vector<TypeGeneric const*> generics;
-    };
-
-    struct TypeGeneric : Type {
-        Type const* parent = nullptr;
-    };
-
-    struct TypeUnion : Type {
-        std::vector<std::unique_ptr<Member>> members;
-    };
-
-    struct TypeAttribute : Type {
-        std::vector<std::unique_ptr<Field>> fields;
-    };
-
-    struct TypeArray : Type {
-        Type const* of = nullptr;
-    };
-
-    struct TypePointer : Type {
-        Type const* to = nullptr;
-    };
-
-    struct TypeSpecialized : Type {
-        Type const* ref = nullptr;
-        std::vector<Type const*> typeParams;
     };
 
     struct TypeEnum : Type {
         std::vector<std::unique_ptr<EnumItem>> items;
     };
 
-    struct TypeAlias : Type {
-        Type const* ref = nullptr;
-    };
-
     struct Constant : Annotated {
         std::string name;
         std::string qualifiedName;
         Location location;
-        Module const* owner = nullptr;
         Namespace const* scope = nullptr;
         Type const* type = nullptr;
         Value value;
@@ -142,17 +105,22 @@ namespace sapc::schema {
         std::string qualifiedName;
         Location location;
         Module const* owner = nullptr;
-        Namespace const* scope = nullptr;
+        Namespace const* parent = nullptr;
         std::vector<Type const*> types;
         std::vector<Constant const*> constants;
         std::vector<Namespace const*> namespaces;
+    };
+
+    struct Import {
+        Module const* mod = nullptr;
+        Location location;
     };
 
     struct Module : Annotated {
         std::string name;
         Location location;
         Namespace const* root = nullptr;
-        std::vector<Module const*> imports;
+        std::vector<Import> imports;
         std::vector<Type const*> types;
         std::vector<Constant const*> constants;
         std::vector<Namespace const*> namespaces;

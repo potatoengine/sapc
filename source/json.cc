@@ -90,46 +90,31 @@ namespace sapc {
         mod_json["name"] = mod.name;
         mod_json["annotations"] = mod.annotations;
         auto imports_json = JsonT::array();
-        for (auto const& imp : mod.imports)
-            imports_json.push_back(imp->name);
+        for (auto const& imp : mod.imports) {
+            auto import_json = JsonT::object();
+            import_json["name"] = imp.mod->name;
+            import_json["filename"] = imp.mod->location.filename.string();
+            import_json["annotations"] = imp.mod->annotations;
+            import_json["location"] = imp.location;
+            imports_json.push_back(std::move(import_json));
+        }
         mod_json["imports"] = std::move(imports_json);
         doc["module"] = std::move(mod_json);
 
-        auto types_json = JsonT::object();
-        auto type_exports_json = JsonT::array();
-        for (auto const* type : mod.types) {
-            if (type->owner == &mod) {
-                auto const isNormal = type->kind != schema::Type::Kind::Array &&
-                    type->kind != schema::Type::Kind::Pointer &&
-                    type->kind != schema::Type::Kind::Generic &&
-                    type->kind != schema::Type::Kind::Specialized;
-                if (isNormal)
-                    type_exports_json.push_back(type->qualifiedName);
-            }
-
-            types_json[type->qualifiedName.c_str()] = *type;
-        }
+        auto types_json = JsonT::array();
+        for (auto const* type : mod.types)
+            types_json.push_back(*type);
         doc["types"] = std::move(types_json);
 
-        auto constants_json = JsonT::object();
-        auto constant_exports_json = JsonT::array();
-        for (auto const* constant : mod.constants) {
-            if (constant->owner == &mod)
-                constant_exports_json.push_back(constant->qualifiedName);
-
-            constants_json[constant->qualifiedName.c_str()] = *constant;
-        }
+        auto constants_json = JsonT::array();
+        for (auto const* constant : mod.constants)
+            constants_json.push_back(*constant);
         doc["constants"] = std::move(constants_json);
 
-        auto namespaces_json = JsonT::object();
+        auto namespaces_json = JsonT::array();
         for (auto const* ns : mod.namespaces)
-            namespaces_json[ns->qualifiedName.c_str()] = *ns;
+            namespaces_json.push_back(*ns);
         doc["namespaces"] = std::move(namespaces_json);
-
-        auto exports = JsonT::object();
-        exports["types"] = std::move(type_exports_json);
-        exports["constants"] = std::move(constant_exports_json);
-        doc["exports"] = std::move(exports);
 
         return doc;
     }
@@ -137,7 +122,7 @@ namespace sapc {
     template <typename JsonT>
     void schema::to_json(JsonT& j, Type::Kind value) {
         switch (value) {
-        case Type::Kind::Primitive: j = "primitive"; break;
+        case Type::Kind::Simple: j = "simple"; break;
         case Type::Kind::Attribute: j = "attribute"; break;
         case Type::Kind::Generic: j = "generic"; break;
         case Type::Kind::Specialized: j = "specialized"; break;
@@ -154,13 +139,14 @@ namespace sapc {
 
     template <typename JsonT>
     void schema::to_json(JsonT& type_json, Type const& type) {
-        assert(type.owner != nullptr);
+        assert(type.scope != nullptr);
+        assert(type.scope->owner != nullptr);
 
         type_json = JsonT::object();
 
         type_json["name"] = type.name;
         type_json["qualified"] = type.qualifiedName;
-        type_json["module"] = type.owner->name;
+        type_json["module"] = type.scope->owner->name;
         if (!type.scope->name.empty())
             type_json["namespace"] = type.scope->qualifiedName;
         type_json["kind"] = type.kind;
@@ -168,31 +154,31 @@ namespace sapc {
 
         if (type.kind == Type::Kind::Enum) {
             auto& typeEnum = static_cast<TypeEnum const&>(type);
-            auto names = JsonT::array();
-            auto values = JsonT::object();
+
+            auto items_json = JsonT::array();
             for (auto const& item : typeEnum.items) {
-                names.push_back(item->name);
-                values[item->name.c_str()] = item->value;
+                auto item_json = JsonT::object();
+                item_json["name"] = item->name;
+                item_json["value"] = item->value;
+                items_json.push_back(std::move(item_json));
             }
-            type_json["names"] = std::move(names);
-            type_json["values"] = std::move(values);
+            type_json["items"] = std::move(items_json);
         }
-        else if (type.kind == Type::Kind::Struct) {
-            auto& typeStruct = static_cast<TypeStruct const&>(type);
+        else if (type.kind == Type::Kind::Struct || type.kind == Type::Kind::Union || type.kind == Type::Kind::Attribute) {
+            auto& typeAggr = static_cast<TypeAggregate const&>(type);
 
-            if (typeStruct.baseType != nullptr)
-                type_json["base"] = typeStruct.baseType->qualifiedName;
+            if (typeAggr.refType != nullptr)
+                type_json["base"] = typeAggr.refType->qualifiedName;
 
-            if (!typeStruct.generics.empty()) {
+            if (!typeAggr.generics.empty()) {
                 auto generics_json = JsonT::array();
-                for (auto const* gen : typeStruct.generics)
+                for (auto const* gen : typeAggr.generics)
                     generics_json.push_back(gen->name);
                 type_json["generics"] = std::move(generics_json);
             }
 
-            auto fields = JsonT::object();
-            auto order = JsonT::array();
-            for (auto const& field : typeStruct.fields) {
+            auto fields = JsonT::array();
+            for (auto const& field : typeAggr.fields) {
                 auto field_json = JsonT::object();
                 field_json["name"] = field->name;
                 field_json["type"] = field->type->qualifiedName;
@@ -201,75 +187,21 @@ namespace sapc {
                 field_json["annotations"] = field->annotations;
                 field_json["location"] = field->location;
 
-                order.push_back(field->name);
-                fields[field->name.c_str()] = std::move(field_json);
+                fields.push_back(std::move(field_json));
             }
-            type_json["order"] = std::move(order);
             type_json["fields"] = std::move(fields);
         }
-        else if (type.kind == Type::Kind::Union) {
-            auto& typeUnion = static_cast<TypeUnion const&>(type);
-
-            auto members = JsonT::object();
-            auto order = JsonT::array();
-            for (auto const& member : typeUnion.members) {
-                auto member_json = JsonT::object();
-                member_json["name"] = member->name;
-                member_json["type"] = member->type->qualifiedName;
-                member_json["annotations"] = member->annotations;
-                member_json["location"] = member->location;
-
-                order.push_back(member->name);
-                members[member->name.c_str()] = std::move(member_json);
-            }
-            type_json["order"] = std::move(order);
-            type_json["members"] = std::move(members);
-        }
-        else if (type.kind == Type::Kind::Attribute) {
-            auto& typeAttr = static_cast<TypeAttribute const&>(type);
-
-            auto fields = JsonT::object();
-            auto order = JsonT::array();
-            for (auto const& field : typeAttr.fields) {
-                auto field_json = JsonT::object();
-                field_json["name"] = field->name;
-                field_json["type"] = field->type->qualifiedName;
-                if (field->defaultValue)
-                    field_json["default"] = *field->defaultValue;
-                field_json["annotations"] = field->annotations;
-                field_json["location"] = field->location;
-
-                order.push_back(field->name);
-                fields[field->name.c_str()] = std::move(field_json);
-            }
-            type_json["order"] = std::move(order);
-            type_json["fields"] = std::move(fields);
-        }
-        else if (type.kind == Type::Kind::Array) {
-            auto& typeArray = static_cast<TypeArray const&>(type);
-
-            type_json["of"] = typeArray.of->qualifiedName;
-        }
-        else if (type.kind == Type::Kind::Pointer) {
-            auto& typePointer = static_cast<TypePointer const&>(type);
-
-            type_json["to"] = typePointer.to->qualifiedName;
+        else if (type.kind == Type::Kind::Array || type.kind == Type::Kind::Pointer || type.kind == Type::Kind::Alias) {
+            if (type.refType != nullptr)
+                type_json["refType"] = type.refType->qualifiedName;
         }
         else if (type.kind == Type::Kind::Specialized) {
-            auto& typeSpec = static_cast<TypeSpecialized const&>(type);
-
-            type_json["ref"] = typeSpec.ref->qualifiedName;
+            type_json["refType"] = type.refType->qualifiedName;
 
             auto types_json = JsonT::array();
-            for (auto const* param : typeSpec.typeParams)
+            for (auto const* param : type.generics)
                 types_json.push_back(param->qualifiedName);
             type_json["typeParams"] = std::move(types_json);
-        }
-        else if (type.kind == Type::Kind::Alias) {
-            auto& typeAlias = static_cast<TypeAlias const&>(type);
-
-            if (typeAlias.ref != nullptr)
-                type_json["ref"] = typeAlias.ref->qualifiedName;
         }
 
         type_json["location"] = type.location;
@@ -280,7 +212,7 @@ namespace sapc {
         const_json = JsonT::object();
         const_json["name"] = constant.name;
         const_json["qualified"] = constant.qualifiedName;
-        const_json["module"] = constant.owner->name;
+        const_json["module"] = constant.scope->owner->name;
         if (!constant.scope->name.empty())
             const_json["namespace"] = constant.scope->qualifiedName;
         const_json["type"] = constant.type->name;
@@ -295,8 +227,8 @@ namespace sapc {
         ns_json["name"] = ns.name;
         ns_json["qualified"] = ns.qualifiedName;
         ns_json["module"] = ns.owner->name;
-        if (!ns.scope->name.empty())
-            ns_json["namespace"] = ns.scope->qualifiedName;
+        if (!ns.parent->name.empty())
+            ns_json["namespace"] = ns.parent->qualifiedName;
 
         auto types_json = JsonT::array();
         for (auto const* type : ns.types)
@@ -305,7 +237,7 @@ namespace sapc {
 
         auto constants_json = JsonT::array();
         for (auto const* constant : ns.constants)
-            types_json.push_back(constant->qualifiedName);
+            constants_json.push_back(constant->qualifiedName);
         ns_json["constants"] = std::move(constants_json);
 
         auto namespaces_json = JsonT::array();
@@ -323,17 +255,9 @@ namespace sapc {
 
         assert(value.type->kind == Type::Kind::Attribute);
 
-        auto const& attr = static_cast<TypeAttribute const&>(*value.type);
-        assert(attr.fields.size() == value.args.size());
-
-        auto args_json = JsonT::object();
-        for (size_t index = 0; index != value.args.size(); ++index) {
-            auto const& param = *attr.fields[index];
-            auto const& arg = value.args[index];
-
-            args_json[param.name.c_str()] = arg;
-        }
-
+        auto args_json = JsonT::array();
+        for (size_t index = 0; index != value.args.size(); ++index)
+            args_json.push_back(value.args[index]);
         j["args"] = std::move(args_json);
     }
 
