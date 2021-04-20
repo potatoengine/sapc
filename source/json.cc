@@ -90,8 +90,14 @@ namespace sapc {
         mod_json["name"] = mod.name;
         mod_json["annotations"] = mod.annotations;
         auto imports_json = JsonT::array();
-        for (auto const& imp : mod.imports)
-            imports_json.push_back(imp->name);
+        for (auto const& imp : mod.imports) {
+            auto import_json = JsonT::object();
+            import_json["name"] = imp.mod->name;
+            import_json["filename"] = imp.mod->location.filename.string();
+            import_json["annotations"] = imp.mod->annotations;
+            import_json["location"] = imp.location;
+            imports_json.push_back(std::move(import_json));
+        }
         mod_json["imports"] = std::move(imports_json);
         doc["module"] = std::move(mod_json);
 

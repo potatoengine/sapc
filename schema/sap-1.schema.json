@@ -28,7 +28,7 @@
         "annotations": { "$ref": "#/definitions/annotations" },
         "imports": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "$ref": "#/definitions/import" }
         }
       }
     },
@@ -234,12 +234,12 @@
         "location": { "$ref": "#/definitions/location" }
       }
     },
-    "member": {
+    "import": {
       "type": "object",
-      "required": [ "name", "type", "annotations", "location" ],
+      "required": [ "name", "annotations" ],
       "properties": {
         "name": { "type": "string" },
-        "type": { "type": "string" },
+        "filename": { "type": "string" },
         "annotations": { "$ref": "#/definitions/annotations" },
         "location": { "$ref": "#/definitions/location" }
       }

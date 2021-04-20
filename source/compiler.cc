@@ -430,7 +430,7 @@ namespace sapc {
             return;
 
         if (auto const* imp = compile(filename); imp != nullptr)
-            mod.imports.push_back(imp);
+            mod.imports.push_back({ imp, impDecl.target.loc });
     }
 
     schema::Module const* Compiler::compile(fs::path const& filename) {
@@ -709,8 +709,8 @@ namespace sapc {
         if (auto const rs = findLocal(qualId, scope->root))
             return rs;
 
-        for (auto const* imp : scope->imports)
-            if (auto const rs = findLocal(qualId, imp->root))
+        for (auto const& imp : scope->imports)
+            if (auto const rs = findLocal(qualId, imp.mod->root))
                 return rs;
 
         if (coreModule != nullptr)

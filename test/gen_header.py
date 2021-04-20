@@ -138,8 +138,8 @@ def main(argv):
     print('', file=args.output)
     
     banner('Imports')
-    for module in doc['module']['imports']:
-        print(f'#include "{module}.h"', file=args.output)
+    for imp in doc['module']['imports']:
+        print(f'#include "{imp["name"]}.h"', file=args.output)
     print('', file=args.output)
 
     banner('Types')

@@ -111,11 +111,16 @@ namespace sapc::schema {
         std::vector<Namespace const*> namespaces;
     };
 
+    struct Import {
+        Module const* mod = nullptr;
+        Location location;
+    };
+
     struct Module : Annotated {
         std::string name;
         Location location;
         Namespace const* root = nullptr;
-        std::vector<Module const*> imports;
+        std::vector<Import> imports;
         std::vector<Type const*> types;
         std::vector<Constant const*> constants;
         std::vector<Namespace const*> namespaces;
