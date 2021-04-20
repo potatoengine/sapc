@@ -237,7 +237,7 @@ namespace sapc {
 
         auto constants_json = JsonT::array();
         for (auto const* constant : ns.constants)
-            types_json.push_back(constant->qualifiedName);
+            constants_json.push_back(constant->qualifiedName);
         ns_json["constants"] = std::move(constants_json);
 
         auto namespaces_json = JsonT::array();

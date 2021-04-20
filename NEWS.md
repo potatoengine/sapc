@@ -8,6 +8,7 @@ Version 0.13-beta
  - Use qualified name for typename references in JSON output
  - Ensure transitively imported types are exposed in the JSON output
  - Simplify output schema extensively
+ - Fix listing of constants in namespace entries
 
 Version 0.12-beta
 -----------------
