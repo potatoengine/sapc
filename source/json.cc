@@ -95,7 +95,7 @@ namespace sapc {
         mod_json["imports"] = std::move(imports_json);
         doc["module"] = std::move(mod_json);
 
-        auto types_json = JsonT::object();
+        auto types_json = JsonT::array();
         auto type_exports_json = JsonT::array();
         for (auto const* type : mod.types) {
             if (type->scope->owner == &mod) {
@@ -107,23 +107,23 @@ namespace sapc {
                     type_exports_json.push_back(type->qualifiedName);
             }
 
-            types_json[type->qualifiedName.c_str()] = *type;
+            types_json.push_back(*type);
         }
         doc["types"] = std::move(types_json);
 
-        auto constants_json = JsonT::object();
+        auto constants_json = JsonT::array();
         auto constant_exports_json = JsonT::array();
         for (auto const* constant : mod.constants) {
             if (constant->scope->owner == &mod)
                 constant_exports_json.push_back(constant->qualifiedName);
-
-            constants_json[constant->qualifiedName.c_str()] = *constant;
+            constants_json.push_back(*constant);
         }
+
         doc["constants"] = std::move(constants_json);
 
-        auto namespaces_json = JsonT::object();
+        auto namespaces_json = JsonT::array();
         for (auto const* ns : mod.namespaces)
-            namespaces_json[ns->qualifiedName.c_str()] = *ns;
+            namespaces_json.push_back(*ns);
         doc["namespaces"] = std::move(namespaces_json);
 
         auto exports = JsonT::object();
@@ -169,14 +169,15 @@ namespace sapc {
 
         if (type.kind == Type::Kind::Enum) {
             auto& typeEnum = static_cast<TypeEnum const&>(type);
-            auto names = JsonT::array();
-            auto values = JsonT::object();
+
+            auto items_json = JsonT::array();
             for (auto const& item : typeEnum.items) {
-                names.push_back(item->name);
-                values[item->name.c_str()] = item->value;
+                auto item_json = JsonT::object();
+                item_json["name"] = item->name;
+                item_json["value"] = item->value;
+                items_json.push_back(std::move(item_json));
             }
-            type_json["names"] = std::move(names);
-            type_json["values"] = std::move(values);
+            type_json["items"] = std::move(items_json);
         }
         else if (type.kind == Type::Kind::Struct || type.kind == Type::Kind::Union || type.kind == Type::Kind::Attribute) {
             auto& typeAggr = static_cast<TypeAggregate const&>(type);
@@ -191,8 +192,7 @@ namespace sapc {
                 type_json["generics"] = std::move(generics_json);
             }
 
-            auto fields = JsonT::object();
-            auto order = JsonT::array();
+            auto fields = JsonT::array();
             for (auto const& field : typeAggr.fields) {
                 auto field_json = JsonT::object();
                 field_json["name"] = field->name;
@@ -202,10 +202,8 @@ namespace sapc {
                 field_json["annotations"] = field->annotations;
                 field_json["location"] = field->location;
 
-                order.push_back(field->name);
-                fields[field->name.c_str()] = std::move(field_json);
+                fields.push_back(std::move(field_json));
             }
-            type_json["order"] = std::move(order);
             type_json["fields"] = std::move(fields);
         }
         else if (type.kind == Type::Kind::Array || type.kind == Type::Kind::Pointer || type.kind == Type::Kind::Alias) {
@@ -272,17 +270,9 @@ namespace sapc {
 
         assert(value.type->kind == Type::Kind::Attribute);
 
-        auto const& attr = static_cast<TypeAggregate const&>(*value.type);
-        assert(attr.fields.size() == value.args.size());
-
-        auto args_json = JsonT::object();
-        for (size_t index = 0; index != value.args.size(); ++index) {
-            auto const& param = *attr.fields[index];
-            auto const& arg = value.args[index];
-
-            args_json[param.name.c_str()] = arg;
-        }
-
+        auto args_json = JsonT::array();
+        for (size_t index = 0; index != value.args.size(); ++index)
+            args_json.push_back(value.args[index]);
         j["args"] = std::move(args_json);
     }
 

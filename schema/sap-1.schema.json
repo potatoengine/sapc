@@ -7,16 +7,16 @@
   "properties": {
     "module": { "$ref": "#/definitions/module" },
     "types": {
-      "type": "object",
-      "additionalProperties": { "$ref": "#/definitions/type" }
+      "type": "array",
+      "items": { "$ref": "#/definitions/type" }
     },
     "contants": {
-      "type": "object",
-      "additionalProperties": { "$ref": "#/definitions/constant" }
+      "type": "array",
+      "items": { "$ref": "#/definitions/constant" }
     },
     "namespaces": {
-      "type": "object",
-      "additionalProperties": { "$ref": "#/definitions/namespace" }
+      "type": "array",
+      "items": { "$ref": "#/definitions/namespace" }
     },
     "exports": {
       "type": "object",
@@ -109,7 +109,7 @@
     },
     "type_aggregate": {
       "type": "object",
-      "required": [ "name", "qualified", "kind", "module", "annotations", "location", "order", "fields" ],
+      "required": [ "name", "qualified", "kind", "module", "annotations", "location", "fields" ],
       "properties": {
         "name": { "type": "string" },
         "qualified": { "type": "string" },
@@ -122,13 +122,9 @@
         "refType": { "type": "string" },
         "annotations": { "$ref": "#/definitions/annotations" },
         "location": { "$ref": "#/definitions/location" },
-        "order": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
         "fields": {
-          "type": "object",
-          "additionalProperties": {
+          "type": "array",
+          "items": {
             "$ref": "#/definitions/field"
           }
         },
@@ -140,7 +136,7 @@
     },
     "type_enum": {
       "type": "object",
-      "required": [ "name", "qualified", "kind", "module", "annotations", "location", "names", "values" ],
+      "required": [ "name", "qualified", "kind", "module", "annotations", "location", "items" ],
       "properties": {
         "name": { "type": "string" },
         "qualified": { "type": "string" },
@@ -153,13 +149,11 @@
         "refType": { "type": "string" },
         "annotations": { "$ref": "#/definitions/annotations" },
         "location": { "$ref": "#/definitions/location" },
-        "names": {
-          "types": "array",
-          "items": { "type": "string" }
-        },
-        "values": {
-          "type": "object",
-          "additionalProperties": { "type": "number" }
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/enum_value"
+          }
         }
       }
     },
@@ -202,8 +196,8 @@
         "type": { "type": "string" },
         "location": { "$ref": "#/definitions/location" },
         "args": {
-          "type": "object",
-          "additionalProperties": { "$ref": "#/definitions/value" }
+          "type": "array",
+          "items": { "$ref": "#/definitions/value" }
         }
       }
     },

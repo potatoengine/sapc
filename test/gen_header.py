@@ -9,12 +9,12 @@ import re
 from os import path
 from datetime import datetime
 
-def annotation(el, name, argname, default=None):
+def annotation(el, name, argindex=0, default=None):
     if el is not None and 'annotations' in el:
         annotations = el['annotations']
         for anno in annotations:
             if anno["type"] == name:
-                return anno["args"][argname]
+                return anno["args"][argindex]
     return default
 
 cxx_keywords = ['void', 'nullptr',
@@ -32,18 +32,18 @@ cxx_type_map = {'string': 'std::string',
                 'bool': 'bool', 'byte': 'unsigned char',
                 'int': 'int', 'float': 'float'}
 
-def cxxname(el): return annotation(el, name='cxxname', argname='name', default=cxx_type_map[el['name']] if el['name'] in cxx_type_map else identifier(el['name']))
-def ignored(el): return annotation(el, name='ignore', argname='ignored', default=False)
+def cxxname(el): return annotation(el, name='cxxname', default=cxx_type_map[el['name']] if el['name'] in cxx_type_map else identifier(el['name']))
+def ignored(el): return annotation(el, name='ignore', default=False)
 
 def namespace(el):
-    cxxns = annotation(el, name='cxxnamespace', argname='ns', default=None)
+    cxxns = annotation(el, name='cxxnamespace', default=None)
     if cxxns is not None:
         return cxxns
     elif 'kind' in el and el['kind'] == 'generic':
         return None
     elif el['name'] in cxx_type_map:
         return None
-    elif annotation(el, name='cxxname', argname='name') is not None:
+    elif annotation(el, name='cxxname') is not None:
         return None
     elif 'namespace' in el:
         return 'st::' + '::'.join(identifier(c) for c in el['namespace'].split('.'))
@@ -73,19 +73,19 @@ def encode(el):
     else:
         return str(+el)
 
-def field_cxxtype(types, name):
-    field_type = types[name]
+def field_cxxtype(typemap, name):
+    field_type = typemap[name]
     if field_type['kind'] == 'typename':
         return 'std::type_index'
     if field_type['kind'] == 'array':
-        field_type = field_cxxtype(types, field_type['refType'])
+        field_type = field_cxxtype(typemap, field_type['refType'])
         return f'std::vector<{field_type}>'
     elif field_type['kind'] == 'pointer':
-        field_type = field_cxxtype(types, field_type['refType'])
+        field_type = field_cxxtype(typemap, field_type['refType'])
         return f'std::unique_ptr<{field_type}>'
     elif field_type['kind'] == 'specialized':
-        ref_type = field_cxxtype(types, field_type['refType'])
-        param_types = [field_cxxtype(types, param) for param in field_type['typeParams']]
+        ref_type = field_cxxtype(typemap, field_type['refType'])
+        param_types = [field_cxxtype(typemap, param) for param in field_type['typeParams']]
         return f'{ref_type}<{", ".join(param_types)}>'
     else:
         ns = namespace(field_type)
@@ -103,7 +103,6 @@ def main(argv):
 
     if not args.output:
         args.output = sys.stdout
-
         
     def banner(text):
         print(f'// --{re.sub(".", "-", text)}--', file=args.output)
@@ -130,10 +129,13 @@ def main(argv):
     types = doc['types']
     exports = doc['exports']
 
+    typemap = dict()
+    for type in types:
+        typemap[type["qualified"]] = type
+
     banner(f"Module - {doc['module']['name']}")
     for annotation in doc['module']['annotations']:
-        annotation_args = annotation['args']
-        print(f'// module annotation: {annotation["type"]}({",".join([k+":"+encode(v) for k,v in annotation_args.items()])})', file=args.output)
+        print(f'// annotation: {annotation["type"]}({",".join([typemap[annotation["type"]]["fields"][i]["name"]+":"+encode(v) for i,v in enumerate(annotation["args"])])})', file=args.output)
     print('', file=args.output)
     
     banner('Imports')
@@ -155,7 +157,7 @@ def main(argv):
 
     def print_annotations(prefix, annotations):
         for annotation in annotations:
-            print(f'{prefix}// annotation: {annotation["type"]}({",".join([k+":"+encode(v) for k,v in annotation["args"].items()])})', file=args.output)
+            print(f'{prefix}// annotation: {annotation["type"]}({",".join([typemap[annotation["type"]]["fields"][i]["name"]+":"+encode(v) for i,v in enumerate(annotation["args"])])})', file=args.output)
 
     def type_banner(type):
         if 'location' in type:
@@ -173,13 +175,13 @@ def main(argv):
         print('    template <int N>', file=args.output)
         print('    static decltype(auto) get_annotation() {', file=args.output)
         for index,anno in enumerate(type['annotations']):
-            anno_type = types[anno['type']]
+            anno_type = typemap[anno['type']]
             if anno_type['name'] == '$sapc.customtag': continue
 
             print(f'      if constexpr(N == {index}) {{', file=args.output)
             print(f'        static auto const anno = {qualified(anno_type)}{{', file=args.output)
-            for key,value in anno['args'].items():
-                arg_type = anno_type['fields'][key]
+            for argi,value in enumerate(anno['args']):
+                arg_type = anno_type['fields'][argi]
                 print(f'          {encode(value)}, // {arg_type["name"]}', file=args.output)
             print('          };', file=args.output)
             print('          return anno;', file=args.output)
@@ -187,14 +189,14 @@ def main(argv):
         print('    }', file=args.output)
 
     for typename in exports['types']:
-        type = types[typename]
+        type = typemap[typename]
         if ignored(type): continue
 
         type_ns = namespace(type)
         name = cxxname(type)
         kind = type['kind']
 
-        basetype = types[type['base']] if 'base' in type else None
+        basetype = typemap[type['base']] if 'base' in type else None
         basespec = f' : {qualified(basetype)}' if basetype is not None else ''
 
         if kind == 'enum':
@@ -203,9 +205,8 @@ def main(argv):
 
             print(f'  enum class {name}{basespec} {{', file=args.output)
 
-            for ename in type['names']:
-                value = type['values'][ename]
-                print(f'    {identifier(ename)} = {value},', file=args.output)
+            for item in type['items']:
+                print(f'    {identifier(item["name"])} = {item["value"]},', file=args.output)
 
             print(f'  }};\n', file=args.output)
         elif kind == 'alias':
@@ -213,16 +214,15 @@ def main(argv):
                 enter_namespace(namespace(type))
                 type_banner(type)
 
-                print(f'  using {name} = {field_cxxtype(types, type["refType"])};\n', file=args.output)
+                print(f'  using {name} = {field_cxxtype(typemap, type["refType"])};\n', file=args.output)
         elif kind == 'union':
             enter_namespace(namespace(type))
             type_banner(type)
 
             print(f'  union {name}{basespec} {{', file=args.output)
 
-            if 'order' in type:
-                for fieldname in type['order']:
-                    field = type['fields'][fieldname]
+            if 'fields' in type:
+                for field in type['fields']:
                     if ignored(field): continue
 
                     print_annotations('    ', field['annotations'])
@@ -239,17 +239,16 @@ def main(argv):
 
             annotation_getter(type)
 
-            if 'order' in type:
-                for fieldname in type['order']:
-                    field = type['fields'][fieldname]
+            if 'fields' in type:
+                for field in type['fields']:
                     if ignored(field): continue
 
                     print_annotations('    ', field['annotations'])
 
                     if 'default' in field:
-                        print(f'    {field_cxxtype(types, field["type"])} {cxxname(field)} = {encode(field["default"])};', file=args.output)
+                        print(f'    {field_cxxtype(typemap, field["type"])} {cxxname(field)} = {encode(field["default"])};', file=args.output)
                     else:
-                        print(f'    {field_cxxtype(types, field["type"])} {cxxname(field)};', file=args.output)
+                        print(f'    {field_cxxtype(typemap, field["type"])} {cxxname(field)};', file=args.output)
 
             print(f'  }};\n', file=args.output)
     
@@ -257,8 +256,7 @@ def main(argv):
 
     banner('Constants')
         
-    for constname in exports['constants']:
-        constant = doc['constants'][constname]
+    for constant in doc['constants']:
         if ignored(constant): continue;
 
         enter_namespace(namespace(constant))
@@ -274,7 +272,7 @@ def main(argv):
             else:
                 print(f'  // {loc["filename"]}', file=args.output)
 
-        print(f'  static const {field_cxxtype(types, constant["type"])} {cxxname(constant)} = {encode(constant["value"])};\n', file=args.output)
+        print(f'  static const {field_cxxtype(typemap, constant["type"])} {cxxname(constant)} = {encode(constant["value"])};\n', file=args.output)
 
     enter_namespace(None)
 
