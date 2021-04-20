@@ -127,7 +127,6 @@ def main(argv):
     print('', file=args.output)
 
     types = doc['types']
-    exports = doc['exports']
 
     typemap = dict()
     for type in types:
@@ -146,6 +145,9 @@ def main(argv):
     banner('Types')
 
     state = {'current_ns': None}
+
+    def exported(el):
+        return 'module' in el and el['module'] == doc['module']['name']
 
     def enter_namespace(ns):
         if state['current_ns'] != ns:
@@ -188,8 +190,8 @@ def main(argv):
             print('      }', file=args.output)
         print('    }', file=args.output)
 
-    for typename in exports['types']:
-        type = typemap[typename]
+    for type in types:
+        if not exported(type): continue
         if ignored(type): continue
 
         type_ns = namespace(type)
@@ -228,7 +230,7 @@ def main(argv):
                     print_annotations('    ', field['annotations'])
 
             print(f'  }};\n', file=args.output)
-        else:
+        elif kind != 'simple':
             enter_namespace(namespace(type))
             type_banner(type)
 
@@ -257,6 +259,7 @@ def main(argv):
     banner('Constants')
         
     for constant in doc['constants']:
+        if not exported(constant): continue
         if ignored(constant): continue;
 
         enter_namespace(namespace(constant))

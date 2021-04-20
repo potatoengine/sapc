@@ -3,7 +3,7 @@
   "$schema": "http://json-schema.org/draft-05/schema#",
   "title": "sapc output schema",
   "type": "object",
-  "required": [ "module", "types", "constants", "namespaces", "exports" ],
+  "required": [ "module", "types", "constants", "namespaces" ],
   "properties": {
     "module": { "$ref": "#/definitions/module" },
     "types": {
@@ -17,20 +17,6 @@
     "namespaces": {
       "type": "array",
       "items": { "$ref": "#/definitions/namespace" }
-    },
-    "exports": {
-      "type": "object",
-      "requires": [ "types", "constants" ],
-      "properties": {
-        "types": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "constants": {
-          "type": "array",
-          "items": { "type": "string" }
-        }
-      }
     }
   },
   "definitions": {

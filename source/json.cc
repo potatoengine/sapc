@@ -96,40 +96,19 @@ namespace sapc {
         doc["module"] = std::move(mod_json);
 
         auto types_json = JsonT::array();
-        auto type_exports_json = JsonT::array();
-        for (auto const* type : mod.types) {
-            if (type->scope->owner == &mod) {
-                auto const isNormal = type->kind != schema::Type::Kind::Array &&
-                    type->kind != schema::Type::Kind::Pointer &&
-                    type->kind != schema::Type::Kind::Generic &&
-                    type->kind != schema::Type::Kind::Specialized;
-                if (isNormal)
-                    type_exports_json.push_back(type->qualifiedName);
-            }
-
+        for (auto const* type : mod.types)
             types_json.push_back(*type);
-        }
         doc["types"] = std::move(types_json);
 
         auto constants_json = JsonT::array();
-        auto constant_exports_json = JsonT::array();
-        for (auto const* constant : mod.constants) {
-            if (constant->scope->owner == &mod)
-                constant_exports_json.push_back(constant->qualifiedName);
+        for (auto const* constant : mod.constants)
             constants_json.push_back(*constant);
-        }
-
         doc["constants"] = std::move(constants_json);
 
         auto namespaces_json = JsonT::array();
         for (auto const* ns : mod.namespaces)
             namespaces_json.push_back(*ns);
         doc["namespaces"] = std::move(namespaces_json);
-
-        auto exports = JsonT::object();
-        exports["types"] = std::move(type_exports_json);
-        exports["constants"] = std::move(constant_exports_json);
-        doc["exports"] = std::move(exports);
 
         return doc;
     }
