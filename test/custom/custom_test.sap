@@ -1,0 +1,15 @@
+module custom_test;
+
+import custom_base;
+
+use local : struct;
+
+local LocalTest {
+    int localX;
+}
+
+custom CustomTest {
+    int customX;
+}
+
+flags FlagsTest { Red = 1, Green = 2, Blue = 4 }
