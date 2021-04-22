@@ -548,16 +548,16 @@ namespace sapc {
         for (auto const& anno : type.annotations)
             makeAvailableRecurse(*anno);
 
-        if (type.kind == schema::Type::Kind::Struct || type.kind == schema::Type::Kind::Attribute || type.kind == schema::Type::Kind::Union || type.kind == schema::Type::Kind::Specialized) {
+        if (type.kind == schema::Type::Kind::Struct || type.kind == schema::Type::Kind::Attribute || type.kind == schema::Type::Kind::Union) {
             auto const& typeAggr = static_cast<schema::TypeAggregate const&>(type);
             makeAvailable(typeAggr.refType);
             for (auto const& field : typeAggr.fields)
                 makeAvailableRecurse(*field);
-            for (auto const* generic : typeAggr.generics)
-                makeAvailableRecurse(*generic);
         }
-        else if (type.kind == schema::Type::Kind::Alias || type.kind == schema::Type::Kind::Pointer || type.kind == schema::Type::Kind::Array) {
+        else if (type.kind == schema::Type::Kind::Alias || type.kind == schema::Type::Kind::Pointer || type.kind == schema::Type::Kind::Array || type.kind == schema::Type::Kind::Specialized) {
             makeAvailable(type.refType);
+            for (auto const* generic : type.generics)
+                makeAvailableRecurse(*generic);
         }
     }
 
