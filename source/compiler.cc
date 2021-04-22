@@ -336,6 +336,19 @@ namespace sapc {
         type->location = enumDecl.name.loc;
         translate(type->annotations, enumDecl.annotations);
 
+        if (!enumDecl.customTag.empty()) {
+            auto it = customTagMap.find(enumDecl.customTag);
+            assert(it != customTagMap.end());
+            translate(type->annotations, it->second->annotations);
+
+            auto& tagAnno = *type->annotations.emplace_back(std::make_unique<schema::Annotation>());
+            tagAnno.type = makeAvailable(customTagAttr);
+            tagAnno.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
+            auto& tagValue = tagAnno.args.emplace_back();
+            tagValue.data = enumDecl.customTag;
+            tagValue.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
+        }
+
         type->items.reserve(enumDecl.items.size());
         for (ast::EnumItem const& item : enumDecl.items)
             build(*type, item);
