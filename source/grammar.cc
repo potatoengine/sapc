@@ -12,8 +12,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <unordered_map>
 #include <utility>
-#include <unordered_set>
 
 namespace fs = std::filesystem;
 
@@ -43,8 +43,7 @@ namespace sapc {
             ast::ModuleUnit& module;
             size_t next = 0;
             std::vector<std::vector<std::unique_ptr<ast::Declaration>>*> scopeStack;
-            std::unordered_set<std::string_view> customStructTags;
-            std::unordered_set<std::string_view> customEnumTags;
+            std::unordered_map<std::string_view, ast::CustomTagDecl const*> customTags;
             std::vector<ast::Annotation> annotations;
 
             inline Location pos();
@@ -72,6 +71,7 @@ namespace sapc {
             inline bool parseEnum(std::string_view customTag = {});
             inline bool parseCustom(std::string_view tag);
 
+            inline bool hasCustomTag(std::string_view tag, ast::Declaration::Kind kind) const;
             inline void processCustomTag(ast::CustomTagDecl const& customDecl);
 
             template <typename DeclT>
@@ -375,18 +375,12 @@ namespace sapc {
 
     bool Grammar::parseCustom(std::string_view tag) {
         // custom struct
-        if (customStructTags.find(tag) != customStructTags.end()) {
-            if (!parseStruct(tag))
-                return false;
-            return true;
-        }
+        if (hasCustomTag(tag, ast::Declaration::Kind::Struct))
+            return parseStruct(tag);
 
         // custom enum
-        if (customEnumTags.find(tag) != customEnumTags.end()) {
-            if (!parseEnum(tag))
-                return false;
-            return true;
-        }
+        if (hasCustomTag(tag, ast::Declaration::Kind::Enum))
+            return parseEnum(tag);
 
         return fail("unexpected identifier `", tag, '`');
     }
@@ -644,11 +638,12 @@ namespace sapc {
         return *ret;
     }
 
-    void Grammar::processCustomTag(ast::CustomTagDecl const& customDecl)
-    {
-        if (customDecl.tagKind == ast::Declaration::Kind::Struct)
-            customStructTags.insert(customDecl.name.id);
-        else if (customDecl.tagKind == ast::Declaration::Kind::Enum)
-            customEnumTags.insert(customDecl.name.id);
+    bool Grammar::hasCustomTag(std::string_view tag, ast::Declaration::Kind kind) const {
+        auto const it = customTags.find(tag);
+        return it != end(customTags) && it->second->tagKind == kind;
+    }
+
+    void Grammar::processCustomTag(ast::CustomTagDecl const& customDecl) {
+        customTags.insert({ customDecl.name.id, &customDecl });
     }
 }

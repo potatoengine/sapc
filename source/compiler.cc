@@ -167,6 +167,8 @@ namespace sapc {
 
             ast::ModuleUnit const* parseModule(ast::Identifier const& id, fs::path const& requestingFile);
             ast::ModuleUnit const* parseModule(fs::path const& filename);
+
+            void applyCustomTag(schema::Type& type, std::string_view tag);
         };
     }
 
@@ -242,18 +244,8 @@ namespace sapc {
             type->refType = requireType(*structDecl.baseType);
         translate(type->annotations, structDecl.annotations);
 
-        if (!structDecl.customTag.empty()) {
-            auto it = customTagMap.find(structDecl.customTag);
-            assert(it != customTagMap.end());
-            translate(type->annotations, it->second->annotations);
-
-            auto& tagAnno = *type->annotations.emplace_back(std::make_unique<schema::Annotation>());
-            tagAnno.type = makeAvailable(customTagAttr);
-            tagAnno.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
-            auto& tagValue = tagAnno.args.emplace_back();
-            tagValue.data = structDecl.customTag;
-            tagValue.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
-        }
+        if (!structDecl.customTag.empty())
+            applyCustomTag(*type, structDecl.customTag);
 
         // Build generics before fields, as fields might refer to a generic
         type->generics.reserve(structDecl.generics.size());
@@ -336,18 +328,8 @@ namespace sapc {
         type->location = enumDecl.name.loc;
         translate(type->annotations, enumDecl.annotations);
 
-        if (!enumDecl.customTag.empty()) {
-            auto it = customTagMap.find(enumDecl.customTag);
-            assert(it != customTagMap.end());
-            translate(type->annotations, it->second->annotations);
-
-            auto& tagAnno = *type->annotations.emplace_back(std::make_unique<schema::Annotation>());
-            tagAnno.type = makeAvailable(customTagAttr);
-            tagAnno.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
-            auto& tagValue = tagAnno.args.emplace_back();
-            tagValue.data = enumDecl.customTag;
-            tagValue.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
-        }
+        if (!enumDecl.customTag.empty())
+            applyCustomTag(*type, enumDecl.customTag);
 
         type->items.reserve(enumDecl.items.size());
         for (ast::EnumItem const& item : enumDecl.items)
@@ -986,5 +968,20 @@ namespace sapc {
         ctx.asts.push_back(std::move(moduleAst));
 
         return mod;
+    }
+
+    void Compiler::applyCustomTag(schema::Type& type, std::string_view tag) {
+        auto it = customTagMap.find(tag);
+        assert(it != customTagMap.end());
+
+        translate(type.annotations, it->second->annotations);
+
+        auto& tagAnno = *type.annotations.emplace_back(std::make_unique<schema::Annotation>());
+        tagAnno.type = makeAvailable(customTagAttr);
+        tagAnno.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
+
+        auto& tagValue = tagAnno.args.emplace_back();
+        tagValue.data = std::string(tag);
+        tagValue.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
     }
 }
