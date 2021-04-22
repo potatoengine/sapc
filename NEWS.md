@@ -1,6 +1,11 @@
 sapc
 ====
 
+Version 0.14-beta
+-----------------
+
+ - Fix memory access bug in processing of specialized generics
+
 Version 0.13-beta
 -----------------
 
