@@ -157,7 +157,7 @@ namespace sapc {
 
             schema::Type const* createArrayType(schema::Type const* of, Location const& loc);
             schema::Type const* createPointerType(schema::Type const* to, Location const& loc);
-            schema::Type const* createSpecializedType(schema::Type const* gen, std::vector<schema::Type const*> const& typeParams, Location const& loc);
+            schema::Type const* createSpecializedType(schema::Type const* gen, std::vector<schema::Type const*> const& typeArgs, Location const& loc);
 
             schema::Value translate(ast::Literal const& lit);
             std::unique_ptr<schema::Annotation> translate(ast::Annotation const& anno);
@@ -248,14 +248,14 @@ namespace sapc {
             applyCustomTag(*type, structDecl.customTag);
 
         // Build generics before fields, as fields might refer to a generic
-        type->generics.reserve(structDecl.generics.size());
+        type->typeParams.reserve(structDecl.generics.size());
         for (ast::Identifier const& gen : structDecl.generics) {
             auto* const sub = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
             sub->name = gen.id;
             sub->qualifiedName = type->qualifiedName + "." + gen.id;
             sub->kind = schema::Type::Kind::Generic;
             sub->scope = type->scope;
-            type->generics.push_back(sub);
+            type->typeParams.push_back(sub);
 
             mod.types.push_back(sub);
         }
@@ -547,9 +547,6 @@ namespace sapc {
         for (auto const& anno : type.annotations)
             makeAvailableRecurse(*anno);
 
-        for (auto const* generic : type.generics)
-            makeAvailableRecurse(*generic);
-
         if (type.kind == schema::Type::Kind::Struct || type.kind == schema::Type::Kind::Attribute || type.kind == schema::Type::Kind::Union) {
             auto const& typeAggr = static_cast<schema::TypeAggregate const&>(type);
 
@@ -557,11 +554,17 @@ namespace sapc {
 
             for (auto const& field : typeAggr.fields)
                 makeAvailableRecurse(*field);
+
+            for (auto const* typeParam : typeAggr.typeParams)
+                makeAvailableRecurse(*typeParam);
         }
         else if (type.kind == schema::Type::Kind::Alias || type.kind == schema::Type::Kind::Pointer || type.kind == schema::Type::Kind::Array || type.kind == schema::Type::Kind::Specialized) {
             auto const& typeInd = static_cast<schema::TypeIndirect const&>(type);
 
             makeAvailable(typeInd.refType);
+
+            for (auto const* typeArg : typeInd.typeArgs)
+                makeAvailableRecurse(*typeArg);
         }
     }
 
@@ -605,15 +608,15 @@ namespace sapc {
             return nullptr;
         case ast::TypeRef::Kind::Generic:
             if (auto const* type = resolveType(*ref.ref, scope); type != nullptr) {
-                std::vector<schema::Type const*> typeParams;
-                typeParams.reserve(ref.typeParams.size());
-                for (auto const& refParam : ref.typeParams) {
-                    auto const* typeParam = requireType(*refParam, scope);
-                    if (typeParam == nullptr)
+                std::vector<schema::Type const*> typeArgs;
+                typeArgs.reserve(ref.typeArgs.size());
+                for (auto const& refTypeArg : ref.typeArgs) {
+                    auto const* typeArg = requireType(*refTypeArg, scope);
+                    if (typeArg == nullptr)
                         return nullptr;
-                    typeParams.push_back(typeParam);
+                    typeArgs.push_back(typeArg);
                 }
-                return createSpecializedType(type, typeParams, ref.loc);
+                return createSpecializedType(type, typeArgs, ref.loc);
             }
             return nullptr;
         default:
@@ -640,9 +643,9 @@ namespace sapc {
             if (typeAggr.baseType != nullptr)
                 if (auto const rs = findLocal(qualId, typeAggr.baseType); rs.kind != Resolve::Kind::Empty)
                     return rs;
-            for (auto const* gen : typeAggr.generics)
-                if (gen->name == qualId.front().id)
-                    return Resolve{ gen };
+            for (auto const* typeParam : typeAggr.typeParams)
+                if (typeParam->name == qualId.front().id)
+                    return Resolve{ typeParam };
         }
 
         return {};
@@ -818,12 +821,12 @@ namespace sapc {
         return pointerTypeMap.emplace(to, ptr).first->second;
     }
 
-    schema::Type const* Compiler::createSpecializedType(schema::Type const* gen, std::vector<schema::Type const*> const& typeParams, Location const& loc) {
+    schema::Type const* Compiler::createSpecializedType(schema::Type const* gen, std::vector<schema::Type const*> const& typeArgs, Location const& loc) {
         assert(gen != nullptr);
 
         size_t specHash = (std::hash<std::string>{}(gen->qualifiedName));
-        for (auto const* param : typeParams)
-            specHash = hash_combine(param->qualifiedName, specHash);
+        for (auto const* typeArg : typeArgs)
+            specHash = hash_combine(typeArg->qualifiedName, specHash);
 
         {
             auto const it = specializedTypeMap.find(specHash);
@@ -837,8 +840,8 @@ namespace sapc {
         top.mod->types.push_back(spec);
 
         std::string genName = "<";
-        for (auto const* param : typeParams)
-            genName += param->qualifiedName;
+        for (auto const* typeArg : typeArgs)
+            genName += typeArg->qualifiedName;
         genName += '>';
 
         spec->name = gen->name;
@@ -850,9 +853,9 @@ namespace sapc {
         spec->scope = gen->scope;
         spec->location = loc;
 
-        spec->generics.reserve(typeParams.size());
-        for (auto const* param : typeParams)
-            spec->generics.push_back(param);
+        spec->typeArgs.reserve(typeArgs.size());
+        for (auto const* typeArg : typeArgs)
+            spec->typeArgs.push_back(typeArg);
 
         return specializedTypeMap.emplace(specHash, spec).first->second;
     }

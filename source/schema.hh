@@ -79,12 +79,12 @@ namespace sapc::schema {
         std::string qualifiedName;
         Location location;
         Namespace const* scope = nullptr;
-        std::vector<Type const*> generics; // placeholders for generic types; type params for specialized types
     };
 
     struct TypeAggregate : Type {
         Type const* baseType = nullptr;
         std::vector<std::unique_ptr<Field>> fields;
+        std::vector<Type const*> typeParams;
     };
 
     struct TypeEnum : Type {
@@ -93,6 +93,7 @@ namespace sapc::schema {
 
     struct TypeIndirect : Type {
         Type const* refType = nullptr; // arrays, pointers, aliases, specialized
+        std::vector<Type const*> typeArgs; // types arguments for specialized types (generics)
     };
 
     struct Constant : Annotated {

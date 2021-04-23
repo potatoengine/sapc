@@ -612,9 +612,9 @@ namespace sapc {
                 auto gen = std::make_unique<ast::TypeRef>();
                 gen->kind = ast::TypeRef::Kind::Generic;
                 gen->loc = type->loc;
-                EXPECT(gen->typeParams.emplace_back());
+                EXPECT(gen->typeArgs.emplace_back());
                 while (consume(TokenType::Comma))
-                    EXPECT(gen->typeParams.emplace_back());
+                    EXPECT(gen->typeArgs.emplace_back());
                 EXPECT(TokenType::RightAngle);
                 gen->loc.merge(pos());
                 gen->ref = std::move(type);

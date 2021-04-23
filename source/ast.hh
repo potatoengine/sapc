@@ -80,7 +80,7 @@ namespace sapc::ast {
         Location loc;
         QualifiedId name;
         std::unique_ptr<TypeRef> ref;
-        std::vector<std::unique_ptr<TypeRef>> typeParams;
+        std::vector<std::unique_ptr<TypeRef>> typeArgs;
 
         friend std::ostream& operator<<(std::ostream& os, TypeRef const& ref);
     };
