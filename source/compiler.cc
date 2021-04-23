@@ -248,11 +248,11 @@ namespace sapc {
             applyCustomTag(*type, structDecl.customTag);
 
         // Build generics before fields, as fields might refer to a generic
-        type->typeParams.reserve(structDecl.generics.size());
-        for (ast::Identifier const& gen : structDecl.generics) {
+        type->typeParams.reserve(structDecl.typeParams.size());
+        for (ast::Identifier const& paramDecl : structDecl.typeParams) {
             auto* const typeParam = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
-            typeParam->name = gen.id;
-            typeParam->qualifiedName = type->qualifiedName + "." + gen.id;
+            typeParam->name = paramDecl.id;
+            typeParam->qualifiedName = type->qualifiedName + "." + paramDecl.id;
             typeParam->kind = schema::Type::Kind::TypeParam;
             typeParam->scope = type->scope;
             type->typeParams.push_back(typeParam);
@@ -359,6 +359,19 @@ namespace sapc {
 
         if (!unionDecl.customTag.empty())
             applyCustomTag(*type, unionDecl.customTag);
+
+        // Build generics before fields, as fields might refer to a generic
+        type->typeParams.reserve(unionDecl.typeParams.size());
+        for (ast::Identifier const& paramDecl : unionDecl.typeParams) {
+            auto* const typeParam = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
+            typeParam->name = paramDecl.id;
+            typeParam->qualifiedName = type->qualifiedName + "." + paramDecl.id;
+            typeParam->kind = schema::Type::Kind::TypeParam;
+            typeParam->scope = type->scope;
+            type->typeParams.push_back(typeParam);
+
+            mod.types.push_back(typeParam);
+        }
 
         type->fields.reserve(unionDecl.fields.size());
         for (ast::Field const& field : unionDecl.fields)

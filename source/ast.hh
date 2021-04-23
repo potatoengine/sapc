@@ -123,7 +123,7 @@ namespace sapc::ast {
         std::string customTag;
         std::unique_ptr<TypeRef> baseType;
         std::vector<Field> fields;
-        std::vector<Identifier> generics;
+        std::vector<Identifier> typeParams;
         std::vector<Annotation> annotations;
     };
 
@@ -141,6 +141,7 @@ namespace sapc::ast {
         Identifier name;
         std::string customTag;
         std::vector<Field> fields;
+        std::vector<Identifier> typeParams;
         std::vector<Annotation> annotations;
     };
 

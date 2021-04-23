@@ -301,10 +301,10 @@ namespace sapc {
         EXPECT(structDecl.name);
 
         if (consume(TokenType::LeftAngle)) {
-            EXPECT(structDecl.generics.emplace_back());
+            EXPECT(structDecl.typeParams.emplace_back());
 
             while (consume(TokenType::Comma))
-                EXPECT(structDecl.generics.emplace_back());
+                EXPECT(structDecl.typeParams.emplace_back());
 
             EXPECT(TokenType::RightAngle);
         }
@@ -338,6 +338,15 @@ namespace sapc {
 
         unionDecl.annotations = std::move(annotations);
         EXPECT(unionDecl.name);
+
+        if (consume(TokenType::LeftAngle)) {
+            EXPECT(unionDecl.typeParams.emplace_back());
+
+            while (consume(TokenType::Comma))
+                EXPECT(unionDecl.typeParams.emplace_back());
+
+            EXPECT(TokenType::RightAngle);
+        }
 
         EXPECT(TokenType::LeftBrace);
         while (!consume(TokenType::RightBrace)) {
