@@ -478,7 +478,7 @@ namespace sapc {
         schema::Module* mod = ctx.modules.emplace_back(std::make_unique<schema::Module>()).get();
         mod->root = ns;
         coreModule = mod;
-        mod->name = "$sapc";
+        mod->name = "$core";
         ns->owner = mod;
 
         for (auto const& builtin : builtins) {
