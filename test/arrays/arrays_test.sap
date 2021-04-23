@@ -1,0 +1,6 @@
+module arrays_test;
+
+struct sample {
+    int[] vector;
+    int[5] array;
+}

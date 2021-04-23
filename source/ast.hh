@@ -81,6 +81,7 @@ namespace sapc::ast {
         QualifiedId name;
         std::unique_ptr<TypeRef> ref;
         std::vector<std::unique_ptr<TypeRef>> typeArgs;
+        std::optional<long long> arraySize; // static array size
 
         friend std::ostream& operator<<(std::ostream& os, TypeRef const& ref);
     };

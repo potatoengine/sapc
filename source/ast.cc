@@ -27,7 +27,10 @@ namespace sapc::ast {
         case ast::TypeRef::Kind::Name:
             return os << ref.name;
         case ast::TypeRef::Kind::Array:
-            return os << *ref.ref << "[]";
+            os << *ref.ref << "[";
+            if (ref.arraySize)
+                os << *ref.arraySize;
+            return os << ']';
         case ast::TypeRef::Kind::Pointer:
             return os << *ref.ref << '*';
         default:

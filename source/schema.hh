@@ -94,6 +94,7 @@ namespace sapc::schema {
     struct TypeIndirect : Type {
         Type const* refType = nullptr; // arrays, pointers, aliases, specialized
         std::vector<Type const*> typeArgs; // types arguments for specialized types (generics)
+        std::optional<long long> arraySize; // static array size
     };
 
     struct Constant : Annotated {

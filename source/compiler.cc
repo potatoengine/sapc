@@ -113,7 +113,7 @@ namespace sapc {
             schema::TypeAggregate const* customTagAttr = nullptr;
             schema::Module const* coreModule = nullptr;
 
-            std::unordered_map<schema::Type const*, schema::Type const*> arrayTypeMap;
+            std::unordered_map<size_t, schema::Type const*> arrayTypeMap;
             std::unordered_map<schema::Type const*, schema::Type const*> pointerTypeMap;
             std::unordered_map<size_t, schema::Type const*> specializedTypeMap;
             std::unordered_map<std::string_view, ast::CustomTagDecl const*> customTagMap;
@@ -155,7 +155,7 @@ namespace sapc {
             schema::Type const* requireType(QualIdSpan qualId, schema::Type const* scope = nullptr);
             schema::Type const* requireType(ast::TypeRef const& ref, schema::Type const* scope = nullptr);
 
-            schema::Type const* createArrayType(schema::Type const* of, Location const& loc);
+            schema::Type const* createArrayType(schema::Type const* of, std::optional<long long> arraySize, Location const& loc);
             schema::Type const* createPointerType(schema::Type const* to, Location const& loc);
             schema::Type const* createSpecializedType(schema::Type const* gen, std::vector<schema::Type const*> const& typeArgs, Location const& loc);
 
@@ -613,7 +613,7 @@ namespace sapc {
                 return nullptr;
         case ast::TypeRef::Kind::Array:
             if (auto const* type = resolveType(*ref.ref, scope); type != nullptr)
-                return createArrayType(type, ref.loc);
+                return createArrayType(type, ref.arraySize, ref.loc);
             return nullptr;
         case ast::TypeRef::Kind::Pointer:
             if (auto const* type = resolveType(*ref.ref, scope); type != nullptr)
@@ -782,11 +782,15 @@ namespace sapc {
         return nullptr;
     }
 
-    schema::Type const* Compiler::createArrayType(schema::Type const* of, Location const& loc) {
+    schema::Type const* Compiler::createArrayType(schema::Type const* of, std::optional<long long> arraySize, Location const& loc) {
         assert(of != nullptr);
 
+        size_t arrayHash = (std::hash<std::string_view>{}(of->qualifiedName));
+        if (arraySize)
+            arrayHash = hash_combine(*arraySize, arrayHash);
+
         {
-            auto const it = arrayTypeMap.find(of);
+            auto const it = arrayTypeMap.find(arrayHash);
             if (it != arrayTypeMap.end())
                 return it->second;
         }
@@ -796,16 +800,23 @@ namespace sapc {
         auto* arr = static_cast<schema::TypeIndirect*>(ctx.types.emplace_back(std::make_unique<schema::TypeIndirect>()).get());
         top.mod->types.push_back(arr);
 
+        std::ostringstream arraySuffix;
+        arraySuffix << '[';
+        if (arraySize)
+            arraySuffix << *arraySize;
+        arraySuffix << ']';
+
         arr->name = of->name;
-        arr->name += "[]";
+        arr->name += arraySuffix.str();
         arr->qualifiedName = of->qualifiedName;
-        arr->qualifiedName += "[]";
+        arr->qualifiedName += arraySuffix.str();
         arr->refType = of;
+        arr->arraySize = arraySize;
         arr->kind = schema::Type::Array;
         arr->scope = of->scope;
         arr->location = loc;
 
-        return arrayTypeMap.emplace(of, arr).first->second;
+        return arrayTypeMap.emplace(arrayHash, arr).first->second;
     }
 
     schema::Type const* Compiler::createPointerType(schema::Type const* to, Location const& loc) {
@@ -837,7 +848,7 @@ namespace sapc {
     schema::Type const* Compiler::createSpecializedType(schema::Type const* gen, std::vector<schema::Type const*> const& typeArgs, Location const& loc) {
         assert(gen != nullptr);
 
-        size_t specHash = (std::hash<std::string>{}(gen->qualifiedName));
+        size_t specHash = (std::hash<std::string_view>{}(gen->qualifiedName));
         for (auto const* typeArg : typeArgs)
             specHash = hash_combine(typeArg->qualifiedName, specHash);
 
@@ -852,15 +863,15 @@ namespace sapc {
         auto* spec = static_cast<schema::TypeIndirect*>(ctx.types.emplace_back(std::make_unique<schema::TypeIndirect>()).get());
         top.mod->types.push_back(spec);
 
-        std::string genName = "<";
+        std::string genSuffix = "<";
         for (auto const* typeArg : typeArgs)
-            genName += typeArg->qualifiedName;
-        genName += '>';
+            genSuffix += typeArg->qualifiedName;
+        genSuffix += '>';
 
         spec->name = gen->name;
-        spec->name += genName;
+        spec->name += genSuffix;
         spec->qualifiedName = gen->qualifiedName;
-        spec->qualifiedName += genName;
+        spec->qualifiedName += genSuffix;
         spec->refType = gen;
         spec->kind = schema::Type::Specialized;
         spec->scope = gen->scope;

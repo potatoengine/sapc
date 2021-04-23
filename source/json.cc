@@ -196,6 +196,9 @@ namespace sapc {
 
             if (typeInd.refType != nullptr)
                 type_json["refType"] = typeInd.refType->qualifiedName;
+
+            if (typeInd.arraySize)
+                type_json["length"] = *typeInd.arraySize;
         }
         else if (type.kind == Type::Kind::Specialized) {
             auto& typeInd = static_cast<TypeIndirect const&>(type);

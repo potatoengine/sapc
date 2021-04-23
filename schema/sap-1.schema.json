@@ -93,6 +93,24 @@
         "location": { "$ref": "#/definitions/location" }
       }
     },
+    "type_array": {
+      "type": "object",
+      "required": [ "name", "qualified", "kind", "module", "annotations", "location", "refType" ],
+      "properties": {
+        "name": { "type": "string" },
+        "qualified": { "type": "string" },
+        "namespace": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": [ "array" ]
+        },
+        "module": { "type": "string" },
+        "refType": { "type": "string" },
+        "length": { "type": "number" },
+        "annotations": { "$ref": "#/definitions/annotations" },
+        "location": { "$ref": "#/definitions/location" }
+      }
+    },
     "type_aggregate": {
       "type": "object",
       "required": [ "name", "qualified", "kind", "module", "annotations", "location", "fields" ],
@@ -105,7 +123,7 @@
           "enum": [ "struct", "union", "attribute" ]
         },
         "module": { "type": "string" },
-        "refType": { "type": "string" },
+        "baseType": { "type": "string" },
         "annotations": { "$ref": "#/definitions/annotations" },
         "location": { "$ref": "#/definitions/location" },
         "fields": {

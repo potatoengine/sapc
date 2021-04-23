@@ -5,6 +5,7 @@ if(SAPC_BUILD_TESTS)
     add_subdirectory(basic)
     add_subdirectory(enum)
     add_subdirectory(attributes)
+    add_subdirectory(arrays)
 
     # Including other modules
     add_subdirectory(include)
