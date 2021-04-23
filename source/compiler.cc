@@ -22,7 +22,7 @@ namespace fs = std::filesystem;
 namespace sapc {
     using namespace std::literals;
 
-    static constexpr auto typeIdName = "$sapc.typeid"sv;
+    static constexpr auto typeIdName = "typeid"sv;
     static constexpr auto customTagName = "$customtag"sv;
 
     namespace {
