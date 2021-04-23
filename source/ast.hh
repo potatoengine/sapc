@@ -111,6 +111,7 @@ namespace sapc::ast {
         AliasDecl() { kind = Kind::Alias; }
 
         Identifier name;
+        std::string customTag;
         std::unique_ptr<TypeRef> targetType; // optional
         std::vector<Annotation> annotations;
     };
@@ -138,6 +139,7 @@ namespace sapc::ast {
         UnionDecl() { kind = Kind::Union; }
 
         Identifier name;
+        std::string customTag;
         std::vector<Field> fields;
         std::vector<Annotation> annotations;
     };
@@ -162,6 +164,7 @@ namespace sapc::ast {
         ConstantDecl() { kind = Kind::Constant; }
 
         Identifier name;
+        std::string customTag;
         std::unique_ptr<TypeRef> type;
         std::vector<Annotation> annotations;
         Literal value;

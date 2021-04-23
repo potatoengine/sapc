@@ -133,8 +133,8 @@ def main(argv):
         typemap[type["qualified"]] = type
 
     banner(f"Module - {doc['module']['name']}")
-    for annotation in doc['module']['annotations']:
-        print(f'// annotation: {annotation["type"]}({",".join([typemap[annotation["type"]]["fields"][i]["name"]+":"+encode(v) for i,v in enumerate(annotation["args"])])})', file=args.output)
+    for anno in doc['module']['annotations']:
+        print(f'// annotation: {anno["type"]}({",".join([typemap[anno["type"]]["fields"][i]["name"]+":"+encode(v) for i,v in enumerate(anno["args"])])})', file=args.output)
     print('', file=args.output)
     
     banner('Imports')
@@ -266,6 +266,8 @@ def main(argv):
 
         name = cxxname(constant)
 
+        const_str = 'constexpr' if annotation(constant, '$sapc.customtag') == 'constexpr' else 'const'
+
         if 'location' in constant:
             loc = constant['location']
             if 'line' in loc and 'column' in loc:
@@ -275,7 +277,7 @@ def main(argv):
             else:
                 print(f'  // {loc["filename"]}', file=args.output)
 
-        print(f'  static const {field_cxxtype(typemap, constant["type"])} {cxxname(constant)} = {encode(constant["value"])};\n', file=args.output)
+        print(f'  static {const_str} {field_cxxtype(typemap, constant["type"])} {cxxname(constant)} = {encode(constant["value"])};\n', file=args.output)
 
     enter_namespace(None)
 
