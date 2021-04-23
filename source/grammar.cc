@@ -68,7 +68,10 @@ namespace sapc {
             inline bool parseFile();
             inline bool parseScope(Location const& start, TokenType terminate, unsigned config);
             inline bool parseStruct(std::string_view customTag = {});
+            inline bool parseUnion(std::string_view customTag = {});
+            inline bool parseAlias(std::string_view customTag = {});
             inline bool parseEnum(std::string_view customTag = {});
+            inline bool parseConstant(std::string_view customTag = {});
             inline bool parseCustom(std::string_view tag);
 
             inline bool hasCustomTag(std::string_view tag, ast::Declaration::Kind kind) const;
@@ -184,12 +187,26 @@ namespace sapc {
                 EXPECT(customTagDecl.name);
                 EXPECT(TokenType::Colon);
 
-                EXPECT((std::initializer_list<TokenType>{ TokenType::KeywordStruct, TokenType::KeywordEnum }));
+                EXPECT((std::initializer_list<TokenType>{
+                    TokenType::KeywordStruct,
+                        TokenType::KeywordEnum,
+                        TokenType::KeywordUnion,
+                        TokenType::KeywordUsing,
+                        TokenType::KeywordConst,
+                }));
 
-                if (tokens[next - 1].type == TokenType::KeywordStruct)
+                TokenType const type = tokens[next - 1].type;
+
+                if (type == TokenType::KeywordStruct)
                     customTagDecl.tagKind = ast::Declaration::Kind::Struct;
-                else
+                else if (type == TokenType::KeywordEnum)
                     customTagDecl.tagKind = ast::Declaration::Kind::Enum;
+                else if (type == TokenType::KeywordUnion)
+                    customTagDecl.tagKind = ast::Declaration::Kind::Union;
+                else if (type == TokenType::KeywordUsing)
+                    customTagDecl.tagKind = ast::Declaration::Kind::Alias;
+                else if (type == TokenType::KeywordConst)
+                    customTagDecl.tagKind = ast::Declaration::Kind::Constant;
 
                 EXPECT(TokenType::SemiColon);
 
@@ -228,52 +245,22 @@ namespace sapc {
 
             // parse constants
             if ((config & AllowConstants) != 0 && consume(TokenType::KeywordConst)) {
-                auto& constDecl = begin<ast::ConstantDecl>();
-                constDecl.annotations = std::move(annotations);
-
-                EXPECT(constDecl.type);
-                EXPECT(constDecl.name);
-                EXPECT(TokenType::Equal);
-                EXPECT(constDecl.value);
-                EXPECT(TokenType::SemiColon);
-
+                if (!parseConstant())
+                    return false;
                 continue;
             }
 
             // parse unions
             if ((config & AllowTypes) != 0 && consume(TokenType::KeywordUnion)) {
-                auto& unionDecl = begin<ast::UnionDecl>();
-
-                unionDecl.annotations = std::move(annotations);
-                EXPECT(unionDecl.name);
-
-                EXPECT(TokenType::LeftBrace);
-                while (!consume(TokenType::RightBrace)) {
-                    auto& field = unionDecl.fields.emplace_back();
-
-                    while (match(TokenType::LeftBracket))
-                        EXPECT(field.annotations);
-
-                    EXPECT(field.type);
-                    EXPECT(field.name);
-                    EXPECT(TokenType::SemiColon);
-                }
-
+                if (!parseUnion())
+                    return false;
                 continue;
             }
 
             // parse alias declarations
             if ((config & AllowTypes) != 0 && consume(TokenType::KeywordUsing)) {
-                auto& aliasDecl = begin<ast::AliasDecl>();
-
-                aliasDecl.annotations = std::move(annotations);
-                EXPECT(aliasDecl.name);
-
-                if (consume(TokenType::Equal))
-                    EXPECT(aliasDecl.targetType);
-
-                EXPECT(TokenType::SemiColon);
-
+                if (!parseAlias())
+                    return false;
                 continue;
             }
 
@@ -345,6 +332,43 @@ namespace sapc {
         return true;
     }
 
+    bool Grammar::parseUnion(std::string_view customTag) {
+        auto& unionDecl = begin<ast::UnionDecl>();
+        unionDecl.customTag = customTag;
+
+        unionDecl.annotations = std::move(annotations);
+        EXPECT(unionDecl.name);
+
+        EXPECT(TokenType::LeftBrace);
+        while (!consume(TokenType::RightBrace)) {
+            auto& field = unionDecl.fields.emplace_back();
+
+            while (match(TokenType::LeftBracket))
+                EXPECT(field.annotations);
+
+            EXPECT(field.type);
+            EXPECT(field.name);
+            EXPECT(TokenType::SemiColon);
+        }
+
+        return true;
+    }
+
+    bool Grammar::parseAlias(std::string_view customTag) {
+        auto& aliasDecl = begin<ast::AliasDecl>();
+        aliasDecl.customTag = customTag;
+
+        aliasDecl.annotations = std::move(annotations);
+        EXPECT(aliasDecl.name);
+
+        if (consume(TokenType::Equal))
+            EXPECT(aliasDecl.targetType);
+
+        EXPECT(TokenType::SemiColon);
+
+        return true;
+    }
+
     bool Grammar::parseEnum(std::string_view customTag) {
         auto& enumDecl = begin<ast::EnumDecl>();
         enumDecl.customTag = customTag;
@@ -373,14 +397,33 @@ namespace sapc {
         return true;
     }
 
+    bool Grammar::parseConstant(std::string_view customTag) {
+        auto& constDecl = begin<ast::ConstantDecl>();
+        constDecl.customTag = customTag;
+
+        constDecl.annotations = std::move(annotations);
+
+        EXPECT(constDecl.type);
+        EXPECT(constDecl.name);
+        EXPECT(TokenType::Equal);
+        EXPECT(constDecl.value);
+        EXPECT(TokenType::SemiColon);
+
+        return true;
+    }
+
+
     bool Grammar::parseCustom(std::string_view tag) {
-        // custom struct
         if (hasCustomTag(tag, ast::Declaration::Kind::Struct))
             return parseStruct(tag);
-
-        // custom enum
-        if (hasCustomTag(tag, ast::Declaration::Kind::Enum))
+        else if (hasCustomTag(tag, ast::Declaration::Kind::Enum))
             return parseEnum(tag);
+        else if (hasCustomTag(tag, ast::Declaration::Kind::Union))
+            return parseUnion(tag);
+        else if (hasCustomTag(tag, ast::Declaration::Kind::Alias))
+            return parseAlias(tag);
+        else if (hasCustomTag(tag, ast::Declaration::Kind::Constant))
+            return parseConstant(tag);
 
         return fail("unexpected identifier `", tag, '`');
     }

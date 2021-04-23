@@ -168,7 +168,7 @@ namespace sapc {
             ast::ModuleUnit const* parseModule(ast::Identifier const& id, fs::path const& requestingFile);
             ast::ModuleUnit const* parseModule(fs::path const& filename);
 
-            void applyCustomTag(schema::Type& type, std::string_view tag);
+            void applyCustomTag(schema::Annotated& annotated, std::string_view tag);
         };
     }
 
@@ -283,6 +283,9 @@ namespace sapc {
         type->location = aliasDecl.name.loc;
         translate(type->annotations, aliasDecl.annotations);
 
+        if (!aliasDecl.customTag.empty())
+            applyCustomTag(*type, aliasDecl.customTag);
+
         if (aliasDecl.targetType != nullptr)
             type->refType = requireType(*aliasDecl.targetType, type);
 
@@ -354,6 +357,9 @@ namespace sapc {
         type->location = unionDecl.name.loc;
         translate(type->annotations, unionDecl.annotations);
 
+        if (!unionDecl.customTag.empty())
+            applyCustomTag(*type, unionDecl.customTag);
+
         type->fields.reserve(unionDecl.fields.size());
         for (ast::Field const& field : unionDecl.fields)
             build(*type, field);
@@ -376,6 +382,9 @@ namespace sapc {
         constant->scope = state.back().nsStack.back();
         constant->type = requireType(*constantDecl.type);
         constant->value = translate(constantDecl.value);
+
+        if (!constantDecl.customTag.empty())
+            applyCustomTag(*constant, constantDecl.customTag);
 
         mod.constants.push_back(constant);
         state.back().nsStack.back()->constants.push_back(constant);
@@ -970,13 +979,13 @@ namespace sapc {
         return mod;
     }
 
-    void Compiler::applyCustomTag(schema::Type& type, std::string_view tag) {
+    void Compiler::applyCustomTag(schema::Annotated& annotated, std::string_view tag) {
         auto it = customTagMap.find(tag);
         assert(it != customTagMap.end());
 
-        translate(type.annotations, it->second->annotations);
+        translate(annotated.annotations, it->second->annotations);
 
-        auto& tagAnno = *type.annotations.emplace_back(std::make_unique<schema::Annotation>());
+        auto& tagAnno = *annotated.annotations.emplace_back(std::make_unique<schema::Annotation>());
         tagAnno.type = makeAvailable(customTagAttr);
         tagAnno.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
 

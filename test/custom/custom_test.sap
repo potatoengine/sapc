@@ -3,6 +3,9 @@ module custom_test;
 import custom_base;
 
 use local : struct;
+use constexpr : const;
+use typelist : union;
+use newtype : using;
 
 local LocalTest {
     int localX;
@@ -13,3 +16,9 @@ custom CustomTest {
 }
 
 flags FlagsTest { Red = 1, Green = 2, Blue = 4 }
+
+constexpr int seven = 7;
+
+newtype Int = int;
+
+typelist Types { LocalTest l; CustomTest c; }
