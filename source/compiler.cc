@@ -74,13 +74,6 @@ namespace sapc {
             }
         };
 
-        struct PathHash {
-            using result_type = std::uint64_t;
-            result_type operator()(fs::path const& path) const noexcept {
-                return hash_value(path);
-            }
-        };
-
         struct Resolve {
             enum class Kind { Empty, Type, Constant, Namespace, EnumItem };
 
@@ -103,7 +96,7 @@ namespace sapc {
         };
 
         struct State {
-            std::unique_ptr<ast::ModuleUnit> unit;
+            ast::ModuleUnit const* unit = nullptr;
             schema::Module* mod = nullptr;
             std::vector<schema::Namespace*> nsStack;
             std::unordered_set<schema::Type const*> importedTypes;
@@ -123,7 +116,6 @@ namespace sapc {
             std::unordered_map<schema::Type const*, schema::Type const*> arrayTypeMap;
             std::unordered_map<schema::Type const*, schema::Type const*> pointerTypeMap;
             std::unordered_map<size_t, schema::Type const*> specializedTypeMap;
-            std::unordered_map<fs::path, schema::Module const*, PathHash> moduleMap;
             std::unordered_map<std::string_view, ast::CustomTagDecl const*> customTagMap;
 
             schema::Module const* compile(fs::path const& filename);
@@ -172,6 +164,9 @@ namespace sapc {
             void translate(std::vector<std::unique_ptr<schema::Annotation>>& target, std::vector<ast::Annotation> const& annotations);
 
             std::string qualify(std::string_view name) const;
+
+            ast::ModuleUnit const* parseModule(ast::Identifier const& id, fs::path const& requestingFile);
+            ast::ModuleUnit const* parseModule(fs::path const& filename);
         };
     }
 
@@ -341,6 +336,19 @@ namespace sapc {
         type->location = enumDecl.name.loc;
         translate(type->annotations, enumDecl.annotations);
 
+        if (!enumDecl.customTag.empty()) {
+            auto it = customTagMap.find(enumDecl.customTag);
+            assert(it != customTagMap.end());
+            translate(type->annotations, it->second->annotations);
+
+            auto& tagAnno = *type->annotations.emplace_back(std::make_unique<schema::Annotation>());
+            tagAnno.type = makeAvailable(customTagAttr);
+            tagAnno.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
+            auto& tagValue = tagAnno.args.emplace_back();
+            tagValue.data = enumDecl.customTag;
+            tagValue.location = { std::filesystem::absolute(__FILE__), {__LINE__ } };
+        }
+
         type->items.reserve(enumDecl.items.size());
         for (ast::EnumItem const& item : enumDecl.items)
             build(*type, item);
@@ -425,8 +433,8 @@ namespace sapc {
             return;
         }
 
-        auto it = moduleMap.find(filename);
-        if (it != moduleMap.end())
+        auto it = ctx.moduleMap.find(filename);
+        if (it != ctx.moduleMap.end())
             return;
 
         if (auto const* imp = compile(filename); imp != nullptr)
@@ -436,7 +444,7 @@ namespace sapc {
     schema::Module const* Compiler::compile(fs::path const& filename) {
         ctx.dependencies.push_back(filename);
 
-        auto unit = parse(filename, log);
+        auto const* const unit = parseModule(filename);
         if (!unit)
             return nullptr;
 
@@ -451,7 +459,7 @@ namespace sapc {
         mod->root = ns;
         ns->owner = mod;
 
-        state.push_back(State{ move(unit), mod });
+        state.push_back(State{ unit, mod });
         state.back().nsStack.push_back(ctx.namespaces.back().get());
 
         for (auto const& decl : state.back().unit->decls)
@@ -947,5 +955,36 @@ namespace sapc {
         qualified += '.';
         qualified += name;
         return qualified;
+    }
+
+    ast::ModuleUnit const* Compiler::parseModule(ast::Identifier const& id, fs::path const& requestingFile) {
+        auto const parent = requestingFile.parent_path();
+        auto const basename = fs::path{ id.id }.replace_extension(".sap");
+        auto const filename = resolveFile(basename, parent, ctx.searchPaths);
+        if (filename.empty()) {
+            log.error(id.loc, id.id, ": module not found");
+            return nullptr;
+        }
+
+        return parseModule(filename);
+    }
+
+    ast::ModuleUnit const* Compiler::parseModule(fs::path const& filename) {
+        if (auto it = ctx.astMap.find(filename); it != ctx.astMap.end())
+            return it->second;
+
+        auto moduleAst = parse(filename, [this](auto const& id, auto const& requestingFile) {
+            return this->parseModule(id, requestingFile);
+            }, log);
+        auto const* const mod = moduleAst.get();
+
+        ctx.astMap.insert({ filename, mod });
+
+        if (mod == nullptr)
+            return nullptr;
+
+        ctx.asts.push_back(std::move(moduleAst));
+
+        return mod;
     }
 }

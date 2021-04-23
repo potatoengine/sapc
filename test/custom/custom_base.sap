@@ -1,0 +1,9 @@
+module custom_base;
+
+attribute cxxnamespace { string ns; }
+
+[cxxnamespace("st_custom")]
+use custom : struct;
+
+[cxxnamespace("st_flags")]
+use flags : enum;

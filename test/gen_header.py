@@ -202,7 +202,7 @@ def main(argv):
         basespec = f' : {qualified(basetype)}' if basetype is not None else ''
 
         if kind == 'enum':
-            enter_namespace(namespace(type))
+            enter_namespace(type_ns)
             type_banner(type)
 
             print(f'  enum class {name}{basespec} {{', file=args.output)
@@ -213,12 +213,12 @@ def main(argv):
             print(f'  }};\n', file=args.output)
         elif kind == 'alias':
             if 'refType' in type:
-                enter_namespace(namespace(type))
+                enter_namespace(type_ns)
                 type_banner(type)
 
                 print(f'  using {name} = {field_cxxtype(typemap, type["refType"])};\n', file=args.output)
         elif kind == 'union':
-            enter_namespace(namespace(type))
+            enter_namespace(type_ns)
             type_banner(type)
 
             print(f'  union {name}{basespec} {{', file=args.output)
@@ -231,7 +231,7 @@ def main(argv):
 
             print(f'  }};\n', file=args.output)
         elif kind != 'simple':
-            enter_namespace(namespace(type))
+            enter_namespace(type_ns)
             type_banner(type)
 
             if 'generics' in type:

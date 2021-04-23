@@ -2,6 +2,7 @@
 // This is free and unencumbered software released into the public domain.
 // See LICENSE.md for more details.
 
+#include "ast.hh"
 #include "compiler.hh"
 #include "context.hh"
 #include "json.hh"

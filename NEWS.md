@@ -4,6 +4,9 @@ sapc
 Version 0.15-beta (WIP)
 -----------------------
 
+ - Importing modules includes their custom tags in grammar parsing
+ - Fix enums to apply custom tags
+
 Version 0.14-beta
 -----------------
 

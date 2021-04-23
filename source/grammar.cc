@@ -39,6 +39,7 @@ namespace sapc {
             std::vector<Token> const& tokens;
             Log& log;
             fs::path const& filename;
+            ParserImportModuleCb const& importCallback;
             ast::ModuleUnit& module;
             size_t next = 0;
             std::vector<std::vector<std::unique_ptr<ast::Declaration>>*> scopeStack;
@@ -71,12 +72,17 @@ namespace sapc {
             inline bool parseEnum(std::string_view customTag = {});
             inline bool parseCustom(std::string_view tag);
 
+            inline void processCustomTag(ast::CustomTagDecl const& customDecl);
+
             template <typename DeclT>
             DeclT& begin();
         };
     }
 
-    std::unique_ptr<ast::ModuleUnit> parse(std::filesystem::path const& filename, Log& log) {
+    std::unique_ptr<ast::ModuleUnit> parse(std::filesystem::path const& filename, ParserImportModuleCb const& importCb, Log& log) {
+        assert(!filename.empty());
+        assert(importCb);
+
         std::string contents;
         if (!loadText(filename, contents)) {
             log.error(filename.string(), ": failed to open input");
@@ -90,7 +96,7 @@ namespace sapc {
         auto mod = std::make_unique<ast::ModuleUnit>();
         mod->filename = filename;
 
-        Grammar grammar{ tokens, log, filename, *mod };
+        Grammar grammar{ tokens, log, filename, importCb, *mod };
         if (!grammar.parseFile())
             return nullptr;
 
@@ -126,10 +132,17 @@ namespace sapc {
             }
 
             if ((config & AllowImport) != 0 && consume(TokenType::KeywordImport)) {
-                auto& imp = begin<ast::ImportDecl>();
+                auto& impDecl = begin<ast::ImportDecl>();
 
-                EXPECT(imp.target);
+                EXPECT(impDecl.target);
                 EXPECT(TokenType::SemiColon);
+
+                // Parse the imported module, which we need in order to find custom decls
+                auto const* const imported = importCallback(impDecl.target, filename);
+                if (imported != nullptr)
+                    for (auto const& decl : imported->decls)
+                        if (decl->kind == ast::Declaration::Kind::CustomTag)
+                            processCustomTag(*static_cast<ast::CustomTagDecl const*>(decl.get()));
 
                 continue;
             }
@@ -173,16 +186,14 @@ namespace sapc {
 
                 EXPECT((std::initializer_list<TokenType>{ TokenType::KeywordStruct, TokenType::KeywordEnum }));
 
-                if (tokens[next - 1].type == TokenType::KeywordStruct) {
+                if (tokens[next - 1].type == TokenType::KeywordStruct)
                     customTagDecl.tagKind = ast::Declaration::Kind::Struct;
-                    customStructTags.insert(customTagDecl.name.id);
-                }
-                else {
+                else
                     customTagDecl.tagKind = ast::Declaration::Kind::Enum;
-                    customEnumTags.insert(customTagDecl.name.id);
-                }
 
                 EXPECT(TokenType::SemiColon);
+
+                processCustomTag(customTagDecl);
 
                 continue;
             }
@@ -631,5 +642,13 @@ namespace sapc {
         scopeStack.back()->push_back(move(decl));
 
         return *ret;
+    }
+
+    void Grammar::processCustomTag(ast::CustomTagDecl const& customDecl)
+    {
+        if (customDecl.tagKind == ast::Declaration::Kind::Struct)
+            customStructTags.insert(customDecl.name.id);
+        else if (customDecl.tagKind == ast::Declaration::Kind::Enum)
+            customEnumTags.insert(customDecl.name.id);
     }
 }

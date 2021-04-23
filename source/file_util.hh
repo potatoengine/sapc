@@ -6,10 +6,18 @@
 
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <sstream>
 #include <vector>
 
 namespace sapc {
+    struct PathHash {
+        using result_type = std::uint64_t;
+        result_type operator()(std::filesystem::path const& path) const noexcept {
+            return hash_value(path);
+        }
+    };
+
     inline bool loadText(std::filesystem::path const& filename, std::string& out_text) {
         // open file and read contents
         std::ifstream stream(filename);
