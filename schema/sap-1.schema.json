@@ -85,7 +85,7 @@
         "namespace": { "type": "string" },
         "kind": {
           "type": "string",
-          "enum": [ "simple", "array", "pointer", "alias", "generic", "typename" ]
+          "enum": [ "simple", "array", "pointer", "alias", "typeparam", "typename" ]
         },
         "module": { "type": "string" },
         "refType": { "type": "string" },
@@ -102,7 +102,7 @@
         "namespace": { "type": "string" },
         "kind": {
           "type": "string",
-          "enum": [ "struct", "union", "attribute", "specialized" ]
+          "enum": [ "struct", "union", "attribute" ]
         },
         "module": { "type": "string" },
         "refType": { "type": "string" },
@@ -114,7 +114,7 @@
             "$ref": "#/definitions/field"
           }
         },
-        "generics": {
+        "typeParams": {
           "type": "array",
           "items": { "type": "string" }
         }
@@ -145,7 +145,7 @@
     },
     "type_specialized": {
       "type": "object",
-      "required": [ "name", "qualified", "kind", "module", "annotations", "location", "refType", "typeParams" ],
+      "required": [ "name", "qualified", "kind", "module", "annotations", "location", "refType", "typeArgs" ],
       "properties": {
         "name": { "type": "string" },
         "qualified": { "type": "string" },
@@ -158,7 +158,7 @@
         "refType": { "type": "string" },
         "annotations": { "$ref": "#/definitions/annotations" },
         "location": { "$ref": "#/definitions/location" },
-        "typeParams": {
+        "typeArgs": {
           "type": "array",
           "items": { "type": "string" }
         }
