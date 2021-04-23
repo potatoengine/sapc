@@ -178,7 +178,7 @@ def main(argv):
         print('    static decltype(auto) get_annotation() {', file=args.output)
         for index,anno in enumerate(type['annotations']):
             anno_type = typemap[anno['type']]
-            if anno_type['name'] == '$sapc.customtag': continue
+            if anno_type['name'] == '$customtag': continue
 
             print(f'      if constexpr(N == {index}) {{', file=args.output)
             print(f'        static auto const anno = {qualified(anno_type)}{{', file=args.output)
@@ -266,7 +266,7 @@ def main(argv):
 
         name = cxxname(constant)
 
-        const_str = 'constexpr' if annotation(constant, '$sapc.customtag') == 'constexpr' else 'const'
+        const_str = 'constexpr' if annotation(constant, '$customtag') == 'constexpr' else 'const'
 
         if 'location' in constant:
             loc = constant['location']

@@ -22,8 +22,8 @@ namespace fs = std::filesystem;
 namespace sapc {
     using namespace std::literals;
 
-    static constexpr auto typeIdName = "$sapc.typeid"sv;
-    static constexpr auto customTagName = "$sapc.customtag"sv;
+    static constexpr auto typeIdName = "typeid"sv;
+    static constexpr auto customTagName = "$customtag"sv;
 
     namespace {
         // std::span isn't in C++17
@@ -478,7 +478,7 @@ namespace sapc {
         schema::Module* mod = ctx.modules.emplace_back(std::make_unique<schema::Module>()).get();
         mod->root = ns;
         coreModule = mod;
-        mod->name = "$sapc";
+        mod->name = "$core";
         ns->owner = mod;
 
         for (auto const& builtin : builtins) {
