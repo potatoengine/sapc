@@ -63,7 +63,7 @@ namespace sapc::schema {
         enum Kind {
             Simple,
             Struct,
-            Generic,
+            TypeParam,
             Specialized,
             Union,
             Attribute,

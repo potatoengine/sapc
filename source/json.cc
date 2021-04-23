@@ -124,7 +124,7 @@ namespace sapc {
         switch (value) {
         case Type::Kind::Simple: j = "simple"; break;
         case Type::Kind::Attribute: j = "attribute"; break;
-        case Type::Kind::Generic: j = "generic"; break;
+        case Type::Kind::TypeParam: j = "typeparam"; break;
         case Type::Kind::Specialized: j = "specialized"; break;
         case Type::Kind::Enum: j = "enum"; break;
         case Type::Kind::Alias: j = "alias"; break;

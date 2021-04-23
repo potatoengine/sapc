@@ -39,7 +39,7 @@ def namespace(el):
     cxxns = annotation(el, name='cxxnamespace', default=None)
     if cxxns is not None:
         return cxxns
-    elif 'kind' in el and el['kind'] == 'generic':
+    elif 'kind' in el and el['kind'] == 'typeparam':
         return None
     elif el['name'] in cxx_type_map:
         return None

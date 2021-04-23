@@ -250,14 +250,14 @@ namespace sapc {
         // Build generics before fields, as fields might refer to a generic
         type->typeParams.reserve(structDecl.generics.size());
         for (ast::Identifier const& gen : structDecl.generics) {
-            auto* const sub = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
-            sub->name = gen.id;
-            sub->qualifiedName = type->qualifiedName + "." + gen.id;
-            sub->kind = schema::Type::Kind::Generic;
-            sub->scope = type->scope;
-            type->typeParams.push_back(sub);
+            auto* const typeParam = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
+            typeParam->name = gen.id;
+            typeParam->qualifiedName = type->qualifiedName + "." + gen.id;
+            typeParam->kind = schema::Type::Kind::TypeParam;
+            typeParam->scope = type->scope;
+            type->typeParams.push_back(typeParam);
 
-            mod.types.push_back(sub);
+            mod.types.push_back(typeParam);
         }
 
         type->fields.reserve(structDecl.fields.size());
