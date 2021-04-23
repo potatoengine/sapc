@@ -9,6 +9,7 @@ Version 0.15-beta (WIP)
  - Custom tags for unions, aliases, and constants
  - Renamed $sapc, $sapc.customtag, and $sapc.typeid to $core, $customtag, $typeid, respectively
  - Renamed 'generic' type kind to 'typeparam', 'generics' array to 'typeParams', and old 'typeParams' to 'typeArgs'
+ - Optional static array sizes, e.g. `int[5] values;`
 
 Version 0.14-beta
 -----------------
