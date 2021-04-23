@@ -78,11 +78,14 @@ def field_cxxtype(typemap, name):
     if field_type['kind'] == 'typename':
         return 'std::type_index'
     if field_type['kind'] == 'array':
-        field_type = field_cxxtype(typemap, field_type['refType'])
-        return f'std::vector<{field_type}>'
+        elem_type = field_cxxtype(typemap, field_type['refType'])
+        if 'length' in field_type:
+            return f'std::array<{elem_type}, {field_type["length"]}>'
+        else:
+            return f'std::vector<{elem_type}>'
     elif field_type['kind'] == 'pointer':
-        field_type = field_cxxtype(typemap, field_type['refType'])
-        return f'std::unique_ptr<{field_type}>'
+        target_type = field_cxxtype(typemap, field_type['refType'])
+        return f'std::unique_ptr<{target_type}>'
     elif field_type['kind'] == 'specialized':
         ref_type = field_cxxtype(typemap, field_type['refType'])
         arg_types = [field_cxxtype(typemap, arg) for arg in field_type['typeArgs']]
@@ -120,6 +123,7 @@ def main(argv):
     print(f'#define INCLUDE_GUARD_SAPC_{identifier(doc["module"]["name"]).upper()} 1', file=args.output)
     print('#pragma once', file=args.output)
     print('#include <any>', file=args.output)
+    print('#include <array>', file=args.output)
     print('#include <memory>', file=args.output)
     print('#include <string>', file=args.output)
     print('#include <typeindex>', file=args.output)

@@ -645,6 +645,13 @@ namespace sapc {
             arr->kind = ast::TypeRef::Kind::Array;
             arr->loc = type->loc;
             arr->ref = std::move(type);
+
+            if (match(TokenType::Number)) {
+                long long arraySize = 0;
+                EXPECT(arraySize);
+                arr->arraySize = arraySize;
+            }
+
             EXPECT(TokenType::RightBracket);
             arr->loc.merge(pos());
             type = std::move(arr);
