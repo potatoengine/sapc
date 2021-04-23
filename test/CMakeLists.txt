@@ -11,6 +11,7 @@ if(SAPC_BUILD_TESTS)
     add_subdirectory(search)
 
     # Advanced features
+    add_subdirectory(generics)
     add_subdirectory(custom)
     add_subdirectory(complex)
 endif()
