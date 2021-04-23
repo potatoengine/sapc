@@ -241,7 +241,7 @@ namespace sapc {
         type->scope = state.back().nsStack.back();
         type->location = structDecl.name.loc;
         if (structDecl.baseType != nullptr)
-            type->refType = requireType(*structDecl.baseType);
+            type->baseType = requireType(*structDecl.baseType);
         translate(type->annotations, structDecl.annotations);
 
         if (!structDecl.customTag.empty())
@@ -275,7 +275,7 @@ namespace sapc {
 
         auto& mod = *state.back().mod;
 
-        auto* const type = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
+        auto* const type = static_cast<schema::TypeIndirect*>(ctx.types.emplace_back(std::make_unique<schema::TypeIndirect>()).get());
         type->name = aliasDecl.name.id;
         type->qualifiedName = qualify(type->name);
         type->kind = schema::Type::Kind::Alias;
@@ -547,16 +547,21 @@ namespace sapc {
         for (auto const& anno : type.annotations)
             makeAvailableRecurse(*anno);
 
+        for (auto const* generic : type.generics)
+            makeAvailableRecurse(*generic);
+
         if (type.kind == schema::Type::Kind::Struct || type.kind == schema::Type::Kind::Attribute || type.kind == schema::Type::Kind::Union) {
             auto const& typeAggr = static_cast<schema::TypeAggregate const&>(type);
-            makeAvailable(typeAggr.refType);
+
+            makeAvailable(typeAggr.baseType);
+
             for (auto const& field : typeAggr.fields)
                 makeAvailableRecurse(*field);
         }
         else if (type.kind == schema::Type::Kind::Alias || type.kind == schema::Type::Kind::Pointer || type.kind == schema::Type::Kind::Array || type.kind == schema::Type::Kind::Specialized) {
-            makeAvailable(type.refType);
-            for (auto const* generic : type.generics)
-                makeAvailableRecurse(*generic);
+            auto const& typeInd = static_cast<schema::TypeIndirect const&>(type);
+
+            makeAvailable(typeInd.refType);
         }
     }
 
@@ -632,8 +637,8 @@ namespace sapc {
         }
         else if (scope->kind == schema::Type::Kind::Struct) {
             auto const& typeAggr = *static_cast<schema::TypeAggregate const*>(scope);
-            if (scope->refType != nullptr)
-                if (auto const rs = findLocal(qualId, scope->refType); rs.kind != Resolve::Kind::Empty)
+            if (typeAggr.baseType != nullptr)
+                if (auto const rs = findLocal(qualId, typeAggr.baseType); rs.kind != Resolve::Kind::Empty)
                     return rs;
             for (auto const* gen : typeAggr.generics)
                 if (gen->name == qualId.front().id)
@@ -772,7 +777,7 @@ namespace sapc {
 
         auto& top = state.back();
 
-        auto* arr = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
+        auto* arr = static_cast<schema::TypeIndirect*>(ctx.types.emplace_back(std::make_unique<schema::TypeIndirect>()).get());
         top.mod->types.push_back(arr);
 
         arr->name = of->name;
@@ -798,7 +803,7 @@ namespace sapc {
 
         auto& top = state.back();
 
-        auto* ptr = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
+        auto* ptr = static_cast<schema::TypeIndirect*>(ctx.types.emplace_back(std::make_unique<schema::TypeIndirect>()).get());
         top.mod->types.push_back(ptr);
 
         ptr->name = to->name;
@@ -828,7 +833,7 @@ namespace sapc {
 
         auto& top = state.back();
 
-        auto* spec = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
+        auto* spec = static_cast<schema::TypeIndirect*>(ctx.types.emplace_back(std::make_unique<schema::TypeIndirect>()).get());
         top.mod->types.push_back(spec);
 
         std::string genName = "<";

@@ -167,8 +167,8 @@ namespace sapc {
         else if (type.kind == Type::Kind::Struct || type.kind == Type::Kind::Union || type.kind == Type::Kind::Attribute) {
             auto& typeAggr = static_cast<TypeAggregate const&>(type);
 
-            if (typeAggr.refType != nullptr)
-                type_json["base"] = typeAggr.refType->qualifiedName;
+            if (typeAggr.baseType != nullptr)
+                type_json["base"] = typeAggr.baseType->qualifiedName;
 
             if (!typeAggr.generics.empty()) {
                 auto generics_json = JsonT::array();
@@ -192,11 +192,15 @@ namespace sapc {
             type_json["fields"] = std::move(fields);
         }
         else if (type.kind == Type::Kind::Array || type.kind == Type::Kind::Pointer || type.kind == Type::Kind::Alias) {
-            if (type.refType != nullptr)
-                type_json["refType"] = type.refType->qualifiedName;
+            auto& typeInd = static_cast<TypeIndirect const&>(type);
+
+            if (typeInd.refType != nullptr)
+                type_json["refType"] = typeInd.refType->qualifiedName;
         }
         else if (type.kind == Type::Kind::Specialized) {
-            type_json["refType"] = type.refType->qualifiedName;
+            auto& typeInd = static_cast<TypeIndirect const&>(type);
+
+            type_json["refType"] = typeInd.refType->qualifiedName;
 
             auto types_json = JsonT::array();
             for (auto const* param : type.generics)
