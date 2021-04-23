@@ -39,7 +39,7 @@ def namespace(el):
     cxxns = annotation(el, name='cxxnamespace', default=None)
     if cxxns is not None:
         return cxxns
-    elif 'kind' in el and el['kind'] == 'generic':
+    elif 'kind' in el and el['kind'] == 'typeparam':
         return None
     elif el['name'] in cxx_type_map:
         return None
@@ -85,8 +85,8 @@ def field_cxxtype(typemap, name):
         return f'std::unique_ptr<{field_type}>'
     elif field_type['kind'] == 'specialized':
         ref_type = field_cxxtype(typemap, field_type['refType'])
-        param_types = [field_cxxtype(typemap, param) for param in field_type['typeParams']]
-        return f'{ref_type}<{", ".join(param_types)}>'
+        arg_types = [field_cxxtype(typemap, arg) for arg in field_type['typeArgs']]
+        return f'{ref_type}<{", ".join(arg_types)}>'
     else:
         ns = namespace(field_type)
         name = cxxname(field_type)
@@ -234,8 +234,8 @@ def main(argv):
             enter_namespace(type_ns)
             type_banner(type)
 
-            if 'generics' in type:
-                print(f'  template <typename {", typename ".join(type["generics"])}>', file=args.output)
+            if 'typeParams' in type:
+                print(f'  template <typename {", typename ".join(type["typeParams"])}>', file=args.output)
 
             print(f'  struct {name}{basespec} {{', file=args.output)
 

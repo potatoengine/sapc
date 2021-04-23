@@ -301,10 +301,10 @@ namespace sapc {
         EXPECT(structDecl.name);
 
         if (consume(TokenType::LeftAngle)) {
-            EXPECT(structDecl.generics.emplace_back());
+            EXPECT(structDecl.typeParams.emplace_back());
 
             while (consume(TokenType::Comma))
-                EXPECT(structDecl.generics.emplace_back());
+                EXPECT(structDecl.typeParams.emplace_back());
 
             EXPECT(TokenType::RightAngle);
         }
@@ -338,6 +338,15 @@ namespace sapc {
 
         unionDecl.annotations = std::move(annotations);
         EXPECT(unionDecl.name);
+
+        if (consume(TokenType::LeftAngle)) {
+            EXPECT(unionDecl.typeParams.emplace_back());
+
+            while (consume(TokenType::Comma))
+                EXPECT(unionDecl.typeParams.emplace_back());
+
+            EXPECT(TokenType::RightAngle);
+        }
 
         EXPECT(TokenType::LeftBrace);
         while (!consume(TokenType::RightBrace)) {
@@ -612,9 +621,9 @@ namespace sapc {
                 auto gen = std::make_unique<ast::TypeRef>();
                 gen->kind = ast::TypeRef::Kind::Generic;
                 gen->loc = type->loc;
-                EXPECT(gen->typeParams.emplace_back());
+                EXPECT(gen->typeArgs.emplace_back());
                 while (consume(TokenType::Comma))
-                    EXPECT(gen->typeParams.emplace_back());
+                    EXPECT(gen->typeArgs.emplace_back());
                 EXPECT(TokenType::RightAngle);
                 gen->loc.merge(pos());
                 gen->ref = std::move(type);

@@ -124,7 +124,7 @@ namespace sapc {
         switch (value) {
         case Type::Kind::Simple: j = "simple"; break;
         case Type::Kind::Attribute: j = "attribute"; break;
-        case Type::Kind::Generic: j = "generic"; break;
+        case Type::Kind::TypeParam: j = "typeparam"; break;
         case Type::Kind::Specialized: j = "specialized"; break;
         case Type::Kind::Enum: j = "enum"; break;
         case Type::Kind::Alias: j = "alias"; break;
@@ -167,14 +167,14 @@ namespace sapc {
         else if (type.kind == Type::Kind::Struct || type.kind == Type::Kind::Union || type.kind == Type::Kind::Attribute) {
             auto& typeAggr = static_cast<TypeAggregate const&>(type);
 
-            if (typeAggr.refType != nullptr)
-                type_json["base"] = typeAggr.refType->qualifiedName;
+            if (typeAggr.baseType != nullptr)
+                type_json["base"] = typeAggr.baseType->qualifiedName;
 
-            if (!typeAggr.generics.empty()) {
-                auto generics_json = JsonT::array();
-                for (auto const* gen : typeAggr.generics)
-                    generics_json.push_back(gen->name);
-                type_json["generics"] = std::move(generics_json);
+            if (!typeAggr.typeParams.empty()) {
+                auto type_params_json = JsonT::array();
+                for (auto const* typeParam : typeAggr.typeParams)
+                    type_params_json.push_back(typeParam->name);
+                type_json["typeParams"] = std::move(type_params_json);
             }
 
             auto fields = JsonT::array();
@@ -192,16 +192,20 @@ namespace sapc {
             type_json["fields"] = std::move(fields);
         }
         else if (type.kind == Type::Kind::Array || type.kind == Type::Kind::Pointer || type.kind == Type::Kind::Alias) {
-            if (type.refType != nullptr)
-                type_json["refType"] = type.refType->qualifiedName;
+            auto& typeInd = static_cast<TypeIndirect const&>(type);
+
+            if (typeInd.refType != nullptr)
+                type_json["refType"] = typeInd.refType->qualifiedName;
         }
         else if (type.kind == Type::Kind::Specialized) {
-            type_json["refType"] = type.refType->qualifiedName;
+            auto& typeInd = static_cast<TypeIndirect const&>(type);
 
-            auto types_json = JsonT::array();
-            for (auto const* param : type.generics)
-                types_json.push_back(param->qualifiedName);
-            type_json["typeParams"] = std::move(types_json);
+            type_json["refType"] = typeInd.refType->qualifiedName;
+
+            auto type_args_json = JsonT::array();
+            for (auto const* typeArg : typeInd.typeArgs)
+                type_args_json.push_back(typeArg->qualifiedName);
+            type_json["typeArgs"] = std::move(type_args_json);
         }
 
         type_json["location"] = type.location;

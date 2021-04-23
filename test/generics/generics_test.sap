@@ -1,0 +1,7 @@
+module generics_test;
+
+struct Map<Key, Value> { }
+
+struct Test {
+    Map<string, int> namesToValues;
+}
