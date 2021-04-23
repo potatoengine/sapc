@@ -23,7 +23,7 @@ namespace sapc {
     using namespace std::literals;
 
     static constexpr auto typeIdName = "$sapc.typeid"sv;
-    static constexpr auto customTagName = "$sapc.customtag"sv;
+    static constexpr auto customTagName = "$customtag"sv;
 
     namespace {
         // std::span isn't in C++17
