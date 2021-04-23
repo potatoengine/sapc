@@ -6,6 +6,7 @@ Version 0.15-beta (WIP)
 
  - Importing modules includes their custom tags in grammar parsing
  - Fix enums to apply custom tags
+ - Custom tags for unions, aliases, and constants
 
 Version 0.14-beta
 -----------------
