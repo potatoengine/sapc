@@ -614,7 +614,8 @@ namespace sapc {
             name->kind = ast::TypeRef::Kind::Name;
             EXPECT(name->name);
             name->loc = name->name.components.front().loc;
-            name->loc.merge(name->name.components.back().loc);
+            if (name->name.components.size() > 1)
+                name->loc.merge(name->name.components.back().loc);
             type = std::move(name);
 
             if (consume(TokenType::LeftAngle)) {
