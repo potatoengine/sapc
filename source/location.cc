@@ -11,7 +11,7 @@ namespace sapc {
         if (loc.start.line > 0 && loc.start.column > 0) {
             os << '(';
             os << loc.start.line << ',' << loc.start.column;
-            if (loc.start != loc.end)
+            if (loc.start != loc.end && loc.end.line != 0)
                 os << ',' << loc.end.line << ',' << loc.end.column;
             os << ')';
         }
