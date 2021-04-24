@@ -129,7 +129,7 @@ static int compile(Config& config) {
 
     auto const compiled = compile(ctx, log);
     if (!compiled && log.lines.empty())
-        log.error("Failed to compile input");
+        log.error({ ctx.targetFile }, "Failed to compile input");
 
     auto const valid = compiled && validate(*ctx.rootModule, log);
 

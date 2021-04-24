@@ -88,7 +88,7 @@ namespace sapc {
 
         std::string contents;
         if (!loadText(filename, contents)) {
-            log.error(filename.string(), ": failed to open input");
+            log.error({ filename }, "failed to open input");
             return nullptr;
         }
 
