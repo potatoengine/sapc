@@ -12,6 +12,7 @@ Version 0.15-beta (WIP)
  - Optional static array sizes, e.g. `int[5] values;`
  - Fix error output to show correct end position
  - Add "fake" MSC-style error codes to errors and warnings so VS and VSCode match on them by default
+ - Types declared with `using` but no alias are now "simple" types instead of "alias" in the output schema
 
 Version 0.14-beta
 -----------------

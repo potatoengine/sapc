@@ -275,22 +275,38 @@ namespace sapc {
 
         auto& mod = *state.back().mod;
 
-        auto* const type = static_cast<schema::TypeIndirect*>(ctx.types.emplace_back(std::make_unique<schema::TypeIndirect>()).get());
-        type->name = aliasDecl.name.id;
-        type->qualifiedName = qualify(type->name);
-        type->kind = schema::Type::Kind::Alias;
-        type->scope = state.back().nsStack.back();
-        type->location = aliasDecl.name.loc;
-        translate(type->annotations, aliasDecl.annotations);
+        if (aliasDecl.targetType != nullptr) {
+            auto* const type = static_cast<schema::TypeIndirect*>(ctx.types.emplace_back(std::make_unique<schema::TypeIndirect>()).get());
+            type->name = aliasDecl.name.id;
+            type->qualifiedName = qualify(type->name);
+            type->kind = schema::Type::Kind::Alias;
+            type->scope = state.back().nsStack.back();
+            type->location = aliasDecl.name.loc;
+            translate(type->annotations, aliasDecl.annotations);
 
-        if (!aliasDecl.customTag.empty())
-            applyCustomTag(*type, aliasDecl.customTag);
+            if (!aliasDecl.customTag.empty())
+                applyCustomTag(*type, aliasDecl.customTag);
 
-        if (aliasDecl.targetType != nullptr)
             type->refType = requireType(*aliasDecl.targetType, type);
 
-        mod.types.push_back(type);
-        state.back().nsStack.back()->types.push_back(type);
+            mod.types.push_back(type);
+            state.back().nsStack.back()->types.push_back(type);
+        }
+        else {
+            auto* const type = static_cast<schema::Type*>(ctx.types.emplace_back(std::make_unique<schema::Type>()).get());
+            type->name = aliasDecl.name.id;
+            type->qualifiedName = qualify(type->name);
+            type->kind = schema::Type::Kind::Simple;
+            type->scope = state.back().nsStack.back();
+            type->location = aliasDecl.name.loc;
+            translate(type->annotations, aliasDecl.annotations);
+
+            if (!aliasDecl.customTag.empty())
+                applyCustomTag(*type, aliasDecl.customTag);
+
+            mod.types.push_back(type);
+            state.back().nsStack.back()->types.push_back(type);
+        }
     }
 
     void Compiler::build(ast::AttributeDecl const& attrDecl) {
