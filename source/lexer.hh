@@ -57,6 +57,7 @@ namespace sapc {
     struct Token {
         TokenType type = TokenType::Unknown;
         Position pos;
+        int length = 0;
         long long dataNumber = 0;
         std::string dataString;
 
