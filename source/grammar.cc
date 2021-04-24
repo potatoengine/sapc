@@ -88,7 +88,7 @@ namespace sapc {
 
         std::string contents;
         if (!loadText(filename, contents)) {
-            log.error(filename.string(), ": failed to open input");
+            log.error({ filename }, "failed to open input");
             return nullptr;
         }
 
@@ -463,15 +463,16 @@ namespace sapc {
     }
 
     Location Grammar::pos() {
-        auto const& tokPos = next > 0 ? tokens[next - 1].pos : tokens.front().pos;
-        return Location{ filename, { tokPos.line, tokPos.column } };
+        auto const& tok = next > 0 ? tokens[next - 1] : tokens.front();
+        return Location{ filename, tok.start, tok.end };
     }
 
     template <typename... T>
     bool Grammar::fail(std::string message, T const&... args) {
         auto const& tok = next < tokens.size() ? tokens[next] : tokens.back();
-        Location const loc{ filename, { tok.pos.line, tok.pos.column } };
-        return log.error(loc, message, args...);
+        Location const loc{ filename, tok.start, tok.end };
+        log.error(loc, message, args...);
+        return false;
     };
 
     bool Grammar::mustConsume(TokenType type) {
@@ -582,7 +583,6 @@ namespace sapc {
             if (next < tokens.size())
                 buf << ", got " << tokens[next];
             return fail(buf.str());
-            return false;
         }
 
         out.id = tokens[index].dataString;
@@ -614,7 +614,8 @@ namespace sapc {
             name->kind = ast::TypeRef::Kind::Name;
             EXPECT(name->name);
             name->loc = name->name.components.front().loc;
-            name->loc.merge(name->name.components.back().loc);
+            if (name->name.components.size() > 1)
+                name->loc.merge(name->name.components.back().loc);
             type = std::move(name);
 
             if (consume(TokenType::LeftAngle)) {

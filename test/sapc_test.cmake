@@ -22,7 +22,7 @@ function(sapc_test NAME)
 
         set(INCLUDE_OPTS "")
         foreach(INCLUDE ${ARG_INCLUDE})
-            file(REAL_PATH "${INCLUDE}" INCLUDE_LOCAL BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+            get_filename_component(INCLUDE_LOCAL "${INCLUDE}" REALPATH BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
             list(APPEND INCLUDE_OPTS "-I${INCLUDE_LOCAL}")
         endforeach()
 

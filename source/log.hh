@@ -17,37 +17,25 @@ namespace sapc {
         int countErrors = 0;
 
         template <typename... T>
-        bool error(Location const& loc, T const&... args) {
+        void error(Location const& loc, T const&... args) {
             std::ostringstream buffer;
-            ((buffer << loc << ": Error: ") << ... << args);
+            ((buffer << loc << ": error C2000: ") << ... << args);
             lines.push_back(buffer.str());
             ++countErrors;
-            return false; // convenience
         }
 
         template <typename... T>
-        bool error(T const&... args) {
+        void warn(Location const& loc, T const&... args) {
             std::ostringstream buffer;
-            ((buffer << "Error: ") << ... << args);
+            ((buffer << loc << ": warning C4000: ") << ... << args);
             lines.push_back(buffer.str());
-            ++countErrors;
-            return false; // convenience
         }
 
         template <typename... T>
-        bool info(Location const& loc, T const&... args) {
+        void info(Location const& loc, T const&... args) {
             std::ostringstream buffer;
-            ((buffer << loc << ": ") << ... << args);
+            ((buffer << loc << ": info C4000: ") << ... << args);
             lines.push_back(buffer.str());
-            return true; // convenience
-        }
-
-        template <typename... T>
-        bool info(T const&... args) {
-            std::ostringstream buffer;
-            (buffer << ... << args);
-            lines.push_back(buffer.str());
-            return true; // convenience
         }
     };
 }
