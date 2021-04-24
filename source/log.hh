@@ -17,12 +17,11 @@ namespace sapc {
         int countErrors = 0;
 
         template <typename... T>
-        bool error(Location const& loc, T const&... args) {
+        void error(Location const& loc, T const&... args) {
             std::ostringstream buffer;
             ((buffer << loc << ": error C2000: ") << ... << args);
             lines.push_back(buffer.str());
             ++countErrors;
-            return false; // convenience
         }
 
         template <typename... T>
