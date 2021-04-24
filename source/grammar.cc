@@ -463,8 +463,8 @@ namespace sapc {
     }
 
     Location Grammar::pos() {
-        auto const& tokPos = next > 0 ? tokens[next - 1].pos : tokens.front().pos;
-        return Location{ filename, { tokPos.line, tokPos.column } };
+        auto const& tok = next > 0 ? tokens[next - 1] : tokens.front();
+        return Location{ filename, tok.start, tok.end };
     }
 
     template <typename... T>
