@@ -95,7 +95,7 @@ namespace sapc {
 
         auto const error = [&](decltype(position) start, char const* message) {
             log.error(Location{ filename, pos(start) }, message);
-            tokens.push_back({ TokenType::Unknown, pos(start) });
+            tokens.push_back({ TokenType::Unknown, pos(start), pos(position) });
             return false;
         };
 
@@ -178,7 +178,7 @@ namespace sapc {
             bool matched = false;
             for (auto [input, token, keyword] : tokenMap) {
                 if (match(input, keyword)) {
-                    tokens.push_back({ token, pos(start) });
+                    tokens.push_back({ token, pos(start), pos(position) });
                     matched = true;
                     break;
                 }
