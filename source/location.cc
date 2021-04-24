@@ -32,8 +32,8 @@ namespace sapc {
 
         if (end.line == 0 || rhs.line > end.line)
             end = rhs;
-        else if (end.line == rhs.line && rhs.column > start.column)
-            start.column = rhs.column;
+        else if (end.line == rhs.line && rhs.column > end.column)
+            end.column = rhs.column;
 
         return *this;
     }
