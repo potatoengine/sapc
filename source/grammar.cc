@@ -582,7 +582,6 @@ namespace sapc {
             if (next < tokens.size())
                 buf << ", got " << tokens[next];
             return fail(buf.str());
-            return false;
         }
 
         out.id = tokens[index].dataString;
