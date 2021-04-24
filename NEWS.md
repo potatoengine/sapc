@@ -10,6 +10,8 @@ Version 0.15-beta (WIP)
  - Renamed $sapc, $sapc.customtag, and $sapc.typeid to $core, $customtag, $typeid, respectively
  - Renamed 'generic' type kind to 'typeparam', 'generics' array to 'typeParams', and old 'typeParams' to 'typeArgs'
  - Optional static array sizes, e.g. `int[5] values;`
+ - Fix error output to show correct end position
+ - Add "fake" MSC-style error codes to errors and warnings so VS and VSCode match on them by default
 
 Version 0.14-beta
 -----------------
