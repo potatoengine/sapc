@@ -192,7 +192,7 @@ namespace sapc {
                 while (position < source.size() && isIdentChar(source[position]))
                     advance();
                 auto const identifier = source.substr(start, position - start);
-                tokens.push_back({ TokenType::Identifier, pos(start), static_cast<int>(position - start), 0, std::string{identifier} });
+                tokens.push_back({ TokenType::Identifier, pos(start), pos(position), 0, std::string{identifier} });
                 continue;
             }
 
@@ -209,7 +209,8 @@ namespace sapc {
 
                 Token token;
                 token.type = TokenType::Number;
-                token.pos = pos(start);
+                token.start = pos(start);
+                token.end = pos(position);
                 std::from_chars(source.data() + start, source.data() + position, token.dataNumber);
                 tokens.push_back(token);
                 continue;
@@ -249,7 +250,7 @@ namespace sapc {
                     }
                 }
 
-                tokens.push_back({ TokenType::String, pos(start), static_cast<int>(position - start), 0, std::move(buf).str() });
+                tokens.push_back({ TokenType::String, pos(start), pos(position), 0, std::move(buf).str() });
                 continue;
             }
 

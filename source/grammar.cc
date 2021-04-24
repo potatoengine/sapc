@@ -470,7 +470,7 @@ namespace sapc {
     template <typename... T>
     bool Grammar::fail(std::string message, T const&... args) {
         auto const& tok = next < tokens.size() ? tokens[next] : tokens.back();
-        Location const loc{ filename, { tok.pos.line, tok.pos.column }, { tok.pos.line, tok.pos.column + tok.length } };
+        Location const loc{ filename, tok.start, tok.end };
         return log.error(loc, message, args...);
     };
 
