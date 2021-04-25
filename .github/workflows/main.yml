@@ -36,6 +36,7 @@ jobs:
             cc: clang-11
             cxxflags: -fdiagnostics-absolute-paths -Wall -Werror -stdlib=libc++
             config: Release
+            apt: libc++-11-dev libc++abi-11-dev
 
     name: '${{ matrix.name }}'
     runs-on: '${{ matrix.os }}'
@@ -52,6 +53,11 @@ jobs:
       - name: Install ajv
         run: |
           npm install ajv-cli
+      - name: Install apt packages
+        run: |
+          sudo apt-get -yq update
+          sudo apt-get -yq install ${{ matrix.apt }}
+        if: matrix.apt != ''
       - name: Setup VS Environment
         uses: seanmiddleditch/gha-setup-vsdevenv@v3
       - name: Configure
