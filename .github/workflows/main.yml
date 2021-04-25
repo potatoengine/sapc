@@ -45,7 +45,7 @@ jobs:
         uses: seanmiddleditch/gha-setup-ninja@v3
       - name: Install ajv
         run: |
-          npm install -g ajv-cli
+          npm install ajv-cli
       - name: Setup VS Environment
         uses: seanmiddleditch/gha-setup-vsdevenv@v3
       - name: Configure
