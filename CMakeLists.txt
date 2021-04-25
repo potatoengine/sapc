@@ -9,7 +9,7 @@ if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
 endif()
 
 option(SAPC_BUILD_TESTS "Build sapc test" ${SAPC_IS_ROOT_PROJECT})
-option(SAPC_VALIDATE_SCHEMA_TESTS "Validate schemas when building tests (requires ajv-bin from npm)" ${SAPC_IS_ROOT_PROJECT})
+option(SAPC_VALIDATE_SCHEMA_TESTS "Validate schemas when building tests (requires ajv-bin from npm)" OFF)
 option(SAPC_USE_EMBEDDED_JSON "Try to acquire and use an embedded copy of nlohmann_json" ${SAPC_IS_ROOT_PROJECT})
 
 if(SAPC_BUILD_TESTS)
