@@ -30,6 +30,12 @@ jobs:
             cc: clang-9
             cxxflags: -fdiagnostics-absolute-paths -Wall -Werror
             config: Release
+          - name: 'clang-libc++'
+            os: 'ubuntu-20.04'
+            cxx: clang++-11
+            cc: clang-11
+            cxxflags: -fdiagnostics-absolute-paths -Wall -Werror -stdlib=libc++
+            config: Release
 
     name: '${{ matrix.name }}'
     runs-on: '${{ matrix.os }}'
