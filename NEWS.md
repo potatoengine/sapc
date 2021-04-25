@@ -6,6 +6,7 @@ Version 0.16
 
  - JSON Schema fixes and hardening
  - Set CMake variables `SAPC_VALIDATE_SCHEMA_TESTS` and optionally `SAPC_PATH_AJV_BIN` to enable schema validation tests (requires ajv-cli from npm)
+ - Fix build on libc++-11 and any other future strict C++ standard library implementations
 
 Version 0.15
 ------------

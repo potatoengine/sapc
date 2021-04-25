@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <sstream>
 #include <unordered_map>
 #include <utility>
 
