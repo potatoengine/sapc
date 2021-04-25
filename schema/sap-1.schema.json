@@ -23,6 +23,7 @@
     "module": {
       "type": "object",
       "required": [ "name", "annotations", "imports" ],
+      "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "annotations": { "$ref": "#/definitions/annotations" },
@@ -35,6 +36,7 @@
     "constant": {
       "type": "object",
       "required": [ "name", "qualified", "module", "type", "annotations", "value", "location" ],
+      "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "qualified": { "type": "string" },
@@ -49,6 +51,7 @@
     "namespace": {
       "type": "object",
       "required": [ "name", "qualified", "module" ],
+      "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "qualified": { "type": "string" },
@@ -72,6 +75,8 @@
       "oneOf": [
         { "$ref": "#/definitions/type_basic" },
         { "$ref": "#/definitions/type_aggregate" },
+        { "$ref": "#/definitions/type_indirect" },
+        { "$ref": "#/definitions/type_array" },
         { "$ref": "#/definitions/type_enum" },
         { "$ref": "#/definitions/type_specialized" }
       ]
@@ -79,13 +84,14 @@
     "type_basic": {
       "type": "object",
       "required": [ "name", "qualified", "kind", "module", "annotations", "location" ],
+      "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "qualified": { "type": "string" },
         "namespace": { "type": "string" },
         "kind": {
           "type": "string",
-          "enum": [ "simple", "array", "pointer", "alias", "typeparam", "typename" ]
+          "enum": [ "simple", "typeparam", "typename" ]
         },
         "module": { "type": "string" },
         "refType": { "type": "string" },
@@ -93,9 +99,29 @@
         "location": { "$ref": "#/definitions/location" }
       }
     },
+    "type_indirect": {
+      "type": "object",
+      "required": [ "name", "qualified", "kind", "module", "annotations", "location", "refType" ],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "qualified": { "type": "string" },
+        "namespace": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": [ "pointer", "alias" ]
+        },
+        "module": { "type": "string" },
+        "refType": { "type": "string" },
+        "length": { "type": "number" },
+        "annotations": { "$ref": "#/definitions/annotations" },
+        "location": { "$ref": "#/definitions/location" }
+      }
+    },
     "type_array": {
       "type": "object",
       "required": [ "name", "qualified", "kind", "module", "annotations", "location", "refType" ],
+      "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "qualified": { "type": "string" },
@@ -114,6 +140,7 @@
     "type_aggregate": {
       "type": "object",
       "required": [ "name", "qualified", "kind", "module", "annotations", "location", "fields" ],
+      "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "qualified": { "type": "string" },
@@ -123,7 +150,7 @@
           "enum": [ "struct", "union", "attribute" ]
         },
         "module": { "type": "string" },
-        "baseType": { "type": "string" },
+        "base": { "type": "string" },
         "annotations": { "$ref": "#/definitions/annotations" },
         "location": { "$ref": "#/definitions/location" },
         "fields": {
@@ -141,6 +168,7 @@
     "type_enum": {
       "type": "object",
       "required": [ "name", "qualified", "kind", "module", "annotations", "location", "items" ],
+      "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "qualified": { "type": "string" },
@@ -164,6 +192,7 @@
     "type_specialized": {
       "type": "object",
       "required": [ "name", "qualified", "kind", "module", "annotations", "location", "refType", "typeArgs" ],
+      "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "qualified": { "type": "string" },
@@ -185,6 +214,7 @@
     "enum_value": {
       "type": "object",
       "required": [ "name", "value" ],
+      "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "value": { "type": "number" }
@@ -196,6 +226,7 @@
     },
     "annotation": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "type": { "type": "string" },
         "location": { "$ref": "#/definitions/location" },
@@ -214,6 +245,7 @@
         {
           "type": "object",
           "required": [ "kind", "type", "name", "value" ],
+          "additionalProperties": false,
           "properties": {
             "kind": {
               "type": "string",
@@ -227,6 +259,7 @@
         {
           "type": "object",
           "required": [ "kind", "type" ],
+          "additionalProperties": false,
           "properties": {
             "kind": {
               "type": "string",
@@ -244,6 +277,7 @@
     "field": {
       "type": "object",
       "required": [ "name", "type", "annotations", "location" ],
+      "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "type": { "type": "string" },
@@ -255,6 +289,7 @@
     "import": {
       "type": "object",
       "required": [ "name", "annotations" ],
+      "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
         "filename": { "type": "string" },
@@ -265,6 +300,7 @@
     "location": {
       "type": "object",
       "required": [ "filename" ],
+      "additionalProperties": false,
       "properties": {
         "filename": { "type": "string" },
         "line": {
@@ -273,7 +309,15 @@
         },
         "column": {
           "type": "number",
+          "minimum": 0
+        },
+        "lineEnd": {
+          "type": "number",
           "minimum": 1
+        },
+        "columnEnd": {
+          "type": "number",
+          "minimum": 0
         }
       }
     }
