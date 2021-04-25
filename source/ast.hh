@@ -97,7 +97,7 @@ namespace sapc::ast {
         CustomTagDecl() { kind = Kind::CustomTag; }
 
         Identifier name;
-        Declaration::Kind tagKind; // Must be a declaration type
+        Declaration::Kind tagKind = Kind::Struct; // Must be a declaration type
         std::vector<Annotation> annotations;
     };
 

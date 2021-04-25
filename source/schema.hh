@@ -60,7 +60,7 @@ namespace sapc::schema {
     };
 
     struct Type : Annotated {
-        enum Kind {
+        enum class Kind {
             Simple,
             Struct,
             TypeParam,

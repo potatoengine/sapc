@@ -342,7 +342,7 @@ namespace sapc {
         auto* const type = static_cast<schema::TypeEnum*>(ctx.types.emplace_back(std::make_unique<schema::TypeEnum>()).get());
         type->name = enumDecl.name.id;
         type->qualifiedName = qualify(type->name);
-        type->kind = schema::Type::Enum;
+        type->kind = schema::Type::Kind::Enum;
         type->scope = state.back().nsStack.back();
         type->location = enumDecl.name.loc;
         translate(type->annotations, enumDecl.annotations);
@@ -368,7 +368,7 @@ namespace sapc {
         auto* const type = static_cast<schema::TypeAggregate*>(ctx.types.emplace_back(std::make_unique<schema::TypeAggregate>()).get());
         type->name = unionDecl.name.id;
         type->qualifiedName = qualify(type->name);
-        type->kind = schema::Type::Union;
+        type->kind = schema::Type::Kind::Union;
         type->scope = state.back().nsStack.back();
         type->location = unionDecl.name.loc;
         translate(type->annotations, unionDecl.annotations);
@@ -515,7 +515,7 @@ namespace sapc {
             mod->types.push_back(type);
             ns->types.push_back(type);
 
-            type->kind = schema::Type::Simple;
+            type->kind = schema::Type::Kind::Simple;
             type->name = builtin;
             type->qualifiedName = builtin;
             type->scope = ns;
@@ -528,7 +528,7 @@ namespace sapc {
             ns->types.push_back(type);
             typeIdType = type;
 
-            type->kind = schema::Type::TypeId;
+            type->kind = schema::Type::Kind::TypeId;
             type->name = typeIdName;
             type->qualifiedName = typeIdName;
             type->scope = ns;
@@ -541,7 +541,7 @@ namespace sapc {
             ns->types.push_back(type);
             customTagAttr = type;
 
-            type->kind = schema::Type::Attribute;
+            type->kind = schema::Type::Kind::Attribute;
             type->name = customTagName;
             type->qualifiedName = customTagName;
             type->scope = ns;
@@ -734,8 +734,8 @@ namespace sapc {
 
         if (scope->scope != nullptr)
             return findGlobal(qualId, scope->scope);
-        else
-            return findGlobal(qualId, scope->scope->owner);
+
+        return {};
     }
 
     Resolve Compiler::findGlobal(QualIdSpan qualId, schema::Module const* scope) {
@@ -828,7 +828,7 @@ namespace sapc {
         arr->qualifiedName += arraySuffix.str();
         arr->refType = of;
         arr->arraySize = arraySize;
-        arr->kind = schema::Type::Array;
+        arr->kind = schema::Type::Kind::Array;
         arr->scope = of->scope;
         arr->location = loc;
 
@@ -854,7 +854,7 @@ namespace sapc {
         ptr->qualifiedName = to->qualifiedName;
         ptr->qualifiedName += "*";
         ptr->refType = to;
-        ptr->kind = schema::Type::Pointer;
+        ptr->kind = schema::Type::Kind::Pointer;
         ptr->scope = to->scope;
         ptr->location = loc;
 
@@ -889,7 +889,7 @@ namespace sapc {
         spec->qualifiedName = gen->qualifiedName;
         spec->qualifiedName += genSuffix;
         spec->refType = gen;
-        spec->kind = schema::Type::Specialized;
+        spec->kind = schema::Type::Kind::Specialized;
         spec->scope = gen->scope;
         spec->location = loc;
 

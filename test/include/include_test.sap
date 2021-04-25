@@ -1,4 +1,4 @@
-module enum_test;
+module include_test;
 
 import base;
 
