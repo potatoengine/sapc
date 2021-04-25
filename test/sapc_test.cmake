@@ -1,5 +1,10 @@
 find_package (Python COMPONENTS Interpreter)
 
+if(${SAPC_VALIDATE_SCHEMA_TESTS})
+    find_program(SAPC_PATH_AJV_BIN ajv HINTS ${CMAKE_SOURCE_DIR}/node_modules/.bin REQUIRED DOC "Path to ajv from npm package ajv-cli")
+    message(STATUS "Found ajv at ${SAPC_PATH_AJV_BIN}")
+endif()
+
 function(sapc_test NAME)
     cmake_parse_arguments(PARSE_ARGV 0 ARG "" "TARGET" "SOURCES;SCHEMAS;INCLUDE" )
 
@@ -26,19 +31,26 @@ function(sapc_test NAME)
             list(APPEND INCLUDE_OPTS "-I${INCLUDE_LOCAL}")
         endforeach()
 
-        add_custom_command(OUTPUT ${SCHEMA}.json
+        add_custom_command(OUTPUT ${JSON_FILE}
             COMMAND sapc -o ${JSON_FILE} -d ${DEPS_FILE} ${INCLUDE_OPTS} -- ${CMAKE_CURRENT_SOURCE_DIR}/${SCHEMA}
             COMMENT "Compiling schema ${SCHEMA}"
-            WORKING_DIRECTORY ${CMAKEARY_DIR}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
             MAIN_DEPENDENCY ${SCHEMA}
             DEPENDS sapc
             DEPFILE ${DEPS_FILE}
         )
 
+        if(${SAPC_VALIDATE_SCHEMA_TESTS})
+            add_custom_command(OUTPUT ${JSON_FILE}
+                COMMAND ${SAPC_PATH_AJV_BIN} validate --errors=text -s "${SAPC_JSON_SCHEMA_PATH}" -d "${JSON_FILE}"
+                APPEND
+            )
+        endif()
+
         add_custom_command(OUTPUT ${HEAD_FILE}
             COMMAND Python::Interpreter ${GEN_SCRIPT} -i ${JSON_FILE} -o ${HEAD_FILE}
             COMMENT "Generating header ${SCHEMA}"
-            WORKING_DIRECTORY ${CMAKEARY_DIR}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
             MAIN_DEPENDENCY ${JSON_FILE}
             DEPENDS ${GEN_SCRIPT}
         )
