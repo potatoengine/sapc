@@ -1,8 +1,8 @@
 sapc
 ====
 
-Version 0.15-beta (WIP)
------------------------
+Version 0.15-beta
+-----------------
 
  - Importing modules includes their custom tags in grammar parsing
  - Fix enums to apply custom tags
