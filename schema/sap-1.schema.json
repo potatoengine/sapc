@@ -1,6 +1,6 @@
 {
-  "id": "https://raw.githubusercontent.com/potatoengine/sapc/master/schema/sap-1.schema.json",
-  "$schema": "http://json-schema.org/draft-05/schema#",
+  "$id": "https://raw.githubusercontent.com/potatoengine/sapc/master/schema/sap-1.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "sapc output schema",
   "type": "object",
   "required": [ "module", "types", "constants", "namespaces" ],
@@ -217,7 +217,7 @@
           "properties": {
             "kind": {
               "type": "string",
-              "kind": [ "enum" ]
+              "enum": [ "enum" ]
             },
             "type": { "type": "string" },
             "name": { "type": "string" },
@@ -230,7 +230,7 @@
           "properties": {
             "kind": {
               "type": "string",
-              "kind": [ "typename" ]
+              "enum": [ "typename" ]
             },
             "type": { "type": "string" }
           }
