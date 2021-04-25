@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  pull_request: []
+  pull_request: {}
 
 jobs:
   build-windows:
@@ -43,6 +43,9 @@ jobs:
         if: matrix.config == 'Debug'
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@v3
+      - name: Install ajv
+        run: |
+          npm install -g ajv-cli
       - name: Setup VS Environment
         uses: seanmiddleditch/gha-setup-vsdevenv@v3
       - name: Configure
@@ -52,7 +55,7 @@ jobs:
           CXXFLAGS: ${{ matrix.cxxflags }}
         run: |
           mkdir build
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE:STRING=${{ matrix.config }} -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install
+          cmake -S . -B build -G Ninja -DSAPC_VALIDATE_SCHEMA_TESTS=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.config }} -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install
       - name: Build
         run: cmake --build build --parallel -- -k 0 -v
       - name: Test
