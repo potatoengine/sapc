@@ -64,7 +64,7 @@ namespace sapc {
             inline bool mustConsume(ast::QualifiedId& out);
             inline bool mustConsume(ast::Literal& out);
             inline bool mustConsume(std::unique_ptr<ast::TypeRef>& type);
-            inline bool mustConsume(std::vector<ast::Annotation>& annotations);
+            inline bool mustConsume(std::vector<ast::Annotation>& out_annotations);
 
             inline bool parseFile();
             inline bool parseScope(Location const& start, TokenType terminate, unsigned config);
@@ -661,11 +661,11 @@ namespace sapc {
         return true;
     }
 
-    bool Grammar::mustConsume(std::vector<ast::Annotation>& annotations) {
+    bool Grammar::mustConsume(std::vector<ast::Annotation>& out_annotations) {
         EXPECT(TokenType::LeftBracket);
 
         do { // comma-separated annotations
-            auto& annotation = annotations.emplace_back();
+            auto& annotation = out_annotations.emplace_back();
             EXPECT(annotation.name);
 
             if (consume(TokenType::LeftParen)) {
