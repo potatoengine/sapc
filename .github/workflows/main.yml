@@ -20,14 +20,14 @@ jobs:
             config: Release
           - name: 'gcc'
             os: 'ubuntu-20.04'
-            cxx: g++-9
-            cc: gcc-9
+            cxx: g++-10
+            cc: gcc-10
             cxxflags: -Wall -Werror
             config: Release
           - name: 'clang'
             os: 'ubuntu-20.04'
-            cxx: clang++-9
-            cc: clang-9
+            cxx: clang++-11
+            cc: clang-11
             cxxflags: -fdiagnostics-absolute-paths -Wall -Werror
             config: Release
           - name: 'clang-libc++'
